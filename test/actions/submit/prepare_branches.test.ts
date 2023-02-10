@@ -51,6 +51,7 @@ describe(`(${scene}): correctly get PR information for branches`, function () {
           dryRun: false,
           reviewers: undefined,
           select: false,
+          always: false,
         },
         context
       )

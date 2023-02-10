@@ -88,6 +88,12 @@ export const args = {
     default: false,
     alias: 'f',
   },
+  always: {
+    describe:
+      'Always push updates, even if the branch has not changed. Can be helpful for fixing an inconsistent Graphite stack view on Web/GitHub resulting from downtime/a bug.',
+    type: 'boolean',
+    default: false,
+  },
 } as const;
 
 export const builder = args;

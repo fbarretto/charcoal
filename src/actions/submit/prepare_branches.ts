@@ -36,6 +36,7 @@ export async function getPRInfoForBranches(
     dryRun: boolean;
     reviewers: string | undefined;
     select: boolean;
+    always: boolean;
   },
   context: TContext
 ): Promise<TPRSubmissionInfo> {
@@ -50,6 +51,7 @@ export async function getPRInfoForBranches(
         dryRun: args.dryRun,
         select: args.select,
         editPRFieldsInline: args.editPRFieldsInline,
+        always: args.always,
       },
       context
     );
@@ -106,6 +108,7 @@ async function getPRAction(
     draft: boolean;
     publish: boolean;
     dryRun: boolean;
+    always: boolean;
     select: boolean;
     editPRFieldsInline: boolean | undefined;
   },
@@ -147,7 +150,10 @@ async function getPRAction(
     }[status]
   );
 
-  return args.dryRun || status === 'NOOP'
+  const shouldSkipUpdate =
+    args.always === false && (args.dryRun || status === 'NOOP');
+
+  return shouldSkipUpdate
     ? undefined
     : {
         branchName: args.branchName,
