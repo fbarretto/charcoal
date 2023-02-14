@@ -24,15 +24,15 @@ jobs:
       - name: Install
         run: yarn install --immutable
       - name: Lint
-        run: yarn lint
+        run: yarn workspace @withgraphite/graphite-cli run lint
       - name: Build
-        run: yarn build
+        run: yarn workspace @withgraphite/graphite-cli run build
       - name: Setup git
         run: git config --global user.email "test@gmail.com" && git config --global user.name "test"
       - name: Git Version
         run: git --version
       - name: Test
-        run: yarn test
+        run: yarn workspace @withgraphite/graphite-cli run test
 
   superlinter:
     name: 'Run superlinter'

@@ -23,15 +23,15 @@ jobs:
       - name: Install
         run: yarn install --immutable
       - name: Lint
-        run: yarn lint
+        run: yarn workspace @withgraphite/graphite-cli run lint
       - name: Build
-        run: yarn build
+        run: yarn workspace @withgraphite/graphite-cli run build
       - name: Setup git
         run: git config --global user.email "test@gmail.com" && git config --global user.name "test"
       - name: Git Version
         run: git --version
       - name: Test
-        run: yarn test-ci
+        run: yarn workspace @withgraphite/graphite-cli run test-ci
       - name: Upload coverage
         uses: withgraphite/upload-code-coverage-action@main
         continue-on-error: true
@@ -40,11 +40,12 @@ jobs:
           org: withgraphite
           sha: ${{ github.sha }}
           github-token: ${{ secrets.github_token }}
-          path-to-lcov: "./coverage/lcov.info"
+          path-to-lcov: "./apps/cli/coverage/lcov.info"
       - name: Coveralls Parallel
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.github_token }}
+          path-to-lcov: "./apps/cli/coverage/lcov.info"
 
   superlinter:
     name: 'Run superlinter'
