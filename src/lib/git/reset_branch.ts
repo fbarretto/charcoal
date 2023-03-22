@@ -8,6 +8,14 @@ export function softReset(sha: string): void {
   });
 }
 
+export function hardReset(sha: string): void {
+  runGitCommand({
+    args: [`reset`, `-q`, `--hard`, sha],
+    onError: 'throw',
+    resource: 'hardReset',
+  });
+}
+
 export function trackedReset(sha: string): void {
   runGitCommand({
     args: [`reset`, `-Nq`, sha],

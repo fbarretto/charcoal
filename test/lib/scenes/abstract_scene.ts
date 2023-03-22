@@ -35,6 +35,7 @@ export abstract class AbstractScene {
     const userConfigPath = `${this.dir}/.git/.graphite_user_config`;
     fs.writeFileSync(userConfigPath, cuteString({ tips: false }));
     process.env.GRAPHITE_USER_CONFIG_PATH = userConfigPath;
+    process.env.GRAPHITE_PROFILE = '';
     this.oldDir = process.cwd();
     process.chdir(this.dir);
   }

@@ -24,7 +24,7 @@ const args = {
     type: 'boolean',
   },
   force: {
-    describe: `Don't prompt for confirmation before deleting a branch.`,
+    describe: `Don't prompt for confirmation before deleting a branch or resetting trunk to remote.`,
     demandOption: false,
     default: false,
     type: 'boolean',
@@ -44,7 +44,7 @@ export const command = 'sync';
 export const canonical = 'repo sync';
 export const aliases = ['s'];
 export const description =
-  'Pull the trunk branch from remote and delete any branches that have been merged.';
+  'Pull the trunk branch from remote and delete any branches that have been merged. If trunk cannot be fast-forwarded to match remote, overwrites trunk with the remote version.';
 export const builder = args;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {

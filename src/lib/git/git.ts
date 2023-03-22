@@ -41,7 +41,7 @@ import {
   rebaseInteractive,
 } from './rebase';
 import { rebaseInProgress } from './rebase_in_progress';
-import { softReset, trackedReset } from './reset_branch';
+import { hardReset, softReset, trackedReset } from './reset_branch';
 import { setRemoteTracking } from './set_remote_tracking';
 import { showCommits } from './show_commits';
 import { getBranchNamesAndRevisions } from './sorted_branch_names';
@@ -95,6 +95,7 @@ function composeGitInternal() {
     rebaseAbort,
     rebaseInteractive,
     softReset,
+    hardReset,
     trackedReset,
     setRemoteTracking,
     getBranchNamesAndRevisions,

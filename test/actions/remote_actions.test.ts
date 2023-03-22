@@ -1,8 +1,11 @@
-import { expect } from 'chai';
+import { expect, use } from 'chai';
 import { syncAction } from '../../src/actions/sync/sync';
 import { composeGit } from '../../src/lib/git/git';
 import { CloneScene } from '../lib/scenes/clone_scene';
 import { configureTest } from '../lib/utils/configure_test';
+import chaiAsPromised from 'chai-as-promised';
+
+use(chaiAsPromised);
 
 for (const scene of [new CloneScene()]) {
   // eslint-disable-next-line max-lines-per-function
@@ -54,6 +57,43 @@ for (const scene of [new CloneScene()]) {
         {
           pull: true,
           force: false,
+          delete: false,
+          showDeleteProgress: false,
+          restack: false,
+        },
+        scene.getContext()
+      );
+
+      expect(scene.repo.getRef('refs/heads/main')).to.equal(
+        scene.originRepo.getRef('refs/heads/main')
+      );
+    });
+
+    it('errors if trunk diverges from remote and force is false', async () => {
+      scene.originRepo.createChangeAndCommit('a');
+      scene.repo.createChangeAndCommit('b');
+      await expect(
+        syncAction(
+          {
+            pull: true,
+            force: false,
+            delete: false,
+            showDeleteProgress: false,
+            restack: false,
+          },
+          scene.getContext()
+        )
+      ).to.eventually.be.rejectedWith('Killed Graphite early.');
+    });
+
+    it('can reset trunk from remote', async () => {
+      scene.originRepo.createChangeAndCommit('a');
+      scene.repo.createChangeAndCommit('b');
+
+      await syncAction(
+        {
+          pull: true,
+          force: true,
           delete: false,
           showDeleteProgress: false,
           restack: false,

@@ -1,6 +1,8 @@
 import chalk from 'chalk';
+import prompts from 'prompts';
 import { TContext } from '../../lib/context';
 import { SCOPE } from '../../lib/engine/scope_spec';
+import { KilledError } from '../../lib/errors';
 import { uncommittedTrackedChangesPrecondition } from '../../lib/preconditions';
 import { restackBranches } from '../restack';
 import { syncPrInfo } from '../sync_pr_info';
@@ -19,7 +21,7 @@ export async function syncAction(
   uncommittedTrackedChangesPrecondition();
 
   if (opts.pull) {
-    pullTrunk(context);
+    await pullTrunk(opts.force, context);
     context.splog.tip('You can skip pulling trunk with the `--no-pull` flag.');
   }
 
@@ -94,15 +96,59 @@ export async function syncAction(
   restackBranches(branchesToRestack, context);
 }
 
-export function pullTrunk(context: TContext): void {
+export async function pullTrunk(
+  force: boolean,
+  context: TContext
+): Promise<void> {
   context.splog.info(
     `🌲 Pulling ${chalk.cyan(context.metaCache.trunk)} from remote...`
   );
-  context.splog.info(
-    context.metaCache.pullTrunk() === 'PULL_UNNEEDED'
-      ? `${chalk.green(context.metaCache.trunk)} is up to date.`
-      : `${chalk.green(context.metaCache.trunk)} fast-forwarded to ${chalk.gray(
-          context.metaCache.getRevision(context.metaCache.trunk)
-        )}.`
+  const pullResult = context.metaCache.pullTrunk();
+  if (pullResult !== 'PULL_CONFLICT') {
+    context.splog.info(
+      pullResult === 'PULL_UNNEEDED'
+        ? `${chalk.green(context.metaCache.trunk)} is up to date.`
+        : `${chalk.green(
+            context.metaCache.trunk
+          )} fast-forwarded to ${chalk.gray(
+            context.metaCache.getRevision(context.metaCache.trunk)
+          )}.`
+    );
+    return;
+  }
+
+  // If trunk cannot be fast-forwarded, prompt the user to reset to remote
+  context.splog.warn(
+    `${chalk.blueBright(context.metaCache.trunk)} could not be fast-forwarded.`
   );
+  if (
+    force ||
+    (context.interactive &&
+      (
+        await prompts(
+          {
+            type: 'confirm',
+            name: 'value',
+            message: `Overwrite ${chalk.yellow(
+              context.metaCache.trunk
+            )} with the version from remote?`,
+            initial: true,
+          },
+          {
+            onCancel: () => {
+              throw new KilledError();
+            },
+          }
+        )
+      ).value)
+  ) {
+    context.metaCache.resetTrunkToRemote();
+    context.splog.info(
+      `${chalk.green(context.metaCache.trunk)} set to ${chalk.gray(
+        context.metaCache.getRevision(context.metaCache.trunk)
+      )}.`
+    );
+  } else {
+    throw new KilledError();
+  }
 }

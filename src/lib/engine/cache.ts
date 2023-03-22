@@ -118,7 +118,8 @@ export type TMetaCache = {
   branchMatchesRemote: (branchName: string) => boolean;
 
   pushBranch: (branchName: string, forcePush: boolean) => void;
-  pullTrunk: () => 'PULL_DONE' | 'PULL_UNNEEDED';
+  pullTrunk: () => 'PULL_DONE' | 'PULL_UNNEEDED' | 'PULL_CONFLICT';
+  resetTrunkToRemote: () => void;
 
   fetchBranch: (branchName: string, parentBranchName: string) => void;
   branchMatchesFetched: (branchName: string) => boolean;
@@ -858,7 +859,11 @@ export function composeMetaCache({
       const oldTrunkCachedMeta = cache.branches[trunkName];
       try {
         git.switchBranch(trunkName);
-        git.pullBranch(remote, trunkName);
+        const result = git.pullBranch(remote, trunkName);
+        if (result === 'CONFLICT') {
+          git.switchBranch(currentBranchName);
+          return 'PULL_CONFLICT';
+        }
         const newTrunkRevision = git.getShaOrThrow(trunkName);
         cache.branches[trunkName] = {
           ...oldTrunkCachedMeta,
@@ -867,6 +872,23 @@ export function composeMetaCache({
         return oldTrunkCachedMeta.branchRevision === newTrunkRevision
           ? 'PULL_UNNEEDED'
           : 'PULL_DONE';
+      } finally {
+        git.switchBranch(currentBranchName);
+      }
+    },
+    resetTrunkToRemote: () => {
+      const currentBranchName = getCurrentBranchOrThrow();
+      const trunkName = assertTrunk();
+      const oldTrunkCachedMeta = cache.branches[trunkName];
+
+      try {
+        git.switchBranch(trunkName);
+        const remoteTrunkRevision = git.getShaOrThrow(`${remote}/${trunkName}`);
+        git.hardReset(remoteTrunkRevision);
+        cache.branches[trunkName] = {
+          ...oldTrunkCachedMeta,
+          branchRevision: remoteTrunkRevision,
+        };
       } finally {
         git.switchBranch(currentBranchName);
       }
