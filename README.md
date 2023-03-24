@@ -13,11 +13,17 @@ Graphite is currently in closed beta, and you’ll need a Graphite account to su
 
 Everything is still a little early, so please add comments to our user guide if you have any questions, feedback, or suggestions!
 
+## Changelog
+
+[View the Graphite CLI changelog](apps/cli/.CHANGELOG.md)
+
 ## Support
 
 We *do not* consistently check GH issues — if you have any questions or issues, reach out to us on our [Community Slack server](https://join.slack.com/t/graphite-community/shared_invite/zt-1as9rdo7r-pYmEZzt6M1EhTkvJFNhsnQ)!
 
 ## Developing and Running tests
+
+*Note: not currently exactly up-to-date since we moved to Turborepo — the CLI itself was moved to /apps/cli*
 
 Interested in contributing to graphite CLI? Here's how to get started.
 
