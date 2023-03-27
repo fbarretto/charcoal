@@ -1,5 +1,6 @@
 name: Push CI
-
+permissions:
+  contents: write
 on:
   push:
     branches: [main]
@@ -99,22 +100,23 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: gt-win-${{ github.sha }}.exe
-          path: ${{ github.workspace }}/gt-win.exe
       - name: Download mac
         uses: actions/download-artifact@v3
         with:
-          name: gt-mac-${{ github.sha }}
-          path: ${{ github.workspace }}/gt-mac
+          name: gt-macos-${{ github.sha }}
       - name: Download linux
         uses: actions/download-artifact@v3
         with:
           name: gt-linux-${{ github.sha }}
-          path: ${{ github.workspace }}/gt-linux
+      - name: Rename files
+        run: |
+          mv gt-win-${{ github.sha }}.exe gt-win.exe;
+          mv gt-macos-${{ github.sha }} gt-macos;
+          mv gt-linux-${{ github.sha }} gt-linux
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: ncipollo/release-action@v1
         with:
+          artifacts: "gt-win.exe,gt-macos,gt-linux"
+          draft: false
           prerelease: true
-          files: |
-            gt-win-${{ github.sha }}.exe
-            gt-mac-${{ github.sha }}
-            gt-linux-${{ github.sha }}
+          allowUpdates: true
