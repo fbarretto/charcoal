@@ -6,9 +6,11 @@ import prompts from 'prompts';
 export const suggest = (
   input: string,
   choices: prompts.Choice[]
-): prompts.Choice[] =>
-  choices.filter((c: prompts.Choice) =>
-    c.value.toLocaleLowerCase().includes(input.toLocaleLowerCase())
+): Promise<prompts.Choice[]> =>
+  Promise.resolve(
+    choices.filter((c: prompts.Choice) =>
+      c.value.toLocaleLowerCase().includes(input.toLocaleLowerCase())
+    )
   );
 
 export const clearPromptResultLine = (): void => {

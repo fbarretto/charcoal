@@ -204,7 +204,7 @@ async function getBranchPoints({
                           }`
                         )}`
                       ),
-                      ['disabled' as 'disable']: true, // prompts types are wrong
+                      disabled: true,
                       value: '0', // noop
                     },
                   ]
@@ -230,7 +230,7 @@ async function getBranchPoints({
                 title: chalk.reset(
                   `${' '.repeat(10)}${chalk.dim(parentBranchName)}`
                 ),
-                ['disabled' as 'disable']: true, // prompts types are wrong
+                disabled: true,
                 value: '0', // noop
               },
               {

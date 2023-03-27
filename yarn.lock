@@ -637,10 +637,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/prompts@npm:^2.4.0":
-  version: 2.4.0
-  resolution: "@types/prompts@npm:2.4.0"
-  checksum: ec75655f07fbc3cb2df60a3e3bdd13bfda0554a16f5541285c4b1cc0610756838a2863dccfc911cbb1385492054c07210512164e3dbef272ec638d631783b278
+"@types/prompts@npm:^2.4.3":
+  version: 2.4.3
+  resolution: "@types/prompts@npm:2.4.3"
+  dependencies:
+    "@types/node": "*"
+    kleur: ^3.0.3
+  checksum: f3c150132a175d8ae808da64a67638283eb360ecafe0645549a798618dddd66ac2b83d5efac97a6f31494fa08916c355a4c00f0c864cb035faf27dc626c44f9f
   languageName: node
   linkType: hard
 
@@ -962,7 +965,7 @@ __metadata:
     "@types/mocha": ^9.1.1
     "@types/node": ^17.0.40
     "@types/prettier": ^2
-    "@types/prompts": ^2.4.0
+    "@types/prompts": ^2.4.3
     "@types/semver": ^7
     "@types/tmp": ^0.2.3
     "@types/yargs": ^17.0.10
