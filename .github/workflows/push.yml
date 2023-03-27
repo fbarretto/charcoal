@@ -3,6 +3,8 @@ name: Push CI
 on:
   push:
     branches: [main]
+    tags:
+      - "v*"
 
 jobs:
   lint_and_fast_tests:
@@ -13,7 +15,7 @@ jobs:
         node-version: [14.x, 15.x, 16.x, 17.x, 18.x, current]
     steps:
       # Basic setup
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           clean: 'false'
           fetch-depth: 0
@@ -23,8 +25,6 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install
         run: yarn install --immutable
-      - name: Lint
-        run: yarn workspace @withgraphite/graphite-cli run lint
       - name: Build
         run: yarn workspace @withgraphite/graphite-cli run build
       - name: Setup git
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           # Full git history is needed to get a proper list of changed files within `super-linter`
           fetch-depth: 0
@@ -52,3 +52,69 @@ jobs:
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TYPESCRIPT_DEFAULT_STYLE: prettier
+
+  create-binaries:
+    name: Upload executable binaries
+    strategy:
+      matrix:
+        os: [windows, macos, ubuntu]
+        include:
+          - os: windows
+            build: yarn workspace @withgraphite/graphite-cli run build-pkg -t node16-win -o "gt-win-${{ github.sha }}" --debug
+            artifact-name: gt-win-${{ github.sha }}.exe
+            artifact-path: apps\cli\gt-win-${{ github.sha }}.exe
+          - os: macos
+            build: yarn workspace @withgraphite/graphite-cli run build-pkg -t node16-macos -o "gt-macos-${{ github.sha }}"
+            artifact-name: gt-macos-${{ github.sha }}
+            artifact-path: apps/cli/gt-macos-${{ github.sha }}
+          - os: ubuntu
+            build: yarn workspace @withgraphite/graphite-cli run build-pkg -t node16-linux -o "gt-linux-${{ github.sha }}"
+            artifact-name: gt-linux-${{ github.sha }}
+            artifact-path: apps/cli/gt-linux-${{ github.sha }}
+    runs-on: ${{ matrix.os }}-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install
+        run: yarn install --immutable
+      - name: Build binary
+        run: ${{ matrix.build }}
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifact-path }}
+
+  release:
+    name: Release version
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [lint_and_fast_tests, create-binaries]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download windows
+        uses: actions/download-artifact@v3
+        with:
+          name: gt-win-${{ github.sha }}.exe
+          path: ${{ github.workspace }}/gt-win.exe
+      - name: Download mac
+        uses: actions/download-artifact@v3
+        with:
+          name: gt-mac-${{ github.sha }}
+          path: ${{ github.workspace }}/gt-mac
+      - name: Download linux
+        uses: actions/download-artifact@v3
+        with:
+          name: gt-linux-${{ github.sha }}
+          path: ${{ github.workspace }}/gt-linux
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          files: |
+            gt-win-${{ github.sha }}.exe
+            gt-mac-${{ github.sha }}
+            gt-linux-${{ github.sha }}
