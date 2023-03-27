@@ -14,3 +14,6 @@ dist/
 .nyc_output/
 coverage/
 pkg/
+
+# we use yarn, not npm
+package-lock.json
