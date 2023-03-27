@@ -3,7 +3,10 @@
   "name": "graphite-client",
   "workspaces": {
     "packages": [
-      "./apps/cli"
+      "./apps/cli",
+      "./apps/gti",
+      "./apps/gti-server",
+      "./libs/gti-shared"
     ]
   },
   "packageManager": "yarn@3.3.1",

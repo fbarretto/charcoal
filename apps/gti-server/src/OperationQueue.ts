@@ -1,0 +1,116 @@
+import type { Logger } from "./logger";
+import type {
+  OperationCommandProgressReporter,
+  OperationProgress,
+  RunnableOperation,
+} from "@withgraphite/gti/src/types";
+
+import { newAbortController } from "@withgraphite/gti-shared/compat";
+
+/**
+ * Handle running & queueing all Operations so that only one Operation runs at once.
+ * Operations may be run by gt in the Repository or other providers like ghstack in the RemoteRepository.
+ */
+export class OperationQueue {
+  constructor(
+    private logger: Logger,
+    private runCallback: (
+      operation: RunnableOperation,
+      cwd: string,
+      handleProgress: OperationCommandProgressReporter,
+      signal: AbortSignal
+    ) => Promise<void>
+  ) {}
+
+  private queuedOperations: Array<RunnableOperation> = [];
+  private runningOperation: RunnableOperation | undefined = undefined;
+  private abortController: AbortController | undefined = undefined;
+
+  async runOrQueueOperation(
+    operation: RunnableOperation,
+    onProgress: (progress: OperationProgress) => void,
+    cwd: string
+  ): Promise<void> {
+    if (this.runningOperation != null) {
+      this.queuedOperations.push(operation);
+      onProgress({
+        id: operation.id,
+        kind: "queue",
+        queue: this.queuedOperations.map((o) => o.id),
+      });
+      return;
+    }
+    this.runningOperation = operation;
+
+    const handleCommandProgress: OperationCommandProgressReporter = (
+      ...args
+    ) => {
+      switch (args[0]) {
+        case "spawn":
+          onProgress({
+            id: operation.id,
+            kind: "spawn",
+            queue: this.queuedOperations.map((op) => op.id),
+          });
+          break;
+        case "stdout":
+          onProgress({ id: operation.id, kind: "stdout", message: args[1] });
+          break;
+        case "stderr":
+          onProgress({ id: operation.id, kind: "stderr", message: args[1] });
+          break;
+        case "exit":
+          onProgress({ id: operation.id, kind: "exit", exitCode: args[1] });
+          break;
+      }
+    };
+
+    try {
+      const controller = newAbortController();
+      this.abortController = controller;
+      await this.runCallback(
+        operation,
+        cwd,
+        handleCommandProgress,
+        controller.signal
+      );
+      this.runningOperation = undefined;
+
+      // now that we successfully ran this operation, dequeue the next
+      if (this.queuedOperations.length > 0) {
+        const op = this.queuedOperations.shift();
+        if (op != null) {
+          // don't await this, the caller should resolve when the original operation finishes.
+          void this.runOrQueueOperation(
+            op,
+            // TODO: we're using the onProgress from the LAST `runOperation`... should we be keeping the newer onProgress in the queued operation?
+            onProgress,
+            cwd
+          );
+        }
+      }
+    } catch (err) {
+      const errString = (err as Error).toString();
+      this.logger.log(
+        "error running operation: ",
+        operation.args[0],
+        errString
+      );
+      onProgress({ id: operation.id, kind: "error", error: errString });
+      // clear queue to run when we hit an error
+      this.queuedOperations = [];
+      this.runningOperation = undefined;
+    }
+  }
+
+  /**
+   * Send kill signal to the running operation if the operationId matches.
+   * If the process exits, the exit event will be noticed by the queue.
+   * This function does not block on waiting for the operation process to exit.
+   */
+  abortRunningOperation(operationId: string) {
+    if (this.runningOperation?.id == operationId) {
+      this.abortController?.abort();
+    }
+  }
+}
