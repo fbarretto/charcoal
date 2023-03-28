@@ -187,9 +187,6 @@ export type BeganFetchingSmartlogCommitsEvent = {
 /* merge conflicts */
 
 type ConflictInfo = {
-  command: string;
-  toContinue: string;
-  toAbort: string;
   files: Array<ChangedFile>;
 };
 export type MergeConflicts =

@@ -38,6 +38,7 @@ import type {
   BranchInfo,
   PRNumber,
   RepoRelativePath,
+  Status,
 } from "@withgraphite/gti-cli-shared-types";
 
 export const COMMIT_END_MARK = "<<COMMIT_END_MARK>>";
@@ -279,7 +280,9 @@ export class Repository {
     // Fast path: check if .git/merge dir changed
     const wasAlreadyInConflicts = this.mergeConflicts != null;
     if (!wasAlreadyInConflicts) {
-      const mergeDirExists = await exists(path.join(this.info.dotdir, "merge"));
+      const mergeDirExists = await exists(
+        path.join(this.info.dotdir, "rebase-merge")
+      );
       if (!mergeDirExists) {
         // Not in a conflict
         this.logger.info(
@@ -300,17 +303,10 @@ export class Repository {
     // More expensive full check for conflicts. Necessary if we see .gt/merge change, or if
     // we're already in a conflict and need to re-check if a conflict was resolved.
 
-    let output: ResolveCommandConflictOutput;
+    let output: Status;
     try {
-      // TODO: is this command fast on large files? it includes full conflicting file contents!
-      // `gt resolve --list --all` does not seem to give any way to disambiguate (all conflicts resolved) and (not in merge)
-      const proc = await this.runCommand([
-        "resolve",
-        "--tool",
-        "internal:dumpjson",
-        "--all",
-      ]);
-      output = JSON.parse(proc.stdout) as ResolveCommandConflictOutput;
+      const proc = await this.runCommand(["interactive", "status"]);
+      output = JSON.parse(proc.stdout) as Status;
     } catch (err) {
       this.logger.error(`failed to check for merge conflicts: ${err}`);
       // To avoid being stuck in "loading" state forever, let's pretend there's no conflicts.
@@ -320,18 +316,14 @@ export class Repository {
     }
     const previousConflicts = this.mergeConflicts;
 
-    const [data] = output;
-    if (data.command == null) {
+    if (!output.conflicts) {
       this.logger.info(`repo IS NOT in merge conflicts`);
       this.mergeConflicts = undefined;
       this.mergeConflictsEmitter.emit("change", this.mergeConflicts);
     } else {
-      const newConflicts = data.conflicts;
+      const newConflicts = output.files.filter((file) => file.status === "U");
       const conflicts: MergeConflicts = {
         state: "loaded",
-        command: data.command,
-        toContinue: data.command_details.to_continue,
-        toAbort: data.command_details.to_abort,
         files: [],
       };
       if (
@@ -340,7 +332,7 @@ export class Repository {
       ) {
         // we saw conflicts before, some of which might now be resolved. Preserve previous ordering.
         const newConflictSet = new Set(
-          data.conflicts.map((conflict) => conflict.path)
+          newConflicts.map((conflict) => conflict.path)
         );
         conflicts.files = previousConflicts.files.map((conflict) =>
           newConflictSet.has(conflict.path)
@@ -549,12 +541,12 @@ export class Repository {
     try {
       this.uncommittedChangesBeginFetchingEmitter.emit("start");
       const proc = await this.runCommand(["interactive", "status"]);
-      this.uncommittedChanges = (
-        JSON.parse(proc.stdout) as UncommittedChanges
-      ).map((change) => ({
-        ...change,
-        path: removeLeadingPathSep(change.path),
-      }));
+      this.uncommittedChanges = (JSON.parse(proc.stdout) as Status).files.map(
+        (change) => ({
+          ...change,
+          path: removeLeadingPathSep(change.path),
+        })
+      );
       this.uncommittedChangesEmitter.emit("change", this.uncommittedChanges);
     } catch (err) {
       this.logger.error("Error fetching files: ", err);

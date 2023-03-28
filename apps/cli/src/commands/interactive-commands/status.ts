@@ -1,4 +1,4 @@
-import { ChangedFile } from '@withgraphite/gti-cli-shared-types';
+import { ChangedFile, Status } from '@withgraphite/gti-cli-shared-types';
 import yargs from 'yargs';
 import { TStatusFile } from '../../lib/engine/changed_files';
 import { composeGit } from '../../lib/git/git';
@@ -15,28 +15,30 @@ type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
     const git = composeGit();
-    const status = git.getStatus();
+    const statusFiles = git.getStatus();
     const rebaseInProgress = context.metaCache.rebaseInProgress();
 
-    const statusForInteractive: ChangedFile[] = status.map((file) => ({
-      status: interactiveStatusFromStatus(file.status, rebaseInProgress),
-      path: file.path,
-    }));
+    const statusFilesForInteractive: ChangedFile[] = statusFiles.map(
+      (file) => ({
+        status: interactiveStatusFromStatus(file.status),
+        path: file.path,
+      })
+    );
 
-    context.splog.info(JSON.stringify(statusForInteractive));
+    const status: Status = {
+      conflicts: rebaseInProgress,
+      files: statusFilesForInteractive,
+    };
+
+    context.splog.info(JSON.stringify(status));
   });
 };
 
 function interactiveStatusFromStatus(
-  status: TStatusFile['status'],
-  rebaseInProgress: boolean
+  status: TStatusFile['status']
 ): ChangedFile['status'] {
   if (status === 'unresolved') {
     return 'U';
-  }
-
-  if (rebaseInProgress) {
-    return 'Resolved';
   }
 
   if (status === 'untracked_added') {

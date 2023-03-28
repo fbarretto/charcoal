@@ -219,9 +219,7 @@ export const UncommittedChanges = observer(
                 <Icon icon="loading" />
               </div>
             ) : null}
-            {allConflictsResolved ? null : (
-              <>Resolve conflicts to continue {conflicts.command}</>
-            )}
+            {allConflictsResolved ? null : <>Resolve conflicts to continue</>}
           </div>
         ) : null}
         <div className="button-row">
