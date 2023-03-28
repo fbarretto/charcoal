@@ -59,3 +59,11 @@ export function isDiffEmpty(left: string, right: string): boolean {
     }).length === 0
   );
 }
+
+export function getDiff(left: string, right: string | undefined): string {
+  return runGitCommand({
+    args: ['diff', left, ...(right ? [right] : []), '--no-prefix', '--unified'],
+    onError: 'throw',
+    resource: 'getDiff',
+  });
+}

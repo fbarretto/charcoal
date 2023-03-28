@@ -56,6 +56,7 @@ export type TMetaCache = {
 
   showCommits: (branchName: string, patch: boolean) => string;
   showDiff: (branchName: string) => string;
+  getStackDiff: (branchName: string) => string;
   getChangedFiles: (branchName: string) => TChangedFile[];
 
   getRevision: (branchName: string) => string;
@@ -520,6 +521,15 @@ export function composeMetaCache({
     showDiff: (branchName: string) => {
       const meta = assertBranchIsValidOrTrunkAndGetMeta(branchName);
       return git.showDiff(
+        meta.validationResult === 'TRUNK'
+          ? `${branchName}~`
+          : meta.parentBranchRevision,
+        branchName
+      );
+    },
+    getStackDiff: (branchName: string) => {
+      const meta = assertBranchIsValidOrTrunkAndGetMeta(branchName);
+      return git.getDiff(
         meta.validationResult === 'TRUNK'
           ? `${branchName}~`
           : meta.parentBranchRevision,

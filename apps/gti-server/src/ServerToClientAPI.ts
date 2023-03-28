@@ -374,17 +374,12 @@ export default class ServerToClientAPI {
       }
       case "requestComparison": {
         const { comparison } = data;
-        const DIFF_CONTEXT_LINES = 4;
         const diff: Promise<Result<string>> = repo
           .runCommand([
+            "interactive",
             "diff",
             ...revsetArgsForComparison(comparison),
             // don't include a/ and b/ prefixes on files
-            "--noprefix",
-            "--no-binary",
-            "--nodate",
-            "--unified",
-            String(DIFF_CONTEXT_LINES),
           ])
           .then((o) => ({ value: o.stdout }))
           .catch((error) => {

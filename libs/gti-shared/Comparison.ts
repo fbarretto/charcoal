@@ -21,13 +21,13 @@ export type Comparison =
 export function revsetArgsForComparison(comparison: Comparison): Array<string> {
   switch (comparison.type) {
     case ComparisonType.UncommittedChanges:
-      return ["--rev", "."];
+      return ["uncommitted"];
     case ComparisonType.HeadChanges:
-      return ["--rev", ".^"];
+      return ["head"];
     case ComparisonType.StackChanges:
-      return ["--rev", "ancestor(.,interestingmaster())"];
+      return ["stack"];
     case ComparisonType.Committed:
-      return ["--change", comparison.hash];
+      return ["stack", "--ref", comparison.hash];
   }
 }
 

@@ -16,6 +16,7 @@ import {
   getUnstagedChanges,
   showDiff,
   isDiffEmpty,
+  getDiff,
 } from './diff';
 import {
   fetchBranch,
@@ -67,6 +68,7 @@ function composeGitInternal() {
     moveBranch,
     deleteBranch,
     switchBranch,
+    getDiff,
     forceCheckoutNewBranch,
     forceCreateBranch,
     getCommitRange,
