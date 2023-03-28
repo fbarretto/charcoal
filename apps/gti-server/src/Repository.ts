@@ -653,7 +653,7 @@ export class Repository {
       const options = { stripFinalNewline: false };
       return (
         await this.runCommand(
-          ["cat", file, "--rev", rev],
+          ["interative", "cat", rev, file],
           /*cwd=*/ undefined,
           options
         )

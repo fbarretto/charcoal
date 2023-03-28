@@ -24,6 +24,7 @@ import {
   writeFetchBase,
 } from './fetch_branch';
 import { getFilesChanged } from './files_changed';
+import { fileContents } from './file_contents';
 import { findRemoteBranch } from './find_remote_branch';
 import { getUserEmail } from './get_email';
 import { getShaOrThrow, getSha, composeGetRemoteSha } from './get_sha';
@@ -94,6 +95,7 @@ function composeGitInternal() {
     getRebaseHead,
     pruneRemote,
     showCommits,
+    fileContents,
     pullBranch,
     pushBranch,
     rebaseInProgress,

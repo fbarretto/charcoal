@@ -2,6 +2,7 @@ import { TChangedFile } from '../engine/changed_files';
 import { runGitCommand } from './runner';
 
 // Using pretty formats specified here
+// https://git-scm.com/docs/pretty-formats
 
 export function getFilesChanged(from: string, to: string): TChangedFile[] {
   const result = runGitCommand({
