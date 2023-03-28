@@ -2,7 +2,6 @@ import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
 
 import { CommitPreview } from "../previews";
-import { SucceedableRevset } from "../types";
 import { Operation } from "./Operation";
 
 export class GotoOperation extends Operation {
@@ -13,7 +12,7 @@ export class GotoOperation extends Operation {
   static opName = "Goto";
 
   getArgs() {
-    const args = ["goto", "--rev", SucceedableRevset(this.destination)];
+    const args = ["branch", "checkout", this.destination];
     return args;
   }
 
