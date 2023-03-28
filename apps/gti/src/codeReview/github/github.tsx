@@ -1,14 +1,9 @@
 import type { Operation } from "../../operations/Operation";
-import type {
-  CodeReviewSystem,
-  DiffSummary,
-  PreferredSubmitCommand,
-} from "../../types";
+import type { CodeReviewSystem, DiffSummary } from "../../types";
 import type { UICodeReviewProvider } from "../UICodeReviewProvider";
 import type { ReactNode } from "react";
 
 import { Tooltip } from "../../Tooltip";
-import { GhStackSubmitOperation } from "../../operations/GhStackSubmitOperation";
 import { PrSubmitOperation } from "../../operations/PrSubmitOperation";
 import { Icon } from "@withgraphite/gti-shared/Icon";
 
@@ -18,10 +13,7 @@ import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
 export class GithubUICodeReviewProvider implements UICodeReviewProvider {
   name = "github";
 
-  constructor(
-    private system: CodeReviewSystem & { type: "github" },
-    private preferredSubmitCommand: PreferredSubmitCommand
-  ) {}
+  constructor(private system: CodeReviewSystem & { type: "github" }) {}
 
   DiffBadgeContent({
     diff,
@@ -62,9 +54,6 @@ export class GithubUICodeReviewProvider implements UICodeReviewProvider {
   };
 
   submitOperation(): Operation {
-    if (this.preferredSubmitCommand === "ghstack") {
-      return new GhStackSubmitOperation();
-    }
     return new PrSubmitOperation();
   }
 }

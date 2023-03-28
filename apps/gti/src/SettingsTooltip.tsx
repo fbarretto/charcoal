@@ -1,25 +1,20 @@
-import type { ThemeColor } from "./theme";
-import type { PreferredSubmitCommand } from "./types";
 import type { ReactNode } from "react";
+import type { ThemeColor } from "./theme";
 
-import { DropdownField, DropdownFields } from "./DropdownFields";
-import { Tooltip } from "./Tooltip";
-import { SetConfigOperation } from "./operations/SetConfigOperation";
-import platform from "./platform";
-import { repositoryInfo, useRunOperation } from "./serverAPIState";
-import { themeState } from "./theme";
 import {
   VSCodeButton,
   VSCodeDropdown,
-  VSCodeLink,
   VSCodeOption,
 } from "@vscode/webview-ui-toolkit/react";
 import { Icon } from "@withgraphite/gti-shared/Icon";
-import { unwrap } from "@withgraphite/gti-shared/utils";
+import { DropdownField, DropdownFields } from "./DropdownFields";
+import platform from "./platform";
+import { repositoryInfo, useRunOperation } from "./serverAPIState";
+import { themeState } from "./theme";
+import { Tooltip } from "./Tooltip";
 
-import "./SettingsTooltip.scss";
 import { observer } from "mobx-react-lite";
-import { runInAction } from "mobx";
+import "./SettingsTooltip.scss";
 
 export function SettingsGearButton() {
   return (
@@ -61,60 +56,6 @@ const SettingsDropdown = observer(() => {
           </VSCodeDropdown>
         </Setting>
       )}
-      {repoInfo?.type !== "success" ? (
-        <Icon icon="loading" />
-      ) : repoInfo?.codeReviewSystem.type === "github" ? (
-        <Setting
-          title={<>Preferred Code Review Submit Command</>}
-          description={
-            <>
-              <>
-                Which command to use to submit code for code review on GitHub.
-              </>{" "}
-              <VSCodeLink
-                href="https://graphite.dev/docs/creating-and-submitting-pull-requests"
-                target="_blank"
-              >
-                <>Learn More.</>
-              </VSCodeLink>
-            </>
-          }
-        >
-          <VSCodeDropdown
-            value={repoInfo.preferredSubmitCommand ?? "not set"}
-            onChange={(event) => {
-              const value = (event as React.FormEvent<HTMLSelectElement>)
-                .currentTarget.value as PreferredSubmitCommand | "not set";
-              if (value === "not set") {
-                return;
-              }
-
-              runOperation(
-                new SetConfigOperation(
-                  "local",
-                  "github.preferred_submit_command",
-                  value
-                )
-              );
-              runInAction(() => {
-                const info = repositoryInfo.get();
-                if (info?.type === "success") {
-                  repositoryInfo.set({
-                    ...unwrap(info),
-                    preferredSubmitCommand: value,
-                  });
-                }
-              });
-            }}
-          >
-            {repoInfo.preferredSubmitCommand == null ? (
-              <VSCodeOption value={"not set"}>(not set)</VSCodeOption>
-            ) : null}
-            <VSCodeOption value="ghstack">gt stack submit </VSCodeOption>
-            <VSCodeOption value="pr">gt branch submit</VSCodeOption>
-          </VSCodeDropdown>
-        </Setting>
-      ) : null}
     </DropdownFields>
   );
 });

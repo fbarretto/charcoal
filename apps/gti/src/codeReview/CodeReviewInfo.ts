@@ -16,10 +16,7 @@ export const codeReviewProvider = computed<UICodeReviewProvider | null>(() => {
     return null;
   }
   if (repoInfo.codeReviewSystem.type === "github") {
-    return new GithubUICodeReviewProvider(
-      repoInfo.codeReviewSystem,
-      repoInfo.preferredSubmitCommand ?? "pr"
-    );
+    return new GithubUICodeReviewProvider(repoInfo.codeReviewSystem);
   }
 
   return null;

@@ -84,7 +84,6 @@ export type ValidatedRepoInfo = {
   dotdir: AbsolutePath;
   codeReviewSystem: CodeReviewSystem;
   pullRequestDomain: string | undefined;
-  preferredSubmitCommand?: PreferredSubmitCommand;
 };
 
 export type CodeReviewSystem =
@@ -102,8 +101,6 @@ export type CodeReviewSystem =
       type: "unknown";
       path?: string;
     };
-
-export type PreferredSubmitCommand = "pr" | "ghstack";
 
 export type SuccessorInfo = {
   hash: string;
