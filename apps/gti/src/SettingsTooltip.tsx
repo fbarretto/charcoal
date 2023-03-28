@@ -5,6 +5,7 @@ import {
   VSCodeButton,
   VSCodeDropdown,
   VSCodeOption,
+  VSCodeLink,
 } from "@vscode/webview-ui-toolkit/react";
 import { Icon } from "@withgraphite/gti-shared/Icon";
 import { DropdownField, DropdownFields } from "./DropdownFields";
@@ -15,6 +16,8 @@ import { Tooltip } from "./Tooltip";
 
 import { observer } from "mobx-react-lite";
 import "./SettingsTooltip.scss";
+import { SetConfigOperation } from "./operations/SetConfigOperation";
+import { unwrap } from "@withgraphite/gti-shared/utils";
 
 export function SettingsGearButton() {
   return (
@@ -30,6 +33,7 @@ const SettingsDropdown = observer(() => {
   const theme = themeState.get();
   const repoInfo = repositoryInfo.get();
   const runOperation = useRunOperation();
+
   return (
     <DropdownFields
       title={<>Settings</>}
@@ -53,6 +57,46 @@ const SettingsDropdown = observer(() => {
             <VSCodeOption value="light">
               <>Light</>
             </VSCodeOption>
+          </VSCodeDropdown>
+        </Setting>
+      )}
+      {repoInfo?.type !== "success" ? (
+        <Icon icon="loading" />
+      ) : (
+        <Setting
+          title={<>Preferred branch edit</>}
+          description={
+            <>
+              <>Which command to use to edit a branch.</>{" "}
+              <VSCodeLink
+                href="https://graphite.dev/docs/updating-mid-stack-branches"
+                target="_blank"
+              >
+                <>Learn More.</>
+              </VSCodeLink>
+            </>
+          }
+        >
+          <VSCodeDropdown
+            value={repoInfo.preferredBranchEdit}
+            onChange={(event) => {
+              const value = (event as React.FormEvent<HTMLSelectElement>)
+                .currentTarget.value as "commit" | "amend";
+
+              runOperation(
+                new SetConfigOperation("local", "graphite.branch_edit", value)
+              );
+              const info = repositoryInfo.get();
+              if (info?.type === "success") {
+                repositoryInfo.set({
+                  ...unwrap(info),
+                  preferredBranchEdit: value,
+                });
+              }
+            }}
+          >
+            <VSCodeOption value="commit">commit</VSCodeOption>
+            <VSCodeOption value="amend">amend</VSCodeOption>
           </VSCodeDropdown>
         </Setting>
       )}

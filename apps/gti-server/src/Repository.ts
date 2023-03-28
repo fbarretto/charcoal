@@ -377,15 +377,23 @@ export class Repository {
     logger: Logger,
     cwd: string
   ): Promise<RepoInfo> {
-    const [repoRoot, dotdir, pathsDefault, pullRequestDomain] =
-      await Promise.all([
-        findRoot(command, logger, cwd).catch((err: Error) => err),
-        findDotDir(command, logger, cwd),
-        getConfig(command, logger, cwd, "paths.default").then(
-          (value) => value ?? ""
-        ),
-        getConfig(command, logger, cwd, "github.pull_request_domain"),
-      ]);
+    const [
+      repoRoot,
+      dotdir,
+      pathsDefault,
+      pullRequestDomain,
+      preferredBranchEdit,
+    ] = await Promise.all([
+      findRoot(command, logger, cwd).catch((err: Error) => err),
+      findDotDir(command, logger, cwd),
+      getConfig(command, logger, cwd, "paths.default").then(
+        (value) => value ?? ""
+      ),
+      getConfig(command, logger, cwd, "github.pull_request_domain"),
+      getConfig(command, logger, cwd, "graphite.branch_edit").then(
+        (value) => (value as "commit" | "amend") ?? ("amend" as const)
+      ),
+    ]);
     if (repoRoot instanceof Error) {
       return { type: "invalidCommand", command };
     }
@@ -422,6 +430,7 @@ export class Repository {
       repoRoot,
       codeReviewSystem,
       pullRequestDomain,
+      preferredBranchEdit,
     };
     logger.info("repo info: ", result);
     return result;

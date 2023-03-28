@@ -84,6 +84,7 @@ export type ValidatedRepoInfo = {
   dotdir: AbsolutePath;
   codeReviewSystem: CodeReviewSystem;
   pullRequestDomain: string | undefined;
+  preferredBranchEdit: "amend" | "commit";
 };
 
 export type CodeReviewSystem =
