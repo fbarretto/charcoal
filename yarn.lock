@@ -4408,6 +4408,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": ^5.27.1
     "@typescript-eslint/parser": ^5.27.1
     "@withgraphite/graphite-cli-routes": ^0.23.0
+    "@withgraphite/gti-cli-shared-types": "workspace:*"
     "@withgraphite/retype": ^0.3.11
     "@withgraphite/retyped-routes": ^0.3.1
     chai: ^4.3.6
@@ -4436,6 +4437,26 @@ __metadata:
   bin:
     graphite: dist/src/index.js
     gt: dist/src/index.js
+  languageName: unknown
+  linkType: soft
+
+"@withgraphite/gti-cli-shared-types@workspace:*, @withgraphite/gti-cli-shared-types@workspace:libs/gti-cli-shared-types":
+  version: 0.0.0-use.local
+  resolution: "@withgraphite/gti-cli-shared-types@workspace:libs/gti-cli-shared-types"
+  dependencies:
+    "@primer/react": 35.7.0
+    "@types/diff": ^5.0.2
+    "@vscode/codicons": ^0.0.32
+    diff: ^5.0.0
+    mobx: ^6.6.2
+    mobx-react-lite: ^3.4.0
+    mobx-utils: ^6.0.6
+    node-abort-controller: ^3.1.1
+    react: ^18.1.0
+    sass: ^1.51.0
+    styled-components: ^5.3.5
+    vscode-oniguruma: ^1.6.1
+    vscode-textmate: ^6.0.0
   languageName: unknown
   linkType: soft
 
@@ -4491,6 +4512,7 @@ __metadata:
     "@types/react": ^18.0.0
     "@types/react-dom": ^18.0.0
     "@vscode/webview-ui-toolkit": ^1.0.0
+    "@withgraphite/gti-cli-shared-types": "workspace:*"
     "@withgraphite/gti-server": "workspace:*"
     diff: ^5.0.0
     fast-json-stable-stringify: ^2.1.0

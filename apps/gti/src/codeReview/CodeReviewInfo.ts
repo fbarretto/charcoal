@@ -1,4 +1,4 @@
-import type { DiffId, DiffSummary, PageVisibility, Result } from "../types";
+import type { DiffSummary, PageVisibility, Result } from "../types";
 import type { UICodeReviewProvider } from "./UICodeReviewProvider";
 
 import serverAPI from "../ClientToServerAPI";
@@ -8,6 +8,7 @@ import { debounce } from "@withgraphite/gti-shared/debounce";
 import { observableBoxWithInitializers } from "../lib/mobx-recoil/observable_box_with_init";
 import { computed } from "mobx";
 import { family } from "../lib/mobx-recoil/family";
+import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
 
 export const codeReviewProvider = computed<UICodeReviewProvider | null>(() => {
   const repoInfo = repositoryInfo.get();
@@ -25,8 +26,8 @@ export const codeReviewProvider = computed<UICodeReviewProvider | null>(() => {
 });
 
 export const diffSummary = family({
-  genKey: (diffId: DiffId) => diffId,
-  genValue: (diffId: DiffId) => {
+  genKey: (diffId: PRNumber) => diffId,
+  genValue: (diffId: PRNumber) => {
     return computed(() => {
       const all = allDiffSummaries.get();
       if (all == null) {
@@ -41,7 +42,7 @@ export const diffSummary = family({
 });
 
 export const allDiffSummaries = observableBoxWithInitializers<
-  Result<Map<DiffId, DiffSummary> | null>
+  Result<Map<PRNumber, DiffSummary> | null>
 >({
   default: { value: null },
   effects: [

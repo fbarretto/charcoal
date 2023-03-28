@@ -1,7 +1,6 @@
 import type { Operation } from "../../operations/Operation";
 import type {
   CodeReviewSystem,
-  DiffId,
   DiffSummary,
   PreferredSubmitCommand,
 } from "../../types";
@@ -14,6 +13,7 @@ import { PrSubmitOperation } from "../../operations/PrSubmitOperation";
 import { Icon } from "@withgraphite/gti-shared/Icon";
 
 import "./GitHubPRBadge.scss";
+import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
 
 export class GithubUICodeReviewProvider implements UICodeReviewProvider {
   name = "github";
@@ -48,7 +48,7 @@ export class GithubUICodeReviewProvider implements UICodeReviewProvider {
     );
   }
 
-  formatDiffNumber(diffId: DiffId): string {
+  formatDiffNumber(diffId: PRNumber): string {
     return `#${diffId}`;
   }
 

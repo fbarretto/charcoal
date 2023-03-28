@@ -1,19 +1,19 @@
+import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
 import type { CommitPreview } from "./previews";
-import type { CommitInfo } from "./types";
 
 export type CommitTree = {
-  info: CommitInfo;
+  info: BranchInfo;
   children: Array<CommitTree>;
 };
 
 export type CommitTreeWithPreviews = {
-  info: CommitInfo;
+  info: BranchInfo;
   children: Array<CommitTreeWithPreviews>;
   previewType?: CommitPreview;
 };
 
-const byTimeDecreasing = (a: CommitInfo, b: CommitInfo) =>
-  b.date.getTime() - a.date.getTime();
+const byTimeDecreasing = (a: BranchInfo, b: BranchInfo) =>
+  new Date(b.date).getTime() - new Date(a.date).getTime();
 
 /**
  * Given a list of commits from disk, produce a tree capturing the
@@ -27,8 +27,8 @@ const byTimeDecreasing = (a: CommitInfo, b: CommitInfo) =>
  *     - ...unless it has a bookmark
  *  - If a commit has multiple children, they are sorted by date
  */
-export function getCommitTree(commits: Array<CommitInfo>): Array<CommitTree> {
-  const childNodesByParent = new Map<string, Set<CommitInfo>>();
+export function getCommitTree(commits: Array<BranchInfo>): Array<CommitTree> {
+  const childNodesByParent = new Map<string, Set<BranchInfo>>();
   commits.forEach((commit) => {
     const [parent] = commit.parents;
     if (!parent) {
@@ -42,19 +42,16 @@ export function getCommitTree(commits: Array<CommitInfo>): Array<CommitTree> {
     set.add(commit);
   });
 
-  const makeTree = (revision: CommitInfo): CommitTree => {
-    const { hash } = revision;
-    const childrenSet = childNodesByParent.get(hash) ?? [];
+  const makeTree = (revision: BranchInfo): CommitTree => {
+    const { branch } = revision;
+    const childrenSet = childNodesByParent.get(branch) ?? [];
 
     const childrenInfos = [...childrenSet].sort(byTimeDecreasing);
 
     const children: Array<CommitTree> =
       childrenInfos == null
         ? []
-        : // only make branches off the main line for non-public revisions
-          childrenInfos
-            .filter((child) => child.phase !== "public")
-            .map(makeTree);
+        : childrenInfos.filter((child) => !child.partOfTrunk).map(makeTree);
 
     return {
       info: revision,
@@ -63,7 +60,7 @@ export function getCommitTree(commits: Array<CommitInfo>): Array<CommitTree> {
   };
 
   const initialCommits = commits.filter(
-    (commit) => commit.phase === "public" || commit.parents.length === 0
+    (commit) => commit.partOfTrunk || commit.parents.length === 0
   );
 
   // build tree starting from public revisions
@@ -83,7 +80,7 @@ export function* walkTreePostorder(
 
 export function isDescendant(hash: string, commitTree: CommitTree): boolean {
   for (const commit of walkTreePostorder([commitTree])) {
-    if (commit.info.hash === hash) {
+    if (commit.info.branch === hash) {
       return true;
     }
   }

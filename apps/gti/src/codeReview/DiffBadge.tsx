@@ -1,4 +1,4 @@
-import type { DiffId, DiffSummary } from "../types";
+import type { DiffSummary } from "../types";
 import type { UICodeReviewProvider } from "./UICodeReviewProvider";
 import type { ReactNode } from "react";
 
@@ -13,6 +13,7 @@ import { Icon } from "@withgraphite/gti-shared/Icon";
 
 import "./DiffBadge.scss";
 import { observer } from "mobx-react-lite";
+import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
 
 /**
  * Component that shows inline summary information about a Diff,
@@ -70,7 +71,7 @@ function DiffSpinner({
   diffId,
   provider,
 }: {
-  diffId: DiffId;
+  diffId: PRNumber;
   provider: UICodeReviewProvider;
 }) {
   return (
@@ -88,7 +89,7 @@ const DiffInfoInner = observer(
     diffId,
     provider,
   }: {
-    diffId: DiffId;
+    diffId: PRNumber;
     provider: UICodeReviewProvider;
   }) => {
     const diffInfoResult = diffSummary(diffId).get();

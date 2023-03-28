@@ -1,12 +1,12 @@
+import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
-import type { Hash } from "../types";
 
 import { CommitPreview } from "../previews";
 import { SucceedableRevset } from "../types";
 import { Operation } from "./Operation";
 
 export class GotoOperation extends Operation {
-  constructor(private destination: Hash) {
+  constructor(private destination: BranchName) {
     super();
   }
 
@@ -20,14 +20,14 @@ export class GotoOperation extends Operation {
   makeOptimisticApplier(
     context: PreviewContext
   ): ApplyPreviewsFuncType | undefined {
-    const headCommitHash = context.headCommit?.hash;
+    const headCommitHash = context.headCommit?.branch;
     if (headCommitHash === this.destination) {
       // head is destination => the goto completed
       return undefined;
     }
 
     const func: ApplyPreviewsFuncType = (tree, _previewType) => {
-      if (tree.info.hash === this.destination) {
+      if (tree.info.branch === this.destination) {
         const modifiedInfo = { ...tree.info, isHead: true };
         // this is the commit we're moving to
         return {
@@ -35,7 +35,7 @@ export class GotoOperation extends Operation {
           children: tree.children,
           previewType: CommitPreview.GOTO_DESTINATION,
         };
-      } else if (tree.info.hash === headCommitHash) {
+      } else if (tree.info.branch === headCommitHash) {
         const modifiedInfo = { ...tree.info, isHead: false };
         // this is the previous head commit, where we used to be
         return {

@@ -1,5 +1,5 @@
+import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
 import type { Platform } from "../platform";
-import type { RepoRelativePath } from "../types";
 
 declare global {
   interface Window {

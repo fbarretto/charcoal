@@ -1,4 +1,3 @@
-import type { CommitInfo, Hash } from "./types";
 import {
   FormEvent,
   ForwardedRef,
@@ -54,6 +53,10 @@ import "./CommitInfo.scss";
 import { computed, observable, runInAction } from "mobx";
 import { family } from "./lib/mobx-recoil/family";
 import { observer } from "mobx-react-lite";
+import type {
+  BranchInfo,
+  BranchName,
+} from "@withgraphite/gti-cli-shared-types";
 
 export type EditedMessage = { title: string; description: string };
 
@@ -92,8 +95,8 @@ type EditedMessageUnlessOptimistic =
  * This optimistic value is never returned in commit mode.
  */
 const editedCommitMessagesDefaults = family({
-  genKey: (hash: Hash | "head") => hash,
-  genValue: (hash: Hash | "head") => {
+  genKey: (hash: BranchName | "head") => hash,
+  genValue: (hash: BranchName | "head") => {
     return computed<EditedMessageUnlessOptimistic>(() => {
       if (hash === "head") {
         const template = commitMessageTemplate.get();
@@ -116,16 +119,16 @@ const editedCommitMessagesDefaults = family({
   },
 });
 const editedCommitMessages = family({
-  genKey: (hash: Hash | "head") => hash,
-  genValue: (hash: Hash | "head") => {
+  genKey: (hash: BranchName | "head") => hash,
+  genValue: (hash: BranchName | "head") => {
     const def = editedCommitMessagesDefaults(hash).get();
     return observable.box<EditedMessageUnlessOptimistic>(def);
   },
 });
 
 export const hasUnsavedEditedCommitMessage = family({
-  genKey: (hash: Hash | "head") => hash,
-  genValue: (hash: Hash | "head") => {
+  genKey: (hash: BranchName | "head") => hash,
+  genValue: (hash: BranchName | "head") => {
     return computed(() => {
       const edited = editedCommitMessages(hash).get();
       if (edited.type === "optimistic") {
@@ -192,11 +195,11 @@ export const CommitInfoSidebar = observer(() => {
 });
 
 export const CommitInfoDetails = observer(
-  ({ commit }: { commit: CommitInfo }) => {
+  ({ commit }: { commit: BranchInfo }) => {
     const mode = commitMode.get();
     const isCommitMode = commit.isHead && mode === "commit";
     const editedMessageState = editedCommitMessages(
-      isCommitMode ? "head" : commit.hash
+      isCommitMode ? "head" : commit.branch
     );
     const setEditedCommitMesage = (value: EditedMessageUnlessOptimistic) => {
       editedMessageState.set(value);
@@ -245,7 +248,7 @@ export const CommitInfoDetails = observer(
 
       // We only want to recompute this when the commit/mode changes.
       // we expect the edited message to change constantly.
-    }, [commit.hash, isCommitMode]);
+    }, [commit.branch, isCommitMode]);
 
     return (
       <div className="commit-info-view" data-testid="commit-info-view">
@@ -398,7 +401,7 @@ export const CommitInfoDetails = observer(
                 <OpenComparisonViewButton
                   comparison={{
                     type: ComparisonType.Committed,
-                    hash: commit.hash,
+                    hash: commit.branch,
                   }}
                 />
                 <ChangedFiles
@@ -429,7 +432,7 @@ const ActionsBar = observer(
     fieldsBeingEdited,
     isCommitMode,
   }: {
-    commit: CommitInfo;
+    commit: BranchInfo;
     editedMessage: EditedMessageUnlessOptimistic;
     fieldsBeingEdited: FieldsBeingEdited;
     isCommitMode: boolean;
@@ -457,7 +460,7 @@ const ActionsBar = observer(
       if (
         selected &&
         selected.size === 1 &&
-        firstOfIterable(selected.values()) === commit.hash
+        firstOfIterable(selected.values()) === commit.branch
       ) {
         selectedCommits.clear();
       }
@@ -467,7 +470,7 @@ const ActionsBar = observer(
       async (skipConfirmation?: boolean) => {
         if (!skipConfirmation) {
           const hasUnsavedEditsLoadable = hasUnsavedEditedCommitMessage(
-            isCommitMode ? "head" : commit.hash
+            isCommitMode ? "head" : commit.branch
           ).get();
           const hasUnsavedEdits = hasUnsavedEditsLoadable === true;
           if (hasUnsavedEdits) {
@@ -480,8 +483,8 @@ const ActionsBar = observer(
           }
         }
 
-        editedCommitMessages(isCommitMode ? "head" : commit.hash).set(
-          editedCommitMessagesDefaults(commit.hash).get()
+        editedCommitMessages(isCommitMode ? "head" : commit.branch).set(
+          editedCommitMessagesDefaults(commit.branch).get()
         );
         commitFieldsBeingEdited.set({ title: false, description: false });
       },
@@ -501,7 +504,7 @@ const ActionsBar = observer(
         isCommitMode
           ? new CommitOperation(
               assertNonOptimistic(editedMessage),
-              commit.hash,
+              commit.branch,
               filesToCommit
             )
           : new AmendOperation(
@@ -564,7 +567,7 @@ const ActionsBar = observer(
             onClick={() => {
               runOperation(
                 new AmendMessageOperation(
-                  commit.hash,
+                  commit.branch,
                   assertNonOptimistic(editedMessage)
                 )
               );
@@ -676,11 +679,12 @@ const ActionsBar = observer(
   }
 );
 
-function CommitTitleByline({ commit }: { commit: CommitInfo }) {
+function CommitTitleByline({ commit }: { commit: BranchInfo }) {
   const createdByInfo = (
     // TODO: determine if you're the author to say "you"
     <>Created by {commit.author}</>
   );
+  const commitDate = new Date(commit.date);
   return (
     <Subtle className="commit-info-title-byline">
       {commit.isHead ? <YouAreHere hideSpinner /> : null}
@@ -690,8 +694,8 @@ function CommitTitleByline({ commit }: { commit: CommitInfo }) {
         </Tooltip>
       </OverflowEllipsis>
       <OverflowEllipsis>
-        <Tooltip trigger="hover" title={commit.date.toLocaleString()}>
-          <RelativeDate date={commit.date} />
+        <Tooltip trigger="hover" title={commitDate.toLocaleString()}>
+          <RelativeDate date={commitDate} />
         </Tooltip>
       </OverflowEllipsis>
     </Subtle>

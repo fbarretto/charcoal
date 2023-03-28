@@ -1,17 +1,17 @@
+import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
 import type {
-  DiffId,
   DiffSummary,
   Disposable,
   Result,
   OperationCommandProgressReporter,
 } from "@withgraphite/gti/src/types";
 
-type DiffSummaries = Map<DiffId, DiffSummary>;
+type DiffSummaries = Map<PRNumber, DiffSummary>;
 /**
  * API to fetch data from Remote Code Review system, like GitHub.
  */
 export interface CodeReviewProvider {
-  triggerDiffSummariesFetch(diffs: Array<DiffId>): unknown;
+  triggerDiffSummariesFetch(diffs: Array<PRNumber>): unknown;
 
   onChangeDiffSummaries(
     callback: (result: Result<DiffSummaries>) => unknown

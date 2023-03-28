@@ -1,4 +1,4 @@
-import type { CommitInfo, SuccessorInfo } from "./types";
+import type { SuccessorInfo } from "./types";
 
 import { gtiDrawerState } from "./App";
 import { hasUnsavedEditedCommitMessage } from "./CommitInfo";
@@ -28,6 +28,7 @@ import { useContextMenu } from "@withgraphite/gti-shared/ContextMenu";
 import { Icon } from "@withgraphite/gti-shared/Icon";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
+import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
 
 function isDraggablePreview(previewType?: CommitPreview): boolean {
   switch (previewType) {
@@ -79,16 +80,16 @@ export const Commit = memo(
       previewType,
       hasChildren,
     }: {
-      commit: CommitInfo;
+      commit: BranchInfo;
       previewType?: CommitPreview;
       hasChildren: boolean;
     }) => {
-      const isPublic = commit.phase === "public";
+      const isPublic = commit.partOfTrunk;
 
       const handlePreviewedOperation = useRunPreviewedOperation();
       const runOperation = useRunOperation();
 
-      const { isSelected, onClickToSelect } = useCommitSelection(commit.hash);
+      const { isSelected, onClickToSelect } = useCommitSelection(commit.branch);
       const actionsPrevented = previewPreventsActions(previewType);
 
       function onDoubleClickToShowDrawer(e: React.MouseEvent<HTMLDivElement>) {
@@ -112,13 +113,13 @@ export const Commit = memo(
       const contextMenu = useContextMenu(() => {
         return [
           {
-            label: <>Copy Commit Hash "{commit?.hash}"</>,
-            onClick: () => platform.clipboardCopy(commit.hash),
+            label: <>Copy Commit Hash "{commit?.branch}"</>,
+            onClick: () => platform.clipboardCopy(commit.branch),
           },
           {
             label: <>Hide Commit and Descendents</>,
             onClick: () =>
-              operationBeingPreviewed.set(new HideOperation(commit.hash)),
+              operationBeingPreviewed.set(new HideOperation(commit.branch)),
           },
         ];
       });
@@ -126,7 +127,7 @@ export const Commit = memo(
       return (
         <div
           className={"commit" + (commit.isHead ? " head-commit" : "")}
-          data-testid={`commit-${commit.hash}`}
+          data-testid={`commit-${commit.branch}`}
         >
           {commit.isHead ||
           previewType === CommitPreview.GOTO_PREVIOUS_LOCATION ? (
@@ -155,14 +156,11 @@ export const Commit = memo(
               onDoubleClick={onDoubleClickToShowDrawer}
             >
               <div className="commit-avatar" />
-              {isPublic ? null : (
-                <span className="commit-title">
-                  <span>{commit.title}</span>
-                  <CommitDate date={commit.date} />
-                </span>
-              )}
+              <span className="commit-title">
+                <span>{commit.title || commit.branch}</span>
+                <CommitDate rawDate={commit.date} />
+              </span>
               <UnsavedEditedMessageIndicator commit={commit} />
-              {isPublic ? <CommitDate date={commit.date} /> : null}
               {previewType === CommitPreview.REBASE_OPTIMISTIC_ROOT ? (
                 <span className="commit-inline-operation-progress">
                   <Icon icon="loading" /> <>rebasing...</>
@@ -205,7 +203,7 @@ export const Commit = memo(
                   <VSCodeButton
                     appearance="secondary"
                     onClick={(event) => {
-                      runOperation(new GotoOperation(commit.hash));
+                      runOperation(new GotoOperation(commit.branch));
                       event.stopPropagation(); // don't select commit
                     }}
                   >
@@ -218,8 +216,8 @@ export const Commit = memo(
               ) : null}
             </DraggableCommit>
             <DivIfChildren className="commit-second-row">
-              {commit.diffId && !isPublic ? (
-                <DiffInfo diffId={commit.diffId} />
+              {commit.pr && !isPublic ? (
+                <DiffInfo diffId={commit.pr.number} />
               ) : null}
             </DivIfChildren>
           </div>
@@ -229,7 +227,9 @@ export const Commit = memo(
   )
 );
 
-function CommitDate({ date }: { date: Date }) {
+function CommitDate({ rawDate }: { rawDate: string }) {
+  const date = new Date(rawDate);
+
   return (
     <span className="commit-date">
       <RelativeDate date={date} useShortVariant />
@@ -253,8 +253,8 @@ const DivIfChildren = observer(
 );
 
 const UnsavedEditedMessageIndicator = observer(
-  ({ commit }: { commit: CommitInfo }) => {
-    const isEdted = hasUnsavedEditedCommitMessage(commit.hash).get();
+  ({ commit }: { commit: BranchInfo }) => {
+    const isEdted = hasUnsavedEditedCommitMessage(commit.branch).get();
     if (!isEdted) {
       return null;
     }
@@ -277,7 +277,7 @@ const HeadCommitInfo = observer(
     previewType,
     hasChildren,
   }: {
-    commit: CommitInfo;
+    commit: BranchInfo;
     previewType?: CommitPreview;
     hasChildren: boolean;
   }) => {
@@ -289,8 +289,7 @@ const HeadCommitInfo = observer(
     //    - we're on a public commit (you'll create a new "branch" by committing)
     //    - the commit we're rendering has children (we'll render the current child as new branch after committing)
     const indent =
-      uncommittedChanges.length > 0 &&
-      (commit.phase === "public" || hasChildren);
+      uncommittedChanges.length > 0 && (commit.partOfTrunk || hasChildren);
 
     return (
       <div
@@ -349,7 +348,7 @@ export const YouAreHere = observer(
   }
 );
 
-let commitBeingDragged: CommitInfo | undefined = undefined;
+let commitBeingDragged: BranchInfo | undefined = undefined;
 
 function preventDefault(e: Event) {
   e.preventDefault();
@@ -373,7 +372,7 @@ function DraggableCommit({
   onDoubleClick,
   onContextMenu,
 }: {
-  commit: CommitInfo;
+  commit: BranchInfo;
   children: React.ReactNode;
   className: string;
   draggable: boolean;
@@ -386,20 +385,23 @@ function DraggableCommit({
   const handleDragEnter = useCallback(() => {
     const treeMap = latestCommitTreeMap.get();
 
-    if (commitBeingDragged != null && commit.hash !== commitBeingDragged.hash) {
-      const draggedTree = treeMap.get(commitBeingDragged.hash);
+    if (
+      commitBeingDragged != null &&
+      commit.branch !== commitBeingDragged.branch
+    ) {
+      const draggedTree = treeMap.get(commitBeingDragged.branch);
       if (draggedTree) {
         if (
           // can't rebase a commit onto its descendants
-          !isDescendant(commit.hash, draggedTree) &&
+          !isDescendant(commit.branch, draggedTree) &&
           // can't rebase a commit onto its parent... it's already there!
-          !(commitBeingDragged.parents as Array<string>).includes(commit.hash)
+          !(commitBeingDragged.parents as Array<string>).includes(commit.branch)
         ) {
           // if the dest commit has a remote bookmark, use that instead of the hash.
           // this is easier to understand in the command history and works better with optimistic state
-          const destination = commit.hash;
+          const destination = commit.branch;
           operationBeingPreviewed.set(
-            new RebaseOperation(commitBeingDragged.hash, destination)
+            new RebaseOperation(commitBeingDragged.branch, destination)
           );
         }
       }

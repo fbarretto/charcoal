@@ -10,6 +10,7 @@
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@vscode/webview-ui-toolkit": "^1.0.0",
+    "@withgraphite/gti-cli-shared-types": "workspace:*",
     "@withgraphite/gti-server": "workspace:*",
     "diff": "^5.0.0",
     "fast-json-stable-stringify": "^2.1.0",

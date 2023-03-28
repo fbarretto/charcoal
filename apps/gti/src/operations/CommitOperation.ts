@@ -1,3 +1,7 @@
+import type {
+  BranchName,
+  RepoRelativePath,
+} from "@withgraphite/gti-cli-shared-types";
 import type { EditedMessage } from "../CommitInfo";
 import type { CommitTree } from "../getCommitTree";
 import type {
@@ -6,12 +10,7 @@ import type {
   PreviewContext,
   UncommittedChangesPreviewContext,
 } from "../previews";
-import type {
-  CommandArg,
-  Hash,
-  RepoRelativePath,
-  UncommittedChanges,
-} from "../types";
+import type { CommandArg, UncommittedChanges } from "../types";
 
 import { Operation } from "./Operation";
 
@@ -23,7 +22,7 @@ export class CommitOperation extends Operation {
    */
   constructor(
     private message: EditedMessage,
-    private originalHeadHash: Hash,
+    private originalHeadHash: BranchName,
     private filesPathsToCommit?: Array<RepoRelativePath>
   ) {
     super();
@@ -56,7 +55,7 @@ export class CommitOperation extends Operation {
   ): ApplyPreviewsFuncType | undefined {
     const OPTIMISTIC_COMMIT_HASH = "OPTIMISTIC_COMMIT_HASH";
     const head = context.headCommit;
-    if (head?.hash !== this.originalHeadHash) {
+    if (head?.branch !== this.originalHeadHash) {
       // commit succeeded when we no longer see the original head hash
       return undefined;
     }
@@ -71,15 +70,15 @@ export class CommitOperation extends Operation {
         // These files are visible in the commit info view during optimistic state.
         filesSample: [],
         isHead: true,
-        parents: [head?.hash ?? ""],
-        hash: OPTIMISTIC_COMMIT_HASH,
-        phase: "draft",
+        parents: [head?.branch ?? ""],
+        branch: OPTIMISTIC_COMMIT_HASH,
+        partOfTrunk: false,
         totalFileCount: 0,
-        date: new Date(),
+        date: new Date().toISOString(),
       },
     };
     const func: ApplyPreviewsFuncType = (tree, _previewType) => {
-      if (tree.info.hash === this.originalHeadHash) {
+      if (tree.info.branch === this.originalHeadHash) {
         // insert fake commit as a child of the old head
         return {
           info: { ...tree.info, isHead: false }, // overwrite previous head as no longer being head

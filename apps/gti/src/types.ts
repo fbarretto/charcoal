@@ -2,6 +2,12 @@ import type { TrackDataWithEventName } from "@withgraphite/gti-server/src/analyt
 import type { GitHubDiffSummary } from "@withgraphite/gti-server/src/github/githubCodeReviewProvider";
 import type { Comparison } from "@withgraphite/gti-shared/Comparison";
 import type { AllUndefined, Json } from "@withgraphite/gti-shared/typeUtils";
+import type {
+  RepoRelativePath,
+  ChangedFile,
+  BranchInfo,
+  PRNumber,
+} from "@withgraphite/gti-cli-shared-types";
 
 export type Result<T> =
   | { value: T; error?: undefined }
@@ -11,11 +17,6 @@ export type Result<T> =
 export type PlatformName = "browser" | "androidStudio" | "vscode";
 
 export type AbsolutePath = string;
-/**
- * Path relative to repository root dir. Generally, most paths should be RepoRelativePaths,
- * and only convert to CwdRelativePath or basenames or AbsolutePath when needed.
- */
-export type RepoRelativePath = string;
 
 /**
  * cwd may be a subdirectory of the repository root.
@@ -23,19 +24,10 @@ export type RepoRelativePath = string;
  * but we generally prefer {@link RepoRelativePaths} when possible. */
 export type CwdRelativePath = string;
 
-/**
- * Shortened 12-character commit hashes from `{node|short}` template,
- * as opposed to full 40-char hashes */
-export type Hash = string;
 /** Revsets are an eden concept that let you specify commits.
  * This could be a Hash, '.' for HEAD, .^ for parent of head, etc. See `eden help revset` */
 export type Revset = string;
 
-/**
- * Diff identifier according to the current repo's remote repository provider (e.g. GitHub)
- * For Github, this is a PR number, like "7" (for PR #7)
- */
-export type DiffId = string;
 /**
  * "Diff" means a unit of Code Review according to your remote repo provider
  * For GitHub, this is a "Pull Request"
@@ -113,32 +105,9 @@ export type CodeReviewSystem =
 
 export type PreferredSubmitCommand = "pr" | "ghstack";
 
-export type CommitInfo = {
-  title: string;
-  hash: Hash;
-  parents: [] | [string];
-  phase: CommitPhaseType;
-  isHead: boolean;
-  author: string;
-  date: Date;
-  description: string;
-  /** if this commit is obsolete, it is succeeded by another commit */
-  successorInfo?: SuccessorInfo;
-  /** only a subset of the total files for this commit */
-  filesSample: Array<ChangedFile>;
-  totalFileCount: number;
-  /** @see {@link DiffId} */
-  diffId?: DiffId;
-};
 export type SuccessorInfo = {
   hash: string;
   type: string;
-};
-export type CommitPhaseType = "public" | "draft";
-export type ChangedFileType = "A" | "M" | "R" | "?" | "!" | "U" | "Resolved";
-export type ChangedFile = {
-  path: RepoRelativePath;
-  status: ChangedFileType;
 };
 
 /**
@@ -205,7 +174,7 @@ export type SubscribeSmartlogCommits = {
   subscriptionID: string;
 };
 
-export type SmartlogCommits = Array<CommitInfo>;
+export type SmartlogCommits = Array<BranchInfo>;
 
 export type SmartlogCommitsEvent = {
   type: "smartlogCommits";
@@ -355,7 +324,7 @@ export type ServerToClientMessage =
   | { type: "repoError"; error: RepositoryError | undefined }
   | {
       type: "fetchedDiffSummaries";
-      summaries: Result<Map<DiffId, DiffSummary>>;
+      summaries: Result<Map<PRNumber, DiffSummary>>;
     }
   | { type: "comparison"; comparison: Comparison; data: ComparisonData }
   | {

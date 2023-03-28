@@ -26,7 +26,7 @@ export function useCommitSelection(hash: string): {
       // previews won't change a commit from draft -> public, so we don't need
       // to use previews here
       const loadable = latestCommitTreeMap.get();
-      if (loadable.get(hash)?.info.phase === "public") {
+      if (loadable.get(hash)?.info.partOfTrunk) {
         // don't bother selecting public commits
         return;
       }

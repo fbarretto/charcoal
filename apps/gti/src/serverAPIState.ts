@@ -2,13 +2,7 @@ import type { EditedMessage } from "./CommitInfo";
 import type { MessageBusStatus } from "./MessageBus";
 import type { CommitTree } from "./getCommitTree";
 import type { Operation } from "./operations/Operation";
-import type {
-  ChangedFile,
-  CommitInfo,
-  Hash,
-  MergeConflicts,
-  RepoInfo,
-} from "./types";
+import type { MergeConflicts, RepoInfo } from "./types";
 
 import serverAPI from "./ClientToServerAPI";
 import messageBus from "./MessageBus";
@@ -20,6 +14,11 @@ import { DEFAULT_DAYS_OF_COMMITS_TO_LOAD } from "@withgraphite/gti-server/src/co
 import { observableBoxWithInitializers } from "./lib/mobx-recoil/observable_box_with_init";
 import { computed } from "mobx";
 import { useCallback } from "react";
+import type {
+  BranchInfo,
+  BranchName,
+  ChangedFile,
+} from "@withgraphite/gti-cli-shared-types";
 
 const repositoryData = observableBoxWithInitializers<{
   info: RepoInfo | undefined;
@@ -153,7 +152,7 @@ export const mergeConflicts = observableBoxWithInitializers<
   ],
 });
 
-export const latestCommits = observableBoxWithInitializers<Array<CommitInfo>>({
+export const latestCommits = observableBoxWithInitializers<Array<BranchInfo>>({
   default: [],
   effects: [
     ({ setSelf }) => {
@@ -334,7 +333,7 @@ export const latestCommitTree = computed<Array<CommitTree>>(() => {
  * Prefer using `treeWithPreviews.headCommit`, since it includes optimistic state
  * and previews.
  */
-export const latestHeadCommit = computed<CommitInfo | undefined>(() => {
+export const latestHeadCommit = computed<BranchInfo | undefined>(() => {
   const commits = latestCommits.get();
   return commits.find((commit) => commit.isHead);
 });
@@ -346,11 +345,11 @@ export const latestHeadCommit = computed<CommitInfo | undefined>(() => {
  * Prefer using `treeWithPreviews.treeMap`, since it includes
  * optimistic state and previews.
  */
-export const latestCommitTreeMap = computed<Map<Hash, CommitTree>>(() => {
+export const latestCommitTreeMap = computed<Map<BranchName, CommitTree>>(() => {
   const trees = latestCommitTree.get();
   const map = new Map();
   for (const tree of walkTreePostorder(trees)) {
-    map.set(tree.info.hash, tree);
+    map.set(tree.info.branch, tree);
   }
 
   return map;

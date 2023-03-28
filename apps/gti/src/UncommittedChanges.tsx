@@ -1,4 +1,3 @@
-import type { ChangedFile, ChangedFileType, RepoRelativePath } from "./types";
 import type { EnsureAssignedTogether } from "@withgraphite/gti-shared/EnsureAssignedTogether";
 
 import { gtiDrawerState } from "./App";
@@ -40,6 +39,11 @@ import { minimalDisambiguousPaths } from "@withgraphite/gti-shared/minimalDisamb
 import "./UncommittedChanges.scss";
 import { observable, ObservableSet, runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
+import type {
+  ChangedFile,
+  ChangedFileType,
+  RepoRelativePath,
+} from "@withgraphite/gti-cli-shared-types";
 
 export function ChangedFiles({
   files,
@@ -359,7 +363,7 @@ export const UncommittedChanges = observer(
                     runOperation(
                       new CommitOperation(
                         { title, description: "" },
-                        headCommit?.hash ?? "",
+                        headCommit?.branch ?? "",
                         filesToCommit
                       )
                     );

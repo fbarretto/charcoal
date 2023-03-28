@@ -1,10 +1,11 @@
+import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
 import type {
   ApplyPreviewsFuncType,
   ApplyUncommittedChangesPreviewsFuncType,
   PreviewContext,
   UncommittedChangesPreviewContext,
 } from "../previews";
-import type { CommitInfo, UncommittedChanges } from "../types";
+import type { UncommittedChanges } from "../types";
 
 import { Operation } from "./Operation";
 
@@ -12,7 +13,7 @@ export class UncommitOperation extends Operation {
   /**
    * @param originalHeadCommit the current head commit, needed to track when optimistic state is resolved and get the list of files that will be uncommitted
    */
-  constructor(private originalHeadCommit: CommitInfo) {
+  constructor(private originalHeadCommit: BranchInfo) {
     super();
   }
 
@@ -26,20 +27,20 @@ export class UncommitOperation extends Operation {
   makeOptimisticApplier(
     context: PreviewContext
   ): ApplyPreviewsFuncType | undefined {
-    const headCommitHash = context.headCommit?.hash;
-    if (headCommitHash !== this.originalHeadCommit.hash) {
+    const headCommitHash = context.headCommit?.branch;
+    if (headCommitHash !== this.originalHeadCommit.branch) {
       // head hash has changed -> uncommit was successful
       return undefined;
     }
 
     const func: ApplyPreviewsFuncType = (tree, previewType) => {
-      if (tree.info.hash === this.originalHeadCommit.hash) {
+      if (tree.info.branch === this.originalHeadCommit.branch) {
         // uncommit may not be run on a commit with children
         // thus, we can just hide the head commit from the tree
         return {
           info: null,
         };
-      } else if (this.originalHeadCommit.parents[0] === tree.info.hash) {
+      } else if (this.originalHeadCommit.parents[0] === tree.info.branch) {
         // head will move to parent commit after uncommitting
         return {
           info: { ...tree.info, isHead: true },

@@ -1,12 +1,13 @@
+import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 import type { EditedMessage } from "../CommitInfo";
 import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
-import type { CommandArg, Hash } from "../types";
+import type { CommandArg } from "../types";
 
 import { SucceedableRevset } from "../types";
 import { Operation } from "./Operation";
 
 export class AmendMessageOperation extends Operation {
-  constructor(private hash: Hash, private message: EditedMessage) {
+  constructor(private branch: BranchName, private message: EditedMessage) {
     super();
   }
 
@@ -16,7 +17,7 @@ export class AmendMessageOperation extends Operation {
     const args: Array<CommandArg> = [
       "metaedit",
       "--rev",
-      SucceedableRevset(this.hash),
+      SucceedableRevset(this.branch),
       "--message",
       `${this.message.title}\n${this.message.description}`,
     ];
@@ -26,7 +27,7 @@ export class AmendMessageOperation extends Operation {
   makeOptimisticApplier(
     context: PreviewContext
   ): ApplyPreviewsFuncType | undefined {
-    const commitToMetaedit = context.treeMap.get(this.hash);
+    const commitToMetaedit = context.treeMap.get(this.branch);
     if (commitToMetaedit == null) {
       // metaedit succeeds when we no longer see original commit
       // Note: this assumes we always restack children and never render old commit as obsolete.
@@ -34,7 +35,7 @@ export class AmendMessageOperation extends Operation {
     }
 
     const func: ApplyPreviewsFuncType = (tree, _previewType) => {
-      if (tree.info.hash === this.hash) {
+      if (tree.info.branch === this.branch) {
         // use fake title/description on the changed commit
         return {
           info: {

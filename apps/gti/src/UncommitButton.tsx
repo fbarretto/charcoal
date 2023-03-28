@@ -17,7 +17,7 @@ export const UncommitButton = observer(() => {
   if (!headCommit) {
     return null;
   }
-  const headTree = treeMap.get(headCommit.hash);
+  const headTree = treeMap.get(headCommit.branch);
   if (!headTree || headTree.children.length) {
     // if the head commit has children, we can't uncommit
     return null;

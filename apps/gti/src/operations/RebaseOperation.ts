@@ -1,12 +1,13 @@
 import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
-import type { Hash, Revset } from "../types";
+import type { Revset } from "../types";
 
 import { CommitPreview } from "../previews";
 import { SucceedableRevset } from "../types";
 import { Operation } from "./Operation";
+import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 
 export class RebaseOperation extends Operation {
-  constructor(private source: Hash, private destination: Revset) {
+  constructor(private source: BranchName, private destination: Revset) {
     super();
   }
 
@@ -34,10 +35,10 @@ export class RebaseOperation extends Operation {
       ...originalSourceNode,
       info: { ...originalSourceNode.info },
     };
-    let parentHash: Hash;
+    let parentHash: BranchName;
 
     const func: ApplyPreviewsFuncType = (tree, previewType) => {
-      if (tree.info.hash === this.source) {
+      if (tree.info.branch === this.source) {
         if (tree.info.parents[0] === parentHash) {
           // this is the newly added node
           return {
@@ -55,8 +56,8 @@ export class RebaseOperation extends Operation {
             childPreviewType: CommitPreview.REBASE_OLD,
           };
         }
-      } else if (tree.info.hash === this.destination) {
-        parentHash = tree.info.hash;
+      } else if (tree.info.branch === this.destination) {
+        parentHash = tree.info.branch;
         newSourceNode.info.parents = [parentHash];
         // we always want the rebase preview to be the lowest child aka last in list
         return {
@@ -90,14 +91,14 @@ export class RebaseOperation extends Operation {
       ...originalSourceNode,
       info: { ...originalSourceNode.info },
     };
-    let parentHash: Hash;
+    let parentHash: BranchName;
 
     const func: ApplyPreviewsFuncType = (
       tree,
       previewType,
       childPreviewType
     ) => {
-      if (tree.info.hash === this.source) {
+      if (tree.info.branch === this.source) {
         if (tree.info.parents[0] === parentHash) {
           // this is the newly added node
           return {
@@ -110,8 +111,8 @@ export class RebaseOperation extends Operation {
           // this is the original source node, it's hidden
           return { info: null };
         }
-      } else if (tree.info.hash === this.destination) {
-        parentHash = tree.info.hash;
+      } else if (tree.info.branch === this.destination) {
+        parentHash = tree.info.branch;
         newSourceNode.info.parents = [parentHash];
         // we always want the rebase preview to be the lowest child aka last in list
         return { info: tree.info, children: [...tree.children, newSourceNode] };

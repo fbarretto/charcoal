@@ -1,12 +1,7 @@
 import type { CommitTree, CommitTreeWithPreviews } from "./getCommitTree";
 import type { Operation } from "./operations/Operation";
 import type { OperationInfo } from "./serverAPIState";
-import type {
-  ChangedFile,
-  CommitInfo,
-  Hash,
-  UncommittedChanges,
-} from "./types";
+import type { UncommittedChanges } from "./types";
 
 import {
   latestCommitTree,
@@ -19,6 +14,11 @@ import {
 import { useEffect } from "react";
 import { notEmpty } from "@withgraphite/gti-shared/utils";
 import { computed, observable } from "mobx";
+import type {
+  BranchInfo,
+  BranchName,
+  ChangedFile,
+} from "@withgraphite/gti-cli-shared-types";
 
 export enum CommitPreview {
   REBASE_ROOT = "rebase-root",
@@ -52,7 +52,7 @@ export type ApplyPreviewsFuncType = (
       info: null;
       children?: undefined;
     }
-  | { info: CommitInfo; children: Array<CommitTree> }
+  | { info: BranchInfo; children: Array<CommitTree> }
 ) & {
   previewType?: CommitPreview;
   childPreviewType?: CommitPreview;
@@ -151,8 +151,8 @@ export const uncommittedChangesWithPreviews = computed(
 export const treeWithPreviews = computed(
   (): {
     trees: Array<CommitTree>;
-    treeMap: Map<Hash, CommitTree>;
-    headCommit?: CommitInfo;
+    treeMap: Map<BranchName, CommitTree>;
+    headCommit?: BranchInfo;
   } => {
     const trees = latestCommitTree.get();
 
@@ -227,7 +227,7 @@ export const treeWithPreviews = computed(
           treeMap,
         };
         let nextHeadCommit = headCommit;
-        const nextTreeMap = new Map<Hash, CommitTree>();
+        const nextTreeMap = new Map<BranchName, CommitTree>();
 
         const applier = applierSource(context);
         if (applier == null) {
@@ -254,7 +254,7 @@ export const treeWithPreviews = computed(
               .filter((tree): tree is CommitTreeWithPreviews => tree != null),
           };
 
-          nextTreeMap.set(newTree.info.hash, result);
+          nextTreeMap.set(newTree.info.branch, result);
           return newTree;
         };
         finalTrees = finalTrees
@@ -414,7 +414,7 @@ export function useMarkOperationsCompleted(): void {
 /** Set of info about commit tree to generate appropriate previews */
 export type PreviewContext = {
   trees: Array<CommitTree>;
-  headCommit?: CommitInfo;
+  headCommit?: BranchInfo;
   treeMap: Map<string, CommitTree>;
 };
 

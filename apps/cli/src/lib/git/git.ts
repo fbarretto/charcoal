@@ -8,6 +8,7 @@ import {
   switchBranch,
 } from './branch_ops';
 import { commit } from './commit';
+import { getCommitAuthor, getCommitDate } from './commit_info';
 import { getCommitRange } from './commit_range';
 import { getCommitTree } from './commit_tree';
 import {
@@ -22,6 +23,7 @@ import {
   readFetchHead,
   writeFetchBase,
 } from './fetch_branch';
+import { getFilesChanged } from './files_changed';
 import { findRemoteBranch } from './find_remote_branch';
 import { getUserEmail } from './get_email';
 import { getShaOrThrow, getSha, composeGetRemoteSha } from './get_sha';
@@ -45,6 +47,7 @@ import { hardReset, softReset, trackedReset } from './reset_branch';
 import { setRemoteTracking } from './set_remote_tracking';
 import { showCommits } from './show_commits';
 import { getBranchNamesAndRevisions } from './sorted_branch_names';
+import { getStatus } from './status';
 
 export type TGit = ReturnType<typeof composeGitInternal>;
 export function composeGit(): TGit {
@@ -55,6 +58,10 @@ function composeGitInternal() {
   return {
     ...composeGetRemoteSha(),
     addAll,
+    getCommitAuthor,
+    getCommitDate,
+    getFilesChanged,
+    getStatus,
     getCurrentBranchName,
     moveBranch,
     deleteBranch,

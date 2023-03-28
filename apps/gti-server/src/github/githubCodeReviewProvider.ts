@@ -3,18 +3,18 @@ import type { Logger } from "../logger";
 import type {
   CodeReviewSystem,
   DiffSignalSummary,
-  DiffId,
   Disposable,
   Result,
 } from "@withgraphite/gti/src/types";
 
 import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
+import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
 
 export type GitHubDiffSummary = {
   type: "github";
   title: string;
   state: "Open" | "Merged" | "Closed";
-  number: DiffId;
+  number: PRNumber;
   url: string;
   commentCount: number;
   anyUnresolvedComments: false;
@@ -29,13 +29,13 @@ export class GitHubCodeReviewProvider implements CodeReviewProvider {
   ) {}
   private diffSummaries = new TypedEventEmitter<
     "data",
-    Map<DiffId, GitHubDiffSummary>
+    Map<PRNumber, GitHubDiffSummary>
   >();
 
   onChangeDiffSummaries(
-    callback: (result: Result<Map<DiffId, GitHubDiffSummary>>) => unknown
+    callback: (result: Result<Map<PRNumber, GitHubDiffSummary>>) => unknown
   ): Disposable {
-    const handleData = (data: Map<DiffId, GitHubDiffSummary>) =>
+    const handleData = (data: Map<PRNumber, GitHubDiffSummary>) =>
       callback({ value: data });
     const handleError = (error: Error) => callback({ error });
     this.diffSummaries.on("data", handleData);

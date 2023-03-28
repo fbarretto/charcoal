@@ -1,12 +1,9 @@
+import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
 import type {
   ApplyUncommittedChangesPreviewsFuncType,
   UncommittedChangesPreviewContext,
 } from "../previews";
-import type {
-  CommandArg,
-  RepoRelativePath,
-  UncommittedChanges,
-} from "../types";
+import type { CommandArg, UncommittedChanges } from "../types";
 
 import { Operation } from "./Operation";
 

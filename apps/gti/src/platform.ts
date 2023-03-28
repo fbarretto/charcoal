@@ -1,7 +1,8 @@
 import type { ThemeColor } from "./theme";
-import type { Disposable, PlatformName, RepoRelativePath } from "./types";
+import type { Disposable, PlatformName } from "./types";
 
 import { browserPlatform } from "./BrowserPlatform";
+import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
 
 export type InitialParamKeys = "token" | string;
 

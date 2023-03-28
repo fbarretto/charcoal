@@ -1,7 +1,7 @@
 import type { Platform } from "./platform";
-import type { RepoRelativePath } from "./types";
 
 import serverAPI from "./ClientToServerAPI";
+import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
 
 export const browserPlatform: Platform = {
   platformName: "browser",

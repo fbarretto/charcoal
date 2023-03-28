@@ -5,7 +5,7 @@ import { debounce } from "./debounce";
 import { createElement, useCallback, useRef } from "react";
 
 import "./Drawers.scss";
-import { action, IObservableValue, runInAction } from "mobx";
+import { IObservableValue, runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 
 type NonNullReactElement = React.ReactElement | React.ReactFragment;

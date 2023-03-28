@@ -21,7 +21,7 @@ export const PullButton = observer(() => {
   const latestCommits = latestCommitTree.get();
   // assuming master is getting updated frequently, last pull time should equal the newest commit in the history.
   const lastSync = Math.max(
-    ...latestCommits.map((commit) => commit.info.date.valueOf())
+    ...latestCommits.map((commit) => new Date(commit.info.date).valueOf())
   );
 
   let title =

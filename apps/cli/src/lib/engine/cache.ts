@@ -16,6 +16,7 @@ import {
   TValidCachedMetaExceptTrunk,
 } from './cached_meta';
 import { composeCacheLoader } from './cache_loader';
+import { TChangedFile } from './changed_files';
 import {
   deleteMetadataRef,
   getMetadataRefList,
@@ -55,6 +56,7 @@ export type TMetaCache = {
 
   showCommits: (branchName: string, patch: boolean) => string;
   showDiff: (branchName: string) => string;
+  getChangedFiles: (branchName: string) => TChangedFile[];
 
   getRevision: (branchName: string) => string;
   getBaseRevision: (branchName: string) => string;
@@ -283,10 +285,10 @@ export function composeMetaCache({
 
   const getParent = (branchName: string) => {
     const meta = cache.branches[branchName];
-    return meta.validationResult === 'BAD_PARENT_NAME' ||
-      meta.validationResult === 'TRUNK'
+    return meta?.validationResult === 'BAD_PARENT_NAME' ||
+      meta?.validationResult === 'TRUNK'
       ? undefined
-      : meta.parentBranchName;
+      : meta?.parentBranchName;
   };
 
   const getRecursiveParentsExcludingTrunk = (branchName: string): string[] => {
@@ -506,6 +508,15 @@ export function composeMetaCache({
         patch
       );
     },
+    getChangedFiles: (branchName: string) => {
+      const meta = cache.branches[branchName];
+      return git.getFilesChanged(
+        !meta || meta.validationResult !== 'VALID'
+          ? `${branchName}~`
+          : meta.parentBranchRevision,
+        branchName
+      );
+    },
     showDiff: (branchName: string) => {
       const meta = assertBranchIsValidOrTrunkAndGetMeta(branchName);
       return git.showDiff(
@@ -536,7 +547,7 @@ export function composeMetaCache({
     },
     getPrInfo: (branchName: string) => {
       const meta = cache.branches[branchName];
-      return meta?.validationResult === 'TRUNK' ? undefined : meta.prInfo;
+      return meta?.validationResult === 'TRUNK' ? undefined : meta?.prInfo;
     },
     upsertPrInfo: (branchName: string, prInfo: Partial<TBranchPRInfo>) => {
       const meta = cache.branches[branchName];

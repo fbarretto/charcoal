@@ -1,12 +1,12 @@
+import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
-import type { Hash } from "../types";
 
 import { CommitPreview } from "../previews";
 import { SucceedableRevset } from "../types";
 import { Operation } from "./Operation";
 
 export class HideOperation extends Operation {
-  constructor(private source: Hash) {
+  constructor(private source: BranchName) {
     super();
   }
 
@@ -20,7 +20,7 @@ export class HideOperation extends Operation {
     _context: PreviewContext
   ): ApplyPreviewsFuncType | undefined {
     const func: ApplyPreviewsFuncType = (tree, previewType) => {
-      if (tree.info.hash === this.source) {
+      if (tree.info.branch === this.source) {
         return {
           info: tree.info,
           children: tree.children,
@@ -52,7 +52,7 @@ export class HideOperation extends Operation {
       previewType,
       childPreviewType
     ) => {
-      if (tree.info.hash === this.source) {
+      if (tree.info.branch === this.source) {
         return {
           info: null,
         };

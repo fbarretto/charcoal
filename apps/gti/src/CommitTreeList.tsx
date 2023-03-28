@@ -1,5 +1,4 @@
 import type { CommitTreeWithPreviews } from "./getCommitTree";
-import type { Hash } from "./types";
 
 import { Commit } from "./Commit";
 import { ErrorNotice } from "./ErrorNotice";
@@ -9,6 +8,7 @@ import { Icon } from "@withgraphite/gti-shared/Icon";
 
 import "./CommitTreeList.scss";
 import { observer } from "mobx-react-lite";
+import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 
 export const CommitTreeList = observer(() => {
   // TOMAS: I believe the below is unnecessary now with MobX, but leaving for a sec
@@ -45,7 +45,7 @@ function createSubtree(
   tree: CommitTreeWithPreviews
 ): Array<React.ReactElement> {
   const { info, children, previewType } = tree;
-  const isPublic = info.phase === "public";
+  const isPublic = info.partOfTrunk;
 
   const renderedChildren = (children ?? [])
     .map((tree) => createSubtree(tree))
@@ -56,7 +56,7 @@ function createSubtree(
       }
       // any additional children render with branches
       return [
-        <Branch key={`branch-${info.hash}-${i}`} descendsFrom={info.hash}>
+        <Branch key={`branch-${info.branch}-${i}`} descendsFrom={info.branch}>
           {components}
         </Branch>,
       ];
@@ -67,7 +67,7 @@ function createSubtree(
     ...renderedChildren,
     <Commit
       commit={info}
-      key={info.hash}
+      key={info.branch}
       previewType={previewType}
       hasChildren={renderedChildren.length > 0}
     />,
@@ -91,7 +91,7 @@ function Branch({
   descendsFrom,
 }: {
   children: Array<React.ReactElement>;
-  descendsFrom: Hash;
+  descendsFrom: BranchName;
 }) {
   return (
     <div className="commit-group" data-testid={`branch-from-${descendsFrom}`}>

@@ -1,7 +1,6 @@
 import type { CodeReviewProvider } from "./CodeReviewProvider";
 import type { Logger } from "./logger";
 import type {
-  CommitInfo,
   Disposable,
   CommandArg,
   SmartlogCommits,
@@ -13,14 +12,12 @@ import type {
   AbsolutePath,
   RunnableOperation,
   OperationProgress,
-  DiffId,
   PageVisibility,
   MergeConflicts,
   ValidatedRepoInfo,
   CodeReviewSystem,
   Revset,
   PreferredSubmitCommand,
-  RepoRelativePath,
 } from "@withgraphite/gti/src/types";
 
 import { OperationQueue } from "./OperationQueue";
@@ -38,6 +35,11 @@ import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
 import { exists } from "@withgraphite/gti-shared/fs";
 import { removeLeadingPathSep } from "@withgraphite/gti-shared/pathUtils";
 import { notEmpty, unwrap } from "@withgraphite/gti-shared/utils";
+import type {
+  BranchInfo,
+  PRNumber,
+  RepoRelativePath,
+} from "@withgraphite/gti-cli-shared-types";
 
 export const COMMIT_END_MARK = "<<COMMIT_END_MARK>>";
 export const NULL_CHAR = "\0";
@@ -215,8 +217,8 @@ export class Repository {
       if (commits.value) {
         const newDiffs = [];
         const diffIds = commits.value
-          .filter((commit) => commit.diffId != null)
-          .map((commit) => commit.diffId);
+          .filter((commit) => commit.pr)
+          .map((commit) => commit.pr?.number);
         for (const diffId of diffIds) {
           if (!seenDiffs.has(diffId)) {
             newDiffs.push(diffId);
@@ -549,8 +551,7 @@ export class Repository {
   fetchUncommittedChanges = serializeAsyncCall(async () => {
     try {
       this.uncommittedChangesBeginFetchingEmitter.emit("start");
-      // Note `status -tjson` run with PLAIN are repo-relative
-      const proc = await this.runCommand(["status", "-Tjson"]);
+      const proc = await this.runCommand(["interactive", "status"]);
       this.uncommittedChanges = (
         JSON.parse(proc.stdout) as UncommittedChanges
       ).map((change) => ({
@@ -634,14 +635,14 @@ export class Repository {
   });
 
   /** Watch for changes to the head commit, e.g. from checking out a new commit */
-  subscribeToHeadCommit(callback: (head: CommitInfo) => unknown) {
+  subscribeToHeadCommit(callback: (head: BranchInfo) => unknown) {
     let headCommit = this.smartlogCommits?.find((commit) => commit.isHead);
     if (headCommit != null) {
       callback(headCommit);
     }
     const onData = (data: SmartlogCommits) => {
       const newHead = data.find((commit) => commit.isHead);
-      if (newHead != null && newHead.hash !== headCommit?.hash) {
+      if (newHead != null && newHead.branch !== headCommit?.branch) {
         callback(newHead);
         headCommit = newHead;
       }
@@ -672,10 +673,10 @@ export class Repository {
     });
   }
 
-  public getAllDiffIds(): Array<DiffId> {
+  public getAllDiffIds(): Array<PRNumber> {
     return (
       this.getSmartlogCommits()
-        ?.map((commit) => commit.diffId)
+        ?.map((commit) => commit.pr?.number)
         .filter(notEmpty) ?? []
     );
   }
@@ -777,7 +778,12 @@ async function getConfig(
 ): Promise<string | undefined> {
   try {
     return (
-      await runCommand(command, ["config", configName], logger, cwd)
+      await runCommand(
+        command,
+        ["interactive", "config", configName],
+        logger,
+        cwd
+      )
     ).stdout.trim();
   } catch {
     // `config` exits with status 1 if config is not set. This is not an error.
@@ -827,28 +833,11 @@ export function parseCommitInfoOutput(
   logger: Logger,
   output: string
 ): SmartlogCommits {
-  const cacheData = JSON.parse(output);
-  const commitInfos: Array<CommitInfo> = [];
-  for (const branchName in cacheData.branches) {
-    const branch = cacheData.branches[branchName];
-
-    try {
-      commitInfos.push({
-        hash: branchName,
-        title: branchName,
-        author: "Tomas Reimers",
-        date: new Date(),
-        parents: branch.parentBranchName ? [branch.parentBranchName] : [],
-        phase: "draft" as const,
-        isHead: branchName === cacheData.currentBranch,
-        filesSample: [],
-        totalFileCount: 1,
-        description: "",
-        diffId: undefined,
-      });
-    } catch (err) {
-      logger.error("failed to parse commit");
-    }
+  let commitInfos: Array<BranchInfo> = [];
+  try {
+    commitInfos = JSON.parse(output);
+  } catch (err) {
+    logger.error("failed to parse commit");
   }
   return commitInfos;
 }
