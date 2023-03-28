@@ -1,4 +1,3 @@
-import type { EditedMessage } from "./CommitInfo";
 import type { MessageBusStatus } from "./MessageBus";
 import type { CommitTree } from "./getCommitTree";
 import type { Operation } from "./operations/Operation";
@@ -9,7 +8,6 @@ import messageBus from "./MessageBus";
 import { getCommitTree, walkTreePostorder } from "./getCommitTree";
 import { operationBeingPreviewed } from "./previews";
 import { initialParams } from "./urlParams";
-import { firstLine } from "./utils";
 import { DEFAULT_DAYS_OF_COMMITS_TO_LOAD } from "@withgraphite/gti-server/src/constants";
 import { observableBoxWithInitializers } from "./lib/mobx-recoil/observable_box_with_init";
 import { computed } from "mobx";
@@ -293,7 +291,7 @@ export const uncommittedChangesFetchError = observableBoxWithInitializers<
 });
 
 export const commitMessageTemplate = observableBoxWithInitializers<
-  EditedMessage | undefined
+  Record<string, string> | undefined
 >({
   default: undefined,
   effects: [
@@ -301,9 +299,7 @@ export const commitMessageTemplate = observableBoxWithInitializers<
       const disposable = serverAPI.onMessageOfType(
         "fetchedCommitMessageTemplate",
         (event) => {
-          const title = firstLine(event.template);
-          const description = event.template.slice(title.length + 1);
-          setSelf({ title, description });
+          setSelf(event.templates);
         }
       );
       return () => disposable.dispose();

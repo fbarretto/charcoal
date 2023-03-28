@@ -437,17 +437,17 @@ export default class ServerToClientAPI {
       }
       case "fetchCommitMessageTemplate": {
         repo
-          .runCommand(["debugcommitmessage"])
+          .runCommand(["interactive", "templates"])
           .then((result) => {
-            const template = result.stdout
-              .replace(repo.IGNORE_COMMIT_MESSAGE_LINES_REGEX, "")
-              .replace(
-                /^<Replace this line with a title. Use 1 line only, 67 chars or less>/,
-                ""
-              );
+            const templates: Record<string, string> = JSON.parse(result.stdout);
             this.postMessage({
               type: "fetchedCommitMessageTemplate",
-              template,
+              templates: Object.fromEntries(
+                Object.entries(templates).map(([path, contents]) => [
+                  path,
+                  contents.replace(repo.IGNORE_COMMIT_MESSAGE_LINES_REGEX, ""),
+                ])
+              ),
             });
           })
           .catch((err) => {

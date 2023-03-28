@@ -315,7 +315,7 @@ export type ServerToClientMessage =
   | BeganFetchingSmartlogCommitsEvent
   | BeganFetchingUncommittedChangesEvent
   | FileABugProgressMessage
-  | { type: "fetchedCommitMessageTemplate"; template: string }
+  | { type: "fetchedCommitMessageTemplate"; templates: Record<string, string> }
   | { type: "applicationInfo"; platformName: string; version: string }
   | { type: "repoInfo"; info: RepoInfo; cwd?: string }
   | { type: "repoError"; error: RepositoryError | undefined }

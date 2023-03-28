@@ -19,9 +19,6 @@ import { codeReviewProvider } from "./codeReview/CodeReviewInfo";
 import { AmendMessageOperation } from "./operations/AmendMessageOperation";
 import { AmendOperation } from "./operations/AmendOperation";
 import { CommitOperation } from "./operations/CommitOperation";
-import { GhStackSubmitOperation } from "./operations/GhStackSubmitOperation";
-import { PrSubmitOperation } from "./operations/PrSubmitOperation";
-import { SetConfigOperation } from "./operations/SetConfigOperation";
 import platform from "./platform";
 import { treeWithPreviews, uncommittedChangesWithPreviews } from "./previews";
 import { RelativeDate } from "./relativeDate";
@@ -32,13 +29,11 @@ import {
   repositoryInfo,
   useRunOperation,
 } from "./serverAPIState";
-import { useModal } from "./useModal";
 import { assert, firstOfIterable } from "./utils";
 import {
   VSCodeBadge,
   VSCodeButton,
   VSCodeDivider,
-  VSCodeLink,
   VSCodeRadio,
   VSCodeRadioGroup,
   VSCodeTextArea,
@@ -50,7 +45,7 @@ import { Icon } from "@withgraphite/gti-shared/Icon";
 import { unwrap } from "@withgraphite/gti-shared/utils";
 
 import "./CommitInfo.scss";
-import { computed, observable, runInAction } from "mobx";
+import { computed, observable } from "mobx";
 import { family } from "./lib/mobx-recoil/family";
 import { observer } from "mobx-react-lite";
 import type {
@@ -99,13 +94,17 @@ const editedCommitMessagesDefaults = family({
   genValue: (hash: BranchName | "head") => {
     return computed<EditedMessageUnlessOptimistic>(() => {
       if (hash === "head") {
-        const template = commitMessageTemplate.get();
-        return (
-          template ?? {
-            title: "",
-            description: "",
-          }
-        );
+        const templates = commitMessageTemplate.get();
+        const templateEntries = templates ? Object.entries(templates) : [];
+        return templateEntries.length === 1
+          ? {
+              title: "",
+              description: templateEntries[0][1],
+            }
+          : {
+              title: "",
+              description: "",
+            };
       }
       // TODO: is there a better way we should derive `isOptimistic`
       // from `get(treeWithPreviews)`, rather than using non-previewed map?
@@ -250,6 +249,8 @@ export const CommitInfoDetails = observer(
       // we expect the edited message to change constantly.
     }, [commit.branch, isCommitMode]);
 
+    const templates = commitMessageTemplate.get();
+
     return (
       <div className="commit-info-view" data-testid="commit-info-view">
         {!commit.isHead ? null : (
@@ -332,6 +333,24 @@ export const CommitInfoDetails = observer(
                 // remount this component if we switch commit mode
                 key={mode}
               />
+              {templates &&
+                Object.keys(templates).length > 1 &&
+                Object.entries(templates).map(([file, contents]) => {
+                  return (
+                    <VSCodeButton
+                      appearance="icon"
+                      onClick={() => {
+                        setEditedCommitMesage({
+                          ...assertNonOptimistic(editedMessage),
+                          description: contents,
+                        });
+                      }}
+                    >
+                      <Icon icon="files" slot="start" />
+                      {file}
+                    </VSCodeButton>
+                  );
+                })}
             </Section>
           ) : (
             <Section>
@@ -517,8 +536,6 @@ const ActionsBar = observer(
       commitMode.set("amend");
       deselectIfHeadIsSelected();
     };
-
-    const showOptionModal = useModal();
 
     const codeReviewProviderName =
       repoInfo?.type === "success" ? repoInfo.codeReviewSystem.type : "unknown";
