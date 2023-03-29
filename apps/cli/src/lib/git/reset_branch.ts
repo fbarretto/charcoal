@@ -8,9 +8,9 @@ export function softReset(sha: string): void {
   });
 }
 
-export function hardReset(sha: string): void {
+export function hardReset(sha?: string): void {
   runGitCommand({
-    args: [`reset`, `-q`, `--hard`, sha],
+    args: [`reset`, `-q`, `--hard`, ...(sha ? [sha] : [])],
     onError: 'throw',
     resource: 'hardReset',
   });

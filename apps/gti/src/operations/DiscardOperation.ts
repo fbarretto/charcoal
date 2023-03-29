@@ -14,8 +14,7 @@ export class DiscardOperation extends Operation {
   static opName = "Discard";
 
   getArgs() {
-    const args = ["goto", "--clean", "."];
-    return args;
+    return ["interactive", "discard"];
   }
 
   makeOptimisticUncommittedChangesApplier?(
