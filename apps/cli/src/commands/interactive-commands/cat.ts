@@ -1,5 +1,4 @@
 import yargs from 'yargs';
-import { composeGit } from '../../lib/git/git';
 import { graphite } from '../../lib/runner';
 
 const args = {
@@ -25,8 +24,6 @@ export const builder = args;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
-    const git = composeGit();
-
-    context.splog.info(git.fileContents(argv.ref, argv.file));
+    context.splog.info(context.metaCache.getFileContents(argv.ref, argv.file));
   });
 };

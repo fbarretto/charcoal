@@ -1,4 +1,4 @@
-import { TStatusFile } from '../engine/changed_files';
+import { TStatusFile } from './changed_files';
 import { runGitCommand } from './runner';
 
 // Using pretty formats specified here

@@ -1,7 +1,6 @@
 import { ChangedFile, Status } from '@withgraphite/gti-cli-shared-types';
 import yargs from 'yargs';
-import { TStatusFile } from '../../lib/engine/changed_files';
-import { composeGit } from '../../lib/git/git';
+import { TStatusFile } from '../../lib/git/changed_files';
 import { graphite } from '../../lib/runner';
 
 const args = {} as const;
@@ -14,8 +13,7 @@ export const builder = args;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
-    const git = composeGit();
-    const statusFiles = git.getStatus();
+    const statusFiles = context.metaCache.getStatus();
     const rebaseInProgress = context.metaCache.rebaseInProgress();
 
     const statusFilesForInteractive: ChangedFile[] = statusFiles.map(

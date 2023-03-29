@@ -1,6 +1,5 @@
 import yargs from 'yargs';
 import { PreconditionsFailedError } from '../../lib/errors';
-import { composeGit } from '../../lib/git/git';
 import { graphite } from '../../lib/runner';
 
 const args = {
@@ -24,15 +23,13 @@ export const builder = args;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
-    const git = composeGit();
-
     if (argv.target === 'uncommitted') {
-      context.splog.info(git.getDiff('HEAD', undefined));
+      context.splog.info(context.metaCache.getDiff('HEAD', undefined));
       return;
     }
 
     if (argv.target === 'head') {
-      context.splog.info(git.getDiff('HEAD~', undefined));
+      context.splog.info(context.metaCache.getDiff('HEAD~', undefined));
       return;
     }
 

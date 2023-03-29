@@ -16,7 +16,7 @@ import {
   TValidCachedMetaExceptTrunk,
 } from './cached_meta';
 import { composeCacheLoader } from './cache_loader';
-import { TChangedFile } from './changed_files';
+import { TChangedFile, TStatusFile } from '../git/changed_files';
 import {
   deleteMetadataRef,
   getMetadataRefList,
@@ -52,16 +52,22 @@ export type TMetaCache = {
   getUnmergedFiles: () => string[];
   getRebaseHead: () => string | undefined;
   getUnstagedChanges: () => string;
+  getStatus: () => TStatusFile[];
   logLong: () => void;
 
   showCommits: (branchName: string, patch: boolean) => string;
   showDiff: (branchName: string) => string;
+  getDiff: (left: string, right: string | undefined) => string;
   getStackDiff: (branchName: string) => string;
   getChangedFiles: (branchName: string) => TChangedFile[];
+  getFileContents: (ref: string, file: string) => string;
 
   getRevision: (branchName: string) => string;
   getBaseRevision: (branchName: string) => string;
   getAllCommits: (branchName: string, format: TCommitFormat) => string[];
+
+  getCommitDate: (branchName: string) => Date;
+  getCommitAuthor: (branchName: string) => string;
 
   getPrInfo: (branchName: string) => TBranchPRInfo | undefined;
   upsertPrInfo: (branchName: string, prInfo: Partial<TBranchPRInfo>) => void;
@@ -122,6 +128,7 @@ export type TMetaCache = {
 
   pushBranch: (branchName: string, forcePush: boolean) => void;
   pullTrunk: () => 'PULL_DONE' | 'PULL_UNNEEDED' | 'PULL_CONFLICT';
+  hardReset: (sha?: string) => void;
   resetTrunkToRemote: () => void;
 
   fetchBranch: (branchName: string, parentBranchName: string) => void;
@@ -498,6 +505,7 @@ export function composeMetaCache({
     getUnmergedFiles: git.getUnmergedFiles,
     getRebaseHead: git.getRebaseHead,
     getUnstagedChanges: git.getUnstagedChanges,
+    getStatus: git.getStatus,
     logLong: git.logLong,
     showCommits: (branchName: string, patch: boolean) => {
       const meta = assertBranchIsValidOrTrunkAndGetMeta(branchName);
@@ -518,6 +526,7 @@ export function composeMetaCache({
         branchName
       );
     },
+    getFileContents: git.getFileContents,
     showDiff: (branchName: string) => {
       const meta = assertBranchIsValidOrTrunkAndGetMeta(branchName);
       return git.showDiff(
@@ -527,6 +536,7 @@ export function composeMetaCache({
         branchName
       );
     },
+    getDiff: git.getDiff,
     getStackDiff: (branchName: string) => {
       const meta = assertBranchIsValidOrTrunkAndGetMeta(branchName);
       return git.getDiff(
@@ -555,6 +565,8 @@ export function composeMetaCache({
         format
       );
     },
+    getCommitDate: git.getCommitDate,
+    getCommitAuthor: git.getCommitAuthor,
     getPrInfo: (branchName: string) => {
       const meta = cache.branches[branchName];
       return meta?.validationResult === 'TRUNK' ? undefined : meta?.prInfo;
@@ -897,6 +909,7 @@ export function composeMetaCache({
         git.switchBranch(currentBranchName);
       }
     },
+    hardReset: git.hardReset,
     resetTrunkToRemote: () => {
       const currentBranchName = getCurrentBranchOrThrow();
       const trunkName = assertTrunk();

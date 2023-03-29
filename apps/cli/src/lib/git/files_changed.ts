@@ -1,4 +1,4 @@
-import { TChangedFile } from '../engine/changed_files';
+import { TChangedFile } from './changed_files';
 import { runGitCommand } from './runner';
 
 // Using pretty formats specified here
