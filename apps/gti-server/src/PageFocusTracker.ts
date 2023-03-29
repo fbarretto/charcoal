@@ -1,7 +1,7 @@
 import type { PageVisibility } from "@withgraphite/gti/src/types";
 
 /**
- * Aggregates if any ISL page has focus or visibility.
+ * Aggregates if any GTI page has focus or visibility.
  */
 export class PageFocusTracker {
   private focusedPages = new Set();

@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// This file contains imports only used by non-OSS internal builds of ISL
+// This file contains imports only used by non-OSS internal builds of GTI
 // This should be the only file using fb-only imports and prettier ignores.
 
 // prettier-ignore

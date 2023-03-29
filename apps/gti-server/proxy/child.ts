@@ -1,18 +1,16 @@
-
-
 /**
  * This file is expected to be run via child_process.fork() where:
  *
  * - The arguments to `startServer()` are JSON-serialized as the value
- *   of the ISL_SERVER_ARGS environment variable.
+ *   of the GTI_SERVER_ARGS environment variable.
  * - Communication to the parent process must be done via process.send()
  *   and the parent process expects messages that conform to
  *   `ChildProcessResponse`.
  */
 
-import type {StartServerArgs, StartServerResult} from './server';
+import type { StartServerArgs, StartServerResult } from "./server";
 
-import * as fs from 'fs';
+import * as fs from "fs";
 
 /**
  * This defines the shape of the messages that the parent process accepts.
@@ -20,44 +18,47 @@ import * as fs from 'fs';
  */
 export type ChildProcessResponse =
   | {
-      type: 'message';
+      type: "message";
       args: Parameters<typeof console.log>;
     }
   | {
-      type: 'result';
+      type: "result";
       result: StartServerResult;
     };
 
 function sendMessageToParentProcess(msg: ChildProcessResponse): void {
-  process.send?.(msg, undefined, {swallowErrors: true});
+  process.send?.(msg, undefined, { swallowErrors: true });
 }
 
 function info(...args: Parameters<typeof console.log>): void {
   const msg = {
-    type: 'message',
+    type: "message",
     args,
   } as ChildProcessResponse;
   sendMessageToParentProcess(msg);
 }
 
-const args: StartServerArgs = JSON.parse(process.env.ISL_SERVER_ARGS as string);
+const args: StartServerArgs = JSON.parse(process.env.GTI_SERVER_ARGS as string);
 args.logInfo = info;
-import('./server')
-  .then(({startServer}) => startServer(args))
+import("./server")
+  .then(({ startServer }) => startServer(args))
   .then((result: StartServerResult) => {
-    sendMessageToParentProcess({type: 'result', result});
+    sendMessageToParentProcess({ type: "result", result });
   })
-  .catch(error =>
-    sendMessageToParentProcess({type: 'result', result: {type: 'error', error: String(error)}}),
+  .catch((error) =>
+    sendMessageToParentProcess({
+      type: "result",
+      result: { type: "error", error: String(error) },
+    })
   );
 
-process.on('uncaughtException', err => {
-  const {logFileLocation} = args;
+process.on("uncaughtException", (err) => {
+  const { logFileLocation } = args;
   fs.promises.appendFile(
     logFileLocation,
-    `\n[${new Date().toString()}] ISL server child process got an uncaught exception:\n${
+    `\n[${new Date().toString()}] GTI server child process got an uncaught exception:\n${
       err?.stack ?? err?.message
     }\n\n`,
-    'utf8',
+    "utf8"
   );
 });

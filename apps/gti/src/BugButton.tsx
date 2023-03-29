@@ -33,7 +33,7 @@ const BugDropdown = observer(({ dismiss }: { dismiss: () => void }) => {
       ) : (
         <div className="bug-dropdown-version">
           <Copyable
-            children={`ISL version ${info.version} (${info.platformName})`}
+            children={`GTI version ${info.version} (${info.platformName})`}
           />
         </div>
       )}

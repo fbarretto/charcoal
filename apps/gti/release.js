@@ -1,7 +1,7 @@
 
 
 /*
- * Creates a standalone version of ISL in a temp folder that can be zipped up
+ * Creates a standalone version of GTI in a temp folder that can be zipped up
  * and deployed as a DotSlash artifact.
  */
 
@@ -20,7 +20,7 @@ function getOutDir() {
   const numArgs = process.argv.length;
   switch (numArgs) {
     case 2:
-      return fs.mkdtempSync(path.join(os.tmpdir(), 'isl'));
+      return fs.mkdtempSync(path.join(os.tmpdir(), 'gti'));
     case 3:
       return process.argv[2];
     default:
@@ -32,34 +32,34 @@ const outDir = getOutDir();
 console.log(`output will be written to ${outDir}`);
 
 // Build the server component.
-const serverDir = path.resolve(path.join(__dirname, '..', 'isl-server'));
+const serverDir = path.resolve(path.join(__dirname, '..', 'gti-server'));
 const serverDistDir = path.join(serverDir, 'dist');
 rm_rf(serverDistDir);
 execSync('yarn run build', serverDir);
 
-copyPathToOutput('isl-server/dist');
+copyPathToOutput('gti-server/dist');
 // although run-proxy is bundled with webpack, some dependencies (ws)
 // don't play well with webpack and need to be included anyway
 // Note: such dependencies should be set as externals in the webpack config.
-copyPathToOutput('isl-server/node_modules/ws');
+copyPathToOutput('gti-server/node_modules/ws');
 
 // Build the client.
 const clientBuildDir = './build';
 rm_rf(clientBuildDir);
 execSync('yarn run build');
 
-copyPathToOutput(path.join('isl', clientBuildDir));
-const islScript = path.join(outDir, 'run-isl');
-const islBat = path.join(outDir, 'run-isl.bat');
-fs.copyFileSync('./release/run-isl.template.sh', islScript);
-fs.copyFileSync('./release/run-isl.template.bat', islBat);
-fs.chmodSync(islScript, 0o755);
-fs.chmodSync(islBat, 0o755);
+copyPathToOutput(path.join('gti', clientBuildDir));
+const gtiScript = path.join(outDir, 'run-gti');
+const gitBat = path.join(outDir, 'run-gti.bat');
+fs.copyFileSync('./release/run-gti.template.sh', gtiScript);
+fs.copyFileSync('./release/run-gti.template.bat', gitBat);
+fs.chmodSync(gtiScript, 0o755);
+fs.chmodSync(gtiBat, 0o755);
 
-console.info(`You can run ISL at: ${process.platform === 'win32' ? islBat : islScript}`);
+console.info(`You can run GTI at: ${process.platform === 'win32' ? gitBat : gtiScript}`);
 
 function copyPathToOutput(fileOrFolder) {
-  // paths are relative to workspace root, not isl
+  // paths are relative to workspace root, not gti
   const source = path.join('..', fileOrFolder);
   const destPath = path.join(outDir, fileOrFolder);
   console.log(`copy ${source} -> ${destPath}`);

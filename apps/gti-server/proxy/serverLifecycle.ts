@@ -16,7 +16,7 @@ import * as http from "http";
  * If the challenge is successful, returns the PID of the server; otherwise,
  * returns null.
  */
-export async function checkIfServerIsAliveAndIsISL(
+export async function checkIfServerIsAliveAndIsGTI(
   info: typeof console.info,
   port: number,
   existingServerInfo: ExistingServerInfo,
@@ -58,7 +58,7 @@ export async function checkIfServerIsAliveAndIsISL(
         error
       );
     }
-    // if the request fails for any reason, we don't think it's an ISL server.
+    // if the request fails for any reason, we don't think it's an GTI server.
     return null;
   }
 

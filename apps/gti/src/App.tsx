@@ -8,7 +8,7 @@ import { CommitTreeList } from "./CommitTreeList";
 import { ComparisonViewModal } from "./ComparisonView/ComparisonViewModal";
 import { EmptyState } from "./EmptyState";
 import { ErrorBoundary, ErrorNotice } from "./ErrorNotice";
-import { GTICommandContext, useCommand } from "./ISLShortcuts";
+import { GTICommandContext, useCommand } from "./GTIShortcuts";
 import { DOCUMENTATION_DELAY, Tooltip } from "./Tooltip";
 import { TopBar } from "./TopBar";
 import { TopLevelErrors } from "./TopLevelErrors";
@@ -133,7 +133,7 @@ const MainContent = observer(() => {
       <TopBar />
       <TopLevelErrors />
       {repoInfo != null && repoInfo.type !== "success" ? (
-        <ISLNullState repoError={repoInfo} />
+        <GTINullState repoError={repoInfo} />
       ) : (
         <>
           <CommitTreeList />
@@ -147,7 +147,7 @@ const MainContent = observer(() => {
   );
 });
 
-function ISLNullState({ repoError }: { repoError: RepositoryError }) {
+function GTINullState({ repoError }: { repoError: RepositoryError }) {
   let content;
   if (repoError != null) {
     if (repoError.type === "cwdNotARepository") {

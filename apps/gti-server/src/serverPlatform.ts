@@ -52,7 +52,7 @@ export const browserServerPlatform: ServerPlatform = {
           }
         }
         if (command) {
-          // Because the ISL server is likely running in the background and is
+          // Because the GTI server is likely running in the background and is
           // no longer attached to a terminal, this is designed for the case
           // where the user opens the file in a windowed editor (hence
           // `windowsHide: false`, which is the default for
@@ -63,7 +63,7 @@ export const browserServerPlatform: ServerPlatform = {
           // - For users who prefer a terminal-based editor, like Emacs,
           //   a conduit like EmacsClient would be required.
           //
-          // Further, killing ISL should not kill the editor, so this follows
+          // Further, killing GTI should not kill the editor, so this follows
           // the pattern for spawning an independent, long-running process in
           // Node.js as described here:
           //

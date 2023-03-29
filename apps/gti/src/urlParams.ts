@@ -3,7 +3,7 @@ import type { InitialParamKeys } from "./platform";
 import { logger } from "./logger";
 import { gtiPlatformName } from "./utils";
 
-const INITIAL_PARAMS_LOCAL_STORAGE_KEY = "ISLInitialParams";
+const INITIAL_PARAMS_LOCAL_STORAGE_KEY = "GTIInitialParams";
 
 /**
  * Extract parameters from URL, then remove from URL to be cleaner (and hide sensitive tokens)

@@ -243,7 +243,7 @@ function isValidCustomPlatform(name: unknown): name is PlatformName {
 }
 
 /**
- * This calls the `startServer()` function that launches the server for ISL,
+ * This calls the `startServer()` function that launches the server for GTI,
  * though the mechanism is conditional on the `foreground` param:
  *
  * - If `foreground` is true, then `startServer()` will be called directly as
@@ -271,7 +271,7 @@ function callStartServer(args: StartServerArgs): Promise<StartServerResult> {
       // large enough for our needs.
       const env = {
         ...process.env,
-        ISL_SERVER_ARGS: JSON.stringify({ ...args, logInfo: null }),
+        GTI_SERVER_ARGS: JSON.stringify({ ...args, logInfo: null }),
       };
       const options = {
         env,
@@ -384,7 +384,7 @@ export async function runProxyMain(args: Args) {
       );
 
   /**
-   * Returns the URL the user can use to open ISL. Because this is often handed
+   * Returns the URL the user can use to open GTI. Because this is often handed
    * off as an argument to another process, we must take great care when
    * constructing this argument.
    */
@@ -433,7 +433,7 @@ export async function runProxyMain(args: Args) {
   });
 
   if (result.type === "addressInUse" && !force) {
-    // This port is already in use. Determine if it's a pre-existing ISL server,
+    // This port is already in use. Determine if it's a pre-existing GTI server,
     // and find the appropriate saved token, and reconstruct URL if recovered.
 
     const existingServerInfo =
@@ -452,7 +452,7 @@ export async function runProxyMain(args: Args) {
       process.exit(1);
     }
 
-    const pid = await lifecycle.checkIfServerIsAliveAndIsISL(
+    const pid = await lifecycle.checkIfServerIsAliveAndIsGTI(
       info,
       port,
       existingServerInfo
@@ -577,7 +577,7 @@ export async function runProxyMain(args: Args) {
 }
 
 /**
- * Finds any existing ISL server process running on `port`.
+ * Finds any existing GTI server process running on `port`.
  * If one is found, it is killed and the PID is returned.
  * Otherwise, an error is returned
  */
@@ -593,7 +593,7 @@ export async function killServerIfItExists(
       `could not find existing server information to kill on port ${port}`
     );
   }
-  const pid = await lifecycle.checkIfServerIsAliveAndIsISL(
+  const pid = await lifecycle.checkIfServerIsAliveAndIsGTI(
     info,
     port,
     existingServerInfo,

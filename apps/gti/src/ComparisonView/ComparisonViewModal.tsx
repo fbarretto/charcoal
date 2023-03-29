@@ -1,6 +1,6 @@
 import type { Comparison } from "@withgraphite/gti-shared/Comparison";
 
-import { useCommand } from "../ISLShortcuts";
+import { useCommand } from "../GTIShortcuts";
 import { Modal } from "../Modal";
 import { currentComparisonMode } from "./atoms";
 import { lazy, Suspense } from "react";

@@ -29,7 +29,7 @@ declare global {
 }
 
 // Non-browser platforms are defined by setting window.gtiPlatform
-// before the main ISL script loads.
+// before the main GTI script loads.
 const foundPlatform = window.gtiPlatform ?? browserPlatform;
 window.gtiPlatform = foundPlatform;
 

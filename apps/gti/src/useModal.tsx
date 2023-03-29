@@ -1,6 +1,6 @@
 import type { Deferred } from "@withgraphite/gti-shared/utils";
 
-import { useCommand } from "./ISLShortcuts";
+import { useCommand } from "./GTIShortcuts";
 import { Modal } from "./Modal";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { useEffect, useRef } from "react";

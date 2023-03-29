@@ -25,7 +25,7 @@ export function generateAnalyticsInfo(
     version,
     repo: undefined,
     /**
-     * Random id for this ISL session, created at startup.
+     * Random id for this GTI session, created at startup.
      * Note: this is only generated on the server, so client-logged events share the ID with the server.
      */
     sessionId: randomId(),

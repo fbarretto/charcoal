@@ -56,7 +56,7 @@ export class WatchForChanges {
   /**
    * Re-trigger fetching data from the repository,
    * depending on how recently that data was last fetched,
-   * and whether any ISL windows are focused or visible.
+   * and whether any GTI windows are focused or visible.
    *
    * This function calls itself on an interval to check whether we should fetch changes,
    * but it can also be called in response to events like focus being gained.

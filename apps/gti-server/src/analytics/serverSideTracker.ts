@@ -26,7 +26,7 @@ const noOp = (_data: FullTrackData, _logger: Logger) => {
 
 /**
  * Creates a Tracker which includes server-side-only cached application data like platform, username, etc,
- * and sends data to the underlying analytics engine outside of ISL.
+ * and sends data to the underlying analytics engine outside of GTI.
  * This can not be global since two client connections may have different cached data.
  */
 export function makeServerSideTracker(

@@ -13,7 +13,7 @@ defaults.__set__('configFactory', env => {
   config.output.library = 'EdenSmartlog';
 
   // don't open broser when running `yarn start`,
-  // since we need to use `yarn serve --dev` from isl-server
+  // since we need to use `yarn serve --dev` from gti-server
   process.env.BROWSER = 'none';
 
   injectAdditionalPlatforms(config);

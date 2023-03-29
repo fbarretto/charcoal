@@ -25,12 +25,12 @@ export const TopLevelErrors = observer(() => {
           title={
             <>
               Unable to connect to server. Try closing this window and accessing
-              ISL with a fresh link.
+              GTI with a fresh link.
             </>
           }
           error={
             new Error(
-              "Invalid connection token. For security, you need to open a new ISL window when the server is restarted."
+              "Invalid connection token. For security, you need to open a new GTI window when the server is restarted."
             )
           }
         />

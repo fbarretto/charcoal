@@ -28,7 +28,7 @@ const cacheDir =
 
 /**
  * Per-user cache dir with restrictive permissions.
- * Inside this folder will be a number of files, one per port for an active ISL server.
+ * Inside this folder will be a number of files, one per port for an active GTI server.
  */
 const savedActiveServerUrlsDirectory = path.join(cacheDir, "graphite-gti");
 

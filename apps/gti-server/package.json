@@ -1,9 +1,8 @@
 {
   "name": "@withgraphite/gti-server",
   "version": "0.0.0",
-  "description": "isl-server",
-  "main": "dist/isl-server/src/index.js",
-  "license": "MIT",
+  "description": "gti-server",
+  "main": "dist/gti-server/src/index.js",
   "private": true,
   "devDependencies": {
     "@types/fb-watchman": "^2.0.1",
