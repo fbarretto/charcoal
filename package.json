@@ -7,7 +7,8 @@
       "./apps/gti",
       "./apps/gti-server",
       "./libs/gti-shared",
-      "./libs/gti-cli-shared-types"
+      "./libs/gti-cli-shared-types",
+      "./apps/vscode"
     ]
   },
   "packageManager": "yarn@3.3.1",

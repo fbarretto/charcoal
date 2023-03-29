@@ -75,7 +75,7 @@ export type ResolveCommandConflictOutput = [
  * This class is responsible for providing information about the working copy
  * for a Graphite repository.
  *
- * A Repository may be reused by multiple connections, not just one ISL window.
+ * A Repository may be reused by multiple connections, not just one GTI window.
  * This is so we don't duplicate watchman subscriptions and calls to status/log.
  * A Repository does not have a pre-defined `cwd`, so it may be re-used across cwds.
  *
