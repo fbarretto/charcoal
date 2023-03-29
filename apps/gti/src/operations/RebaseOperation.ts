@@ -2,7 +2,6 @@ import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
 import type { Revset } from "../types";
 
 import { CommitPreview } from "../previews";
-import { SucceedableRevset } from "../types";
 import { Operation } from "./Operation";
 import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 
@@ -15,11 +14,12 @@ export class RebaseOperation extends Operation {
 
   getArgs() {
     return [
+      "interactive",
       "rebase",
-      "-s",
-      SucceedableRevset(this.source),
-      "-d",
-      SucceedableRevset(this.destination),
+      "--source",
+      this.source,
+      "--dest",
+      this.destination,
     ];
   }
 
