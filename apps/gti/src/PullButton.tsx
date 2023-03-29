@@ -25,7 +25,7 @@ export const PullButton = observer(() => {
   );
 
   let title =
-    "Fetch latest repository and branch information from remote." +
+    "Pull trunk branch from remote." +
     "\n\n" +
     "Last synced with remote:" +
     " " +

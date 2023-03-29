@@ -4,6 +4,6 @@ export class PullOperation extends Operation {
   static opName = "Pull";
 
   getArgs() {
-    return ["pull"];
+    return ["interactive", "pulltrunk"];
   }
 }
