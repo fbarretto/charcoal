@@ -113,11 +113,11 @@ export const Commit = memo(
       const contextMenu = useContextMenu(() => {
         return [
           {
-            label: <>Copy Commit Hash "{commit?.branch}"</>,
+            label: <>Copy branch name "{commit?.branch}"</>,
             onClick: () => platform.clipboardCopy(commit.branch),
           },
           {
-            label: <>Hide Commit and Descendents</>,
+            label: <>Untrack branch and descendants</>,
             onClick: () =>
               operationBeingPreviewed.set(new HideOperation(commit.branch)),
           },

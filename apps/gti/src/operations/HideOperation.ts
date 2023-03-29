@@ -2,7 +2,6 @@ import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
 
 import { CommitPreview } from "../previews";
-import { SucceedableRevset } from "../types";
 import { Operation } from "./Operation";
 
 export class HideOperation extends Operation {
@@ -13,7 +12,7 @@ export class HideOperation extends Operation {
   static opName = "Hide";
 
   getArgs() {
-    return ["hide", "--rev", SucceedableRevset(this.source)];
+    return ["branch", "untrack", this.source];
   }
 
   makePreviewApplier(
