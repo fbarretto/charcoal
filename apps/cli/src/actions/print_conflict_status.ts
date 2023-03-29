@@ -11,14 +11,14 @@ export function printConflictStatus(
 
   context.splog.info(chalk.yellow(`Unmerged files:`));
   context.splog.info(
-    context.metaCache
+    context.engine
       .getUnmergedFiles()
       .map((line) => chalk.redBright(line))
       .join('\n')
   );
   context.splog.newline();
 
-  const rebaseHead = context.metaCache.getRebaseHead();
+  const rebaseHead = context.engine.getRebaseHead();
   // this should never be undefined in this case, but we don't need to fail here
   if (rebaseHead) {
     context.splog.info(

@@ -19,7 +19,7 @@ async function getNewBranchName(
       validate: (name) => {
         const calculatedName = replaceUnsupportedCharacters(name, context);
         return oldBranchName !== calculatedName &&
-          context.metaCache.allBranchNames.includes(calculatedName)
+          context.engine.allBranchNames.includes(calculatedName)
           ? 'Branch name is unavailable.'
           : true;
       },
@@ -38,7 +38,7 @@ export async function renameCurrentBranch(
   args: { newBranchName?: string; force?: boolean },
   context: TContext
 ): Promise<void> {
-  const oldBranchName = context.metaCache.currentBranchPrecondition;
+  const oldBranchName = context.engine.currentBranchPrecondition;
 
   const branchName =
     context.interactive && args.newBranchName
@@ -52,7 +52,7 @@ export async function renameCurrentBranch(
     return;
   }
 
-  if (context.metaCache.getPrInfo(oldBranchName)?.number && !args.force) {
+  if (context.engine.getPrInfo(oldBranchName)?.number && !args.force) {
     context.splog.tip(
       `Renaming a branch that is already associated with a PR removes the association.`
     );
@@ -64,7 +64,7 @@ export async function renameCurrentBranch(
 
   const newBranchName = replaceUnsupportedCharacters(branchName, context);
 
-  context.metaCache.renameCurrentBranch(newBranchName);
+  context.engine.renameCurrentBranch(newBranchName);
   context.splog.info(
     `Successfully renamed ${chalk.blueBright(oldBranchName)} to ${chalk.green(
       newBranchName

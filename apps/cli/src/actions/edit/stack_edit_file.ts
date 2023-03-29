@@ -27,7 +27,7 @@ export function createStackEditFile(
   // show the trunk at the bottom of the list to better match "upstack" and "downstack"
   const fileContents = [
     ...opts.branchNames.reverse(),
-    `# ${context.metaCache.trunk} (trunk, shown for orientation)`,
+    `# ${context.engine.trunk} (trunk, shown for orientation)`,
     ...FILE_FOOTER,
   ].join('\n');
 

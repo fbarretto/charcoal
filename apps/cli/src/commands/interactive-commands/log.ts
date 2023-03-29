@@ -13,24 +13,24 @@ type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
     const commitInfos: Array<BranchInfo> = await Promise.all(
-      context.metaCache.allBranchNames.map((branchName) => {
-        const prInfo = context.metaCache.getPrInfo(branchName);
-        const parent = context.metaCache.getParent(branchName);
+      context.engine.allBranchNames.map((branchName) => {
+        const prInfo = context.engine.getPrInfo(branchName);
+        const parent = context.engine.getParent(branchName);
 
-        const commitDate = context.metaCache.getCommitDate(branchName);
-        const commitAuthor = context.metaCache.getCommitAuthor(branchName);
+        const commitDate = context.engine.getCommitDate(branchName);
+        const commitAuthor = context.engine.getCommitAuthor(branchName);
 
-        const filesChanged = context.metaCache.getChangedFiles(branchName);
+        const filesChanged = context.engine.getChangedFiles(branchName);
 
         return {
           branch: branchName,
 
           // Cache
           parents: parent ? [parent] : [],
-          isHead: context.metaCache.currentBranch === branchName,
+          isHead: context.engine.currentBranch === branchName,
           partOfTrunk:
-            context.metaCache.isMergedIntoTrunk(branchName) ||
-            context.metaCache.isTrunk(branchName),
+            context.engine.isMergedIntoTrunk(branchName) ||
+            context.engine.isTrunk(branchName),
 
           // Git
           author: commitAuthor,

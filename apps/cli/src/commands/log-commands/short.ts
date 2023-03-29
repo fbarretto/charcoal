@@ -56,8 +56,8 @@ export const handler = async (argv: argsT): Promise<void> =>
             reverse: argv.reverse,
             branchName:
               argv.steps || argv.stack
-                ? context.metaCache.currentBranchPrecondition
-                : context.metaCache.trunk,
+                ? context.engine.currentBranchPrecondition
+                : context.engine.trunk,
             steps: argv.steps,
             showUntracked: argv['show-untracked'],
           },

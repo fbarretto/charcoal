@@ -41,6 +41,6 @@ export const handler = async (argv: argsT): Promise<void> => {
     fs.writeFileSync(tmpfilePath, metaString);
     context.userConfig.execEditor(tmpfilePath);
     writeMetadataRef(argv.branch, fs.readJSONSync(tmpfilePath));
-    context.metaCache.rebuild();
+    context.engine.rebuild();
   });
 };

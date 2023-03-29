@@ -23,9 +23,9 @@ export const builder = args;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
-    const current = context.metaCache.currentBranch;
-    context.metaCache.checkoutBranch(argv.source);
+    const current = context.engine.currentBranch;
+    context.engine.checkoutBranch(argv.source);
     currentBranchOnto(argv.dest, context);
-    current && context.metaCache.checkoutBranch(current);
+    current && context.engine.checkoutBranch(current);
   });
 };

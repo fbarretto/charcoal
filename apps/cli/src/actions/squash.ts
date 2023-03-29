@@ -7,13 +7,13 @@ export function squashCurrentBranch(
   opts: Pick<TCommitOpts, 'message' | 'noEdit'>,
   context: TContext
 ): void {
-  context.metaCache.squashCurrentBranch({
+  context.engine.squashCurrentBranch({
     noEdit: opts.noEdit,
     message: opts.message,
   });
   restackBranches(
-    context.metaCache.getRelativeStack(
-      context.metaCache.currentBranchPrecondition,
+    context.engine.getRelativeStack(
+      context.engine.currentBranchPrecondition,
       SCOPE.UPSTACK_EXCLUSIVE
     ),
     context

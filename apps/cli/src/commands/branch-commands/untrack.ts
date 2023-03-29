@@ -30,7 +30,7 @@ export const handler = async (argv: argsT): Promise<void> =>
   graphite(argv, canonical, async (context) =>
     untrackBranch(
       {
-        branchName: argv.branch ?? context.metaCache.currentBranchPrecondition,
+        branchName: argv.branch ?? context.engine.currentBranchPrecondition,
         force: argv.force,
       },
       context

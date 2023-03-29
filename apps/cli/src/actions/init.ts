@@ -17,7 +17,7 @@ export async function init(
   },
   context: TContext
 ): Promise<void> {
-  const allBranchNames = context.metaCache.allBranchNames;
+  const allBranchNames = context.engine.allBranchNames;
 
   context.splog.info(
     context.repoConfig.graphiteInitialized()
@@ -43,10 +43,10 @@ export async function init(
   context.splog.info(`Trunk set to ${chalk.green(newTrunkName)}`);
 
   if (args.reset) {
-    context.metaCache.reset(newTrunkName);
+    context.engine.reset(newTrunkName);
     context.splog.info(`All branches have been untracked`);
   } else {
-    context.metaCache.rebuild(newTrunkName);
+    context.engine.rebuild(newTrunkName);
   }
   context.splog.newline();
 
@@ -60,7 +60,7 @@ async function selectTrunkBranch(
   context: TContext
 ): Promise<string> {
   const inferredTrunk =
-    context.metaCache.findRemoteBranch() ?? findCommonlyNamedTrunk(context);
+    context.engine.findRemoteBranch() ?? findCommonlyNamedTrunk(context);
 
   if (!context.interactive) {
     if (inferredTrunk) {
@@ -96,7 +96,7 @@ async function selectTrunkBranch(
 }
 
 function findCommonlyNamedTrunk(context: TContext): string | undefined {
-  const potentialTrunks = context.metaCache.allBranchNames.filter((b) =>
+  const potentialTrunks = context.engine.allBranchNames.filter((b) =>
     ['main', 'master', 'development', 'develop'].includes(b)
   );
   if (potentialTrunks.length === 1) {
@@ -133,6 +133,6 @@ async function branchOnboardingFlow(context: TContext) {
     return;
   }
 
-  await checkoutBranch({ branchName: context.metaCache.trunk }, context);
+  await checkoutBranch({ branchName: context.engine.trunk }, context);
   while (await trackBranchInteractive(context));
 }

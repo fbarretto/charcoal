@@ -32,9 +32,9 @@ export async function splitCurrentBranch(
   }
   uncommittedTrackedChangesPrecondition();
 
-  const branchToSplit = context.metaCache.currentBranchPrecondition;
+  const branchToSplit = context.engine.currentBranchPrecondition;
 
-  if (!context.metaCache.isBranchTracked(branchToSplit)) {
+  if (!context.engine.isBranchTracked(branchToSplit)) {
     await trackBranch(
       { branchName: branchToSplit, parentBranchName: undefined, force: false },
       context
@@ -44,7 +44,7 @@ export async function splitCurrentBranch(
   // If user did not select a style, prompt unless there is only one commit
   const style: 'hunk' | 'commit' | 'abort' =
     args.style ??
-    (context.metaCache.getAllCommits(branchToSplit, 'SHA').length > 1
+    (context.engine.getAllCommits(branchToSplit, 'SHA').length > 1
       ? (
           await prompts(
             {
@@ -82,12 +82,12 @@ export async function splitCurrentBranch(
 
   const split = await actions[style](branchToSplit, context);
 
-  const children = context.metaCache.getRelativeStack(
+  const children = context.engine.getRelativeStack(
     branchToSplit,
     SCOPE.UPSTACK_EXCLUSIVE
   );
 
-  context.metaCache.applySplitToCommits({
+  context.engine.applySplitToCommits({
     branchToSplit,
     ...split,
   });
@@ -102,13 +102,12 @@ async function splitByCommit(
   const instructions = getSplitByCommitInstructions(branchToSplit, context);
   context.splog.info(instructions);
 
-  const readableCommits = context.metaCache.getAllCommits(
+  const readableCommits = context.engine.getAllCommits(
     branchToSplit,
     'READABLE'
   );
-  const numChildren = context.metaCache.getChildren(branchToSplit).length;
-  const parentBranchName =
-    context.metaCache.getParentPrecondition(branchToSplit);
+  const numChildren = context.engine.getChildren(branchToSplit).length;
+  const parentBranchName = context.engine.getParentPrecondition(branchToSplit);
 
   const branchPoints = await getBranchPoints({
     readableCommits,
@@ -133,7 +132,7 @@ async function splitByCommit(
     );
   }
 
-  context.metaCache.detach();
+  context.engine.detach();
   return { branchNames, branchPoints };
 }
 
@@ -145,12 +144,12 @@ function getSplitByCommitInstructions(
     `Splitting the commits of ${chalk.cyan(
       branchToSplit
     )} into multiple branches.`,
-    ...(context.metaCache.getPrInfo(branchToSplit)?.number
+    ...(context.engine.getPrInfo(branchToSplit)?.number
       ? [
           `If any of the new branches keeps the name ${chalk.cyan(
             branchToSplit
           )}, it will be linked to PR #${
-            context.metaCache.getPrInfo(branchToSplit)?.number
+            context.engine.getPrInfo(branchToSplit)?.number
           }.`,
         ]
       : []),
@@ -264,19 +263,19 @@ async function splitByHunk(
   context: TContext
 ): Promise<TSplit> {
   // Keeps new files tracked so they get added by the `commit -p`
-  context.metaCache.detachAndResetBranchChanges();
+  context.engine.detachAndResetBranchChanges();
 
   const branchNames: string[] = [];
   try {
     const instructions = getSplitByHunkInstructions(branchToSplit, context);
-    const defaultCommitMessage = context.metaCache
+    const defaultCommitMessage = context.engine
       .getAllCommits(branchToSplit, 'MESSAGE')
       .reverse()
       .join('\n\n');
     for (
-      let unstagedChanges = context.metaCache.getUnstagedChanges();
+      let unstagedChanges = context.engine.getUnstagedChanges();
       unstagedChanges.length > 0;
-      unstagedChanges = context.metaCache.getUnstagedChanges()
+      unstagedChanges = context.engine.getUnstagedChanges()
     ) {
       context.splog.info(instructions);
       context.splog.newline();
@@ -286,7 +285,7 @@ async function splitByHunk(
       context.splog.info(
         chalk.yellow(`Stage changes for branch ${branchNames.length + 1}:`)
       );
-      context.metaCache.commit({
+      context.engine.commit({
         message: defaultCommitMessage,
         edit: true,
         patch: true,
@@ -297,7 +296,7 @@ async function splitByHunk(
     }
   } catch (e) {
     // Handle a CTRL-C gracefully
-    context.metaCache.forceCheckoutBranch(branchToSplit);
+    context.engine.forceCheckoutBranch(branchToSplit);
     context.splog.newline();
     context.splog.info(
       `Exited early: no new branches created. You are still on ${chalk.cyan(
@@ -322,12 +321,12 @@ function getSplitByHunkInstructions(
     `Splitting ${chalk.cyan(
       branchToSplit
     )} into multiple single-commit branches.`,
-    ...(context.metaCache.getPrInfo(branchToSplit)?.number
+    ...(context.engine.getPrInfo(branchToSplit)?.number
       ? [
           `If any of the new branches keeps the name ${chalk.cyan(
             branchToSplit
           )}, it will be linked to PR #${
-            context.metaCache.getPrInfo(branchToSplit)?.number
+            context.engine.getPrInfo(branchToSplit)?.number
           }.`,
         ]
       : []),
@@ -360,7 +359,7 @@ async function promptNextBranchName(
         const calculatedName = replaceUnsupportedCharacters(name, context);
         return branchNames.includes(calculatedName) ||
           (calculatedName !== branchToSplit &&
-            context.metaCache.allBranchNames.includes(calculatedName))
+            context.engine.allBranchNames.includes(calculatedName))
           ? 'Branch name is already in use, choose a different name.'
           : true;
       },

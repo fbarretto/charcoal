@@ -12,16 +12,16 @@ export async function editDownstack(
   const branchNames = inputPath
     ? parseEditFile(inputPath) // allow users to pass a pre-written file, mostly for unit tests.
     : await promptForEdit(context);
-  reorderBranches(context.metaCache.trunk, branchNames, context);
+  reorderBranches(context.engine.trunk, branchNames, context);
 
   // Restack starting from the bottom of the new stack upwards
-  const branchesToRestack = context.metaCache.getRelativeStack(
+  const branchesToRestack = context.engine.getRelativeStack(
     branchNames[0],
     SCOPE.UPSTACK
   );
 
   // We to check out the top of the new stack BEFORE we restack in case of conflicts.
-  context.metaCache.checkoutBranch(branchNames.reverse()[0]);
+  context.engine.checkoutBranch(branchNames.reverse()[0]);
   restackBranches(branchesToRestack, context);
 }
 
@@ -33,14 +33,14 @@ function reorderBranches(
   if (branchNames.length === 0) {
     return;
   }
-  context.metaCache.setParent(branchNames[0], parentBranchName);
+  context.engine.setParent(branchNames[0], parentBranchName);
   context.splog.debug(`Set parent of ${branchNames[0]} to ${parentBranchName}`);
   reorderBranches(branchNames[0], branchNames.slice(1), context);
 }
 
 async function promptForEdit(context: TContext): Promise<string[]> {
-  const branchNames = context.metaCache.getRelativeStack(
-    context.metaCache.currentBranchPrecondition,
+  const branchNames = context.engine.getRelativeStack(
+    context.engine.currentBranchPrecondition,
     SCOPE.DOWNSTACK
   );
   return performInTmpDir((tmpDir) => {

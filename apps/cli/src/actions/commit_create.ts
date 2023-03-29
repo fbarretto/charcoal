@@ -12,23 +12,23 @@ export function commitCreateAction(
   },
   context: TContext
 ): void {
-  if (context.metaCache.rebaseInProgress()) {
+  if (context.engine.rebaseInProgress()) {
     throw new BlockedDuringRebaseError();
   }
 
   if (opts.addAll) {
-    context.metaCache.addAll();
+    context.engine.addAll();
   }
 
   ensureSomeStagedChangesPrecondition(context);
-  context.metaCache.commit({
+  context.engine.commit({
     message: opts.message,
     patch: !opts.addAll && opts.patch,
   });
 
   restackBranches(
-    context.metaCache.getRelativeStack(
-      context.metaCache.currentBranchPrecondition,
+    context.engine.getRelativeStack(
+      context.engine.currentBranchPrecondition,
       SCOPE.UPSTACK_EXCLUSIVE
     ),
     context

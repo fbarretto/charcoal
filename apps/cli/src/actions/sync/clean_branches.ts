@@ -37,9 +37,7 @@ export async function cleanBranches(
    * of that work as soon as we can.
    */
 
-  const branchesToProcess = context.metaCache.getChildren(
-    context.metaCache.trunk
-  );
+  const branchesToProcess = context.engine.getChildren(context.engine.trunk);
   const branchesToDelete: Record<string, Set<string>> = {};
   const branchesWithNewParents: string[] = [];
 
@@ -77,7 +75,7 @@ export async function cleanBranches(
       context
     );
     if (shouldDelete) {
-      const children = context.metaCache.getChildren(branchName);
+      const children = context.engine.getChildren(branchName);
 
       // We concat children here (because we pop above) to make our search a DFS.
       children.forEach((b) => branchesToProcess.push(b));
@@ -92,17 +90,16 @@ export async function cleanBranches(
       // If its parent IS being deleted, we have to change its parent.
 
       // First, find the nearest ancestor that isn't being deleted.
-      const parentBranchName =
-        context.metaCache.getParentPrecondition(branchName);
+      const parentBranchName = context.engine.getParentPrecondition(branchName);
       let newParentBranchName = parentBranchName;
       while (newParentBranchName in branchesToDelete) {
         newParentBranchName =
-          context.metaCache.getParentPrecondition(newParentBranchName);
+          context.engine.getParentPrecondition(newParentBranchName);
       }
 
       // If the nearest ancestor is not already the parent, we make it so.
       if (newParentBranchName !== parentBranchName) {
-        context.metaCache.setParent(branchName, newParentBranchName);
+        context.engine.setParent(branchName, newParentBranchName);
         context.splog.info(
           `Set parent of ${chalk.cyan(branchName)} to ${chalk.blueBright(
             newParentBranchName
@@ -140,8 +137,7 @@ function greedilyDeleteUnblockedBranches(
   while (unblockedBranches.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const branchName = unblockedBranches.pop()!;
-    const parentBranchName =
-      context.metaCache.getParentPrecondition(branchName);
+    const parentBranchName = context.engine.getParentPrecondition(branchName);
 
     deleteBranchAction({ branchName: branchName, force: true }, context);
 

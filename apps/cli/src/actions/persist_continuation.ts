@@ -27,7 +27,7 @@ export function persistContinuation(
   context.continueConfig.update((data) => {
     data.branchesToSync = branchesToSync;
     data.branchesToRestack = branchesToRestack;
-    data.currentBranchOverride = context.metaCache.currentBranch;
+    data.currentBranchOverride = context.engine.currentBranch;
     data.rebasedBranchBase = args.rebasedBranchBase;
   });
 }

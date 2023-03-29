@@ -24,24 +24,24 @@ type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
     if (argv.target === 'uncommitted') {
-      context.splog.info(context.metaCache.getDiff('HEAD', undefined));
+      context.splog.info(context.engine.getDiff('HEAD', undefined));
       return;
     }
 
     if (argv.target === 'head') {
-      context.splog.info(context.metaCache.getDiff('HEAD~', undefined));
+      context.splog.info(context.engine.getDiff('HEAD~', undefined));
       return;
     }
 
     if (argv.target === 'stack') {
-      const current = argv.ref || context.metaCache.currentBranch;
+      const current = argv.ref || context.engine.currentBranch;
       if (!current) {
         throw new PreconditionsFailedError(
           'Running stack diff when not on a branch and without passing --ref'
         );
       }
 
-      context.splog.info(context.metaCache.getStackDiff(current));
+      context.splog.info(context.engine.getStackDiff(current));
       return;
     }
   });

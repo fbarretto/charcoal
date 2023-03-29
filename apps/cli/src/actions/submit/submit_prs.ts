@@ -45,7 +45,7 @@ export async function submitPullRequest(
     );
   }
 
-  context.metaCache.upsertPrInfo(pr.response.head, {
+  context.engine.upsertPrInfo(pr.response.head, {
     number: pr.response.prNumber,
     url: pr.response.prURL,
     base: pr.request.base,

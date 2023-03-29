@@ -59,14 +59,14 @@ export async function getPRInfoForBranches(
       continue;
     }
 
-    const parentBranchName = context.metaCache.getParentPrecondition(
+    const parentBranchName = context.engine.getParentPrecondition(
       action.branchName
     );
     submissionInfo.push({
       head: action.branchName,
-      headSha: context.metaCache.getRevision(action.branchName),
+      headSha: context.engine.getRevision(action.branchName),
       base: parentBranchName,
-      baseSha: context.metaCache.getRevision(parentBranchName),
+      baseSha: context.engine.getRevision(parentBranchName),
       ...(action.update
         ? {
             action: 'update' as const,
@@ -117,10 +117,10 @@ async function getPRAction(
   // The branch here should always have a parent - above, the branches we've
   // gathered should exclude trunk which ensures that every branch we're submitting
   // a PR for has a valid parent.
-  const parentBranchName = context.metaCache.getParentPrecondition(
+  const parentBranchName = context.engine.getParentPrecondition(
     args.branchName
   );
-  const prInfo = context.metaCache.getPrInfo(args.branchName);
+  const prInfo = context.engine.getPrInfo(args.branchName);
   const prNumber = prInfo?.number;
 
   const status =
@@ -130,7 +130,7 @@ async function getPRAction(
         : 'CREATE'
       : parentBranchName !== prInfo?.base
       ? 'RESTACK'
-      : !context.metaCache.branchMatchesRemote(args.branchName) ||
+      : !context.engine.branchMatchesRemote(args.branchName) ||
         args.editPRFieldsInline
       ? 'CHANGE'
       : args.draft === true && prInfo.isDraft !== true
@@ -184,7 +184,7 @@ async function getPRCreationInfo(
       `Enter info for new pull request for ${chalk.cyan(
         args.branchName
       )} ▸ ${chalk.blueBright(
-        context.metaCache.getParentPrecondition(args.branchName)
+        context.engine.getParentPrecondition(args.branchName)
       )}:`
     );
   }
@@ -209,7 +209,7 @@ async function getPRCreationInfo(
     );
   } finally {
     // Save locally in case this command fails
-    context.metaCache.upsertPrInfo(args.branchName, submitInfo);
+    context.engine.upsertPrInfo(args.branchName, submitInfo);
   }
 
   const reviewers = await getReviewers(args.reviewers);
@@ -250,7 +250,7 @@ async function getPRUpdateInfo(
       `Enter updated info for pull request for ${chalk.cyan(
         args.branchName
       )} ▸ ${chalk.blueBright(
-        context.metaCache.getParentPrecondition(args.branchName)
+        context.engine.getParentPrecondition(args.branchName)
       )}:`
     );
 
@@ -263,7 +263,7 @@ async function getPRUpdateInfo(
         context
       );
 
-      const prInfo = context.metaCache.getPrInfo(args.branchName);
+      const prInfo = context.engine.getPrInfo(args.branchName);
       if (prInfo === undefined) {
         context.splog.warn(
           'Cannot find existing PR body; starting from scratch'
@@ -273,7 +273,7 @@ async function getPRUpdateInfo(
       submitInfo.body = await editPRBody(body, context);
     } finally {
       // Save locally in case this command fails
-      context.metaCache.upsertPrInfo(args.branchName, submitInfo);
+      context.engine.upsertPrInfo(args.branchName, submitInfo);
     }
   }
 

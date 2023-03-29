@@ -25,13 +25,11 @@ export function testStack(
   opts: { scope: TScopeSpec; includeTrunk?: boolean; command: string },
   context: TContext
 ): void {
-  const currentBranch = context.metaCache.currentBranchPrecondition;
+  const currentBranch = context.engine.currentBranchPrecondition;
   // Get branches to test.
-  const branches = context.metaCache
+  const branches = context.engine
     .getRelativeStack(currentBranch, SCOPE.STACK)
-    .filter(
-      (branch) => opts.includeTrunk || !context.metaCache.isTrunk(branch)
-    );
+    .filter((branch) => opts.includeTrunk || !context.engine.isTrunk(branch));
 
   // Initialize state to print out.
   const state: TTestState = {};
@@ -58,7 +56,7 @@ export function testStack(
   );
 
   // Finish off.
-  context.metaCache.checkoutBranch(currentBranch);
+  context.engine.checkoutBranch(currentBranch);
 }
 
 function testBranch(
@@ -70,7 +68,7 @@ function testBranch(
   },
   context: TContext
 ) {
-  context.metaCache.checkoutBranch(opts.branchName);
+  context.engine.checkoutBranch(opts.branchName);
 
   const outputPath = path.join(
     opts.tmpDirName,

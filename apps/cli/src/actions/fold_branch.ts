@@ -4,10 +4,10 @@ import { SCOPE } from '../lib/engine/scope_spec';
 import { restackBranches } from './restack';
 
 export function foldCurrentBranch(keep: boolean, context: TContext): void {
-  const currentBranchName = context.metaCache.currentBranchPrecondition;
+  const currentBranchName = context.engine.currentBranchPrecondition;
   const parentBranchName =
-    context.metaCache.getParentPrecondition(currentBranchName);
-  context.metaCache.foldCurrentBranch(keep);
+    context.engine.getParentPrecondition(currentBranchName);
+  context.engine.foldCurrentBranch(keep);
   if (keep) {
     context.splog.info(
       `Folded ${chalk.green(currentBranchName)} into ${chalk.blueBright(
@@ -25,8 +25,8 @@ export function foldCurrentBranch(keep: boolean, context: TContext): void {
     );
   }
   restackBranches(
-    context.metaCache.getRelativeStack(
-      context.metaCache.currentBranchPrecondition,
+    context.engine.getRelativeStack(
+      context.engine.currentBranchPrecondition,
       SCOPE.UPSTACK_EXCLUSIVE
     ),
     context

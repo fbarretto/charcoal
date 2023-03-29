@@ -12,4 +12,4 @@ export const canonical = 'log long';
 
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> =>
-  graphite(argv, canonical, async (context) => context.metaCache.logLong());
+  graphite(argv, canonical, async (context) => context.engine.logLong());

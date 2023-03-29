@@ -15,20 +15,18 @@ export function commitAmendAction(
   },
   context: TContext
 ): void {
-  if (
-    context.metaCache.isBranchEmpty(context.metaCache.currentBranchPrecondition)
-  ) {
+  if (context.engine.isBranchEmpty(context.engine.currentBranchPrecondition)) {
     throw new PreconditionsFailedError('No commits in this branch to amend');
   }
-  if (context.metaCache.rebaseInProgress()) {
+  if (context.engine.rebaseInProgress()) {
     throw new BlockedDuringRebaseError();
   }
 
   if (opts.addAll) {
-    context.metaCache.addAll();
+    context.engine.addAll();
   }
 
-  context.metaCache.commit({
+  context.engine.commit({
     amend: true,
     noEdit: opts.noEdit,
     message: opts.message,
@@ -42,8 +40,8 @@ export function commitAmendAction(
   }
 
   restackBranches(
-    context.metaCache.getRelativeStack(
-      context.metaCache.currentBranchPrecondition,
+    context.engine.getRelativeStack(
+      context.engine.currentBranchPrecondition,
       SCOPE.UPSTACK_EXCLUSIVE
     ),
     context

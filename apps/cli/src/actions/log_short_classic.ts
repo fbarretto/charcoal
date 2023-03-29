@@ -10,17 +10,17 @@ function displayBranchesInternal(
   },
   context: TContext
 ): { display: string; branchName: string }[] {
-  const currentBranchName = context.metaCache.currentBranch;
+  const currentBranchName = context.engine.currentBranch;
   const currentChoice = {
     display: `${'  '.repeat(opts.indent ?? 0)}↱ $ ${opts.branchName}${
-      context.metaCache.isBranchFixed(opts.branchName)
+      context.engine.isBranchFixed(opts.branchName)
         ? ''
         : chalk.yellowBright(` (needs restack)`)
     }`,
     branchName: opts.branchName,
   };
   return (
-    context.metaCache
+    context.engine
       .getChildren(opts.branchName)
       ?.filter((b) => b !== currentBranchName || !opts.omitCurrentBranch)
       .map((b) =>
@@ -40,7 +40,7 @@ function displayBranchesInternal(
 export function logShortClassic(context: TContext): void {
   context.splog.info(
     displayBranchesInternal(
-      { branchName: context.metaCache.trunk, highlightCurrentBranch: true },
+      { branchName: context.engine.trunk, highlightCurrentBranch: true },
       context
     )
       .map((b) => b.display)

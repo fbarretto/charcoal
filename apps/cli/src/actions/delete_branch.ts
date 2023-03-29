@@ -11,7 +11,7 @@ export function deleteBranchAction(
   },
   context: TContext
 ): void {
-  if (context.metaCache.isTrunk(args.branchName)) {
+  if (context.engine.isTrunk(args.branchName)) {
     throw new ExitFailedError('Cannot delete trunk!');
   }
 
@@ -24,11 +24,11 @@ export function deleteBranchAction(
     );
   }
 
-  const branchesToRestack = context.metaCache.getRelativeStack(
+  const branchesToRestack = context.engine.getRelativeStack(
     args.branchName,
     SCOPE.UPSTACK_EXCLUSIVE
   );
-  context.metaCache.deleteBranch(args.branchName);
+  context.engine.deleteBranch(args.branchName);
   context.splog.info(`Deleted branch ${chalk.red(args.branchName)}`);
 
   restackBranches(branchesToRestack, context);
@@ -43,18 +43,18 @@ export function isSafeToDelete(
   branchName: string,
   context: TContext
 ): { result: true; reason: string } | { result: false } {
-  const prInfo = context.metaCache.getPrInfo(branchName);
+  const prInfo = context.engine.getPrInfo(branchName);
 
   const reason =
     prInfo?.state === 'CLOSED'
       ? `${chalk.redBright(branchName)} is closed on GitHub`
       : prInfo?.state === 'MERGED'
       ? `${chalk.green(branchName)} is merged into ${chalk.cyan(
-          prInfo?.base ?? context.metaCache.trunk
+          prInfo?.base ?? context.engine.trunk
         )}`
-      : context.metaCache.isMergedIntoTrunk(branchName)
+      : context.engine.isMergedIntoTrunk(branchName)
       ? `${chalk.green(branchName)} is merged into ${chalk.cyan(
-          context.metaCache.trunk
+          context.engine.trunk
         )}`
       : undefined;
 

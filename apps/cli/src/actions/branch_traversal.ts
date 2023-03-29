@@ -15,7 +15,7 @@ export async function switchBranchAction(
   branchNavigation: TBranchNavigation,
   context: TContext
 ): Promise<void> {
-  const currentBranchName = context.metaCache.currentBranchPrecondition;
+  const currentBranchName = context.engine.currentBranchPrecondition;
   context.splog.info(chalk.blueBright(currentBranchName));
   const newBranchName = await traverseBranches(
     branchNavigation,
@@ -70,15 +70,12 @@ function traverseDownward(
   context: TContext,
   stepsRemaining: number | 'bottom' = 'bottom'
 ): string {
-  if (stepsRemaining === 0 || context.metaCache.isTrunk(currentBranchName)) {
+  if (stepsRemaining === 0 || context.engine.isTrunk(currentBranchName)) {
     return currentBranchName;
   }
   const parentBranchName =
-    context.metaCache.getParentPrecondition(currentBranchName);
-  if (
-    stepsRemaining === 'bottom' &&
-    context.metaCache.isTrunk(parentBranchName)
-  ) {
+    context.engine.getParentPrecondition(currentBranchName);
+  if (stepsRemaining === 'bottom' && context.engine.isTrunk(parentBranchName)) {
     return currentBranchName;
   }
   context.splog.info('⮑  ' + parentBranchName);
@@ -97,7 +94,7 @@ async function traverseUpward(
   if (stepsRemaining === 0) {
     return currentBranchName;
   }
-  const children = context.metaCache.getChildren(currentBranchName);
+  const children = context.engine.getChildren(currentBranchName);
   if (children.length === 0) {
     return currentBranchName;
   }

@@ -127,7 +127,7 @@ async function graphiteHelper(
   cacheBefore: string;
   cacheAfter: string;
 }> {
-  const cacheBefore = context.metaCache.debug;
+  const cacheBefore = context.engine.debug;
 
   try {
     refreshPRInfoInBackground(context);
@@ -147,7 +147,7 @@ async function graphiteHelper(
   } catch (err) {
     if (
       err.constructor === DetachedError &&
-      context.metaCache.rebaseInProgress()
+      context.engine.rebaseInProgress()
     ) {
       throw new DetachedError(
         `Did you mean to run ${chalk.cyan(`gt continue`)}?`
@@ -156,15 +156,15 @@ async function graphiteHelper(
     throw err;
   } finally {
     try {
-      context.metaCache.persist();
+      context.engine.persist();
     } catch (persistError) {
-      context.metaCache.clear();
+      context.engine.clear();
       context.splog.debug(`Failed to persist Graphite cache`);
     }
     handler.cacheLock.release();
   }
 
-  return { cacheBefore, cacheAfter: context.metaCache.debug };
+  return { cacheBefore, cacheAfter: context.engine.debug };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

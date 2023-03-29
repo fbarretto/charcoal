@@ -27,7 +27,7 @@ export async function syncAction(
 
   const branchesToRestack: string[] = [];
 
-  await syncPrInfo(context.metaCache.allBranchNames, context);
+  await syncPrInfo(context.engine.allBranchNames, context);
 
   if (opts.delete) {
     context.splog.info(
@@ -58,7 +58,7 @@ export async function syncAction(
 
     branchesWithNewParents
       .flatMap((branchName) =>
-        context.metaCache.getRelativeStack(branchName, SCOPE.UPSTACK)
+        context.engine.getRelativeStack(branchName, SCOPE.UPSTACK)
       )
       .forEach((branchName) => branchesToRestack.push(branchName));
   }
@@ -69,15 +69,15 @@ export async function syncAction(
     return;
   }
 
-  const currentBranch = context.metaCache.currentBranch;
+  const currentBranch = context.engine.currentBranch;
 
   // The below conditional doesn't handle the trunk case because
   // isBranchTracked returns false for trunk.  Also, in this case
   // we don't want to append to our existing branchesToRestack
   // because trunk's stack will include everything anyway.
-  if (currentBranch && context.metaCache.isTrunk(currentBranch)) {
+  if (currentBranch && context.engine.isTrunk(currentBranch)) {
     restackBranches(
-      context.metaCache.getRelativeStack(currentBranch, SCOPE.STACK),
+      context.engine.getRelativeStack(currentBranch, SCOPE.STACK),
       context
     );
     return;
@@ -85,10 +85,10 @@ export async function syncAction(
 
   if (
     currentBranch &&
-    context.metaCache.isBranchTracked(currentBranch) &&
+    context.engine.isBranchTracked(currentBranch) &&
     !branchesToRestack.includes(currentBranch)
   ) {
-    context.metaCache
+    context.engine
       .getRelativeStack(currentBranch, SCOPE.STACK)
       .forEach((branchName) => branchesToRestack.push(branchName));
   }
@@ -101,17 +101,15 @@ export async function pullTrunk(
   context: TContext
 ): Promise<void> {
   context.splog.info(
-    `🌲 Pulling ${chalk.cyan(context.metaCache.trunk)} from remote...`
+    `🌲 Pulling ${chalk.cyan(context.engine.trunk)} from remote...`
   );
-  const pullResult = context.metaCache.pullTrunk();
+  const pullResult = context.engine.pullTrunk();
   if (pullResult !== 'PULL_CONFLICT') {
     context.splog.info(
       pullResult === 'PULL_UNNEEDED'
-        ? `${chalk.green(context.metaCache.trunk)} is up to date.`
-        : `${chalk.green(
-            context.metaCache.trunk
-          )} fast-forwarded to ${chalk.gray(
-            context.metaCache.getRevision(context.metaCache.trunk)
+        ? `${chalk.green(context.engine.trunk)} is up to date.`
+        : `${chalk.green(context.engine.trunk)} fast-forwarded to ${chalk.gray(
+            context.engine.getRevision(context.engine.trunk)
           )}.`
     );
     return;
@@ -119,7 +117,7 @@ export async function pullTrunk(
 
   // If trunk cannot be fast-forwarded, prompt the user to reset to remote
   context.splog.warn(
-    `${chalk.blueBright(context.metaCache.trunk)} could not be fast-forwarded.`
+    `${chalk.blueBright(context.engine.trunk)} could not be fast-forwarded.`
   );
   if (
     force ||
@@ -130,7 +128,7 @@ export async function pullTrunk(
             type: 'confirm',
             name: 'value',
             message: `Overwrite ${chalk.yellow(
-              context.metaCache.trunk
+              context.engine.trunk
             )} with the version from remote?`,
             initial: true,
           },
@@ -142,10 +140,10 @@ export async function pullTrunk(
         )
       ).value)
   ) {
-    context.metaCache.resetTrunkToRemote();
+    context.engine.resetTrunkToRemote();
     context.splog.info(
-      `${chalk.green(context.metaCache.trunk)} set to ${chalk.gray(
-        context.metaCache.getRevision(context.metaCache.trunk)
+      `${chalk.green(context.engine.trunk)} set to ${chalk.gray(
+        context.engine.getRevision(context.engine.trunk)
       )}.`
     );
   } else {

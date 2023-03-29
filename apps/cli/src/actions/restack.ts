@@ -15,20 +15,20 @@ export function restackBranches(
   while (branchNames.length > 0) {
     const branchName = branchNames.shift() as string;
 
-    if (context.metaCache.isTrunk(branchName)) {
+    if (context.engine.isTrunk(branchName)) {
       context.splog.info(
         `${chalk.cyan(branchName)} does not need to be restacked.`
       );
       continue;
     }
 
-    const result = context.metaCache.restackBranch(branchName);
+    const result = context.engine.restackBranch(branchName);
     context.splog.debug(`${result}: ${branchName}`);
     switch (result.result) {
       case 'REBASE_DONE':
         context.splog.info(
           `Restacked ${chalk.green(branchName)} on ${chalk.cyan(
-            context.metaCache.getParentPrecondition(branchName)
+            context.engine.getParentPrecondition(branchName)
           )}.`
         );
         continue;
@@ -43,7 +43,7 @@ export function restackBranches(
         );
         printConflictStatus(
           `Hit conflict restacking ${chalk.yellow(branchName)} on ${chalk.cyan(
-            context.metaCache.getParentPrecondition(branchName)
+            context.engine.getParentPrecondition(branchName)
           )}.`,
           context
         );
@@ -54,7 +54,7 @@ export function restackBranches(
           `${chalk.cyan(
             branchName
           )} does not need to be restacked${` on ${chalk.cyan(
-            context.metaCache.getParentPrecondition(branchName)
+            context.engine.getParentPrecondition(branchName)
           )}`}.`
         );
         continue;

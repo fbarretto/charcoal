@@ -9,31 +9,29 @@ export async function showBranchInfo(
 ): Promise<void> {
   const output = getBranchInfo({ branchName }, context);
 
-  const parentBranchName = context.metaCache.getParent(branchName);
+  const parentBranchName = context.engine.getParent(branchName);
   if (parentBranchName) {
     output.push(`${chalk.cyan('Parent')}: ${parentBranchName}`);
   }
 
-  const children = context.metaCache.getChildren(branchName);
+  const children = context.engine.getChildren(branchName);
   if (children.length) {
     output.push(`${chalk.cyan('Children')}:`);
     output.concat(children.map((c) => `▸ ${c}`));
   }
 
-  const body = opts.body && context.metaCache.getPrInfo(branchName)?.body;
+  const body = opts.body && context.engine.getPrInfo(branchName)?.body;
   if (body) {
     output.push('');
     output.push(body);
   }
 
   output.push('');
-  output.push(
-    context.metaCache.showCommits(branchName, opts.patch && !opts.diff)
-  );
+  output.push(context.engine.showCommits(branchName, opts.patch && !opts.diff));
 
   if (opts.diff) {
     output.push('');
-    output.push(context.metaCache.showDiff(branchName));
+    output.push(context.engine.showDiff(branchName));
   }
 
   context.splog.page(output.join('\n'));
@@ -47,9 +45,9 @@ export function getBranchInfo(
   },
   context: TContext
 ): string[] {
-  const prInfo = context.metaCache.isTrunk(args.branchName)
+  const prInfo = context.engine.isTrunk(args.branchName)
     ? undefined
-    : context.metaCache.getPrInfo(args.branchName);
+    : context.engine.getPrInfo(args.branchName);
 
   const prTitleLine = getPRTitleLine(prInfo);
   const branchInfoLines = [
@@ -58,13 +56,12 @@ export function getBranchInfo(
         ? chalk.cyan(`${args.branchName} (current)`)
         : chalk.blueBright(args.branchName)
     } ${
-      context.metaCache.isBranchFixed(args.branchName)
+      context.engine.isBranchFixed(args.branchName)
         ? ''
         : chalk.yellow(`(needs restack)`)
     }`,
     `${chalk.dim(
-      context.metaCache.getAllCommits(args.branchName, 'COMMITTER_DATE')[0] ??
-        ''
+      context.engine.getAllCommits(args.branchName, 'COMMITTER_DATE')[0] ?? ''
     )}`,
     ...(prTitleLine ? ['', prTitleLine] : []),
     ...(prInfo?.url ? [chalk.magenta(prInfo.url)] : []),
@@ -127,7 +124,7 @@ function getCommitLines(
   reverse: boolean,
   context: TContext
 ) {
-  const lines = context.metaCache
+  const lines = context.engine
     .getAllCommits(branchName, 'READABLE')
     .map((line) => chalk.gray(line));
 

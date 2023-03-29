@@ -35,7 +35,7 @@ export const builder = args;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
     await showBranchInfo(
-      context.metaCache.currentBranchPrecondition,
+      context.engine.currentBranchPrecondition,
       { patch: argv.patch, diff: argv.diff, body: argv.body },
       context
     );

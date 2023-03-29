@@ -23,7 +23,7 @@ export const builder = args;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
-    context.metaCache.upsertPrInfo(argv.branch, {
+    context.engine.upsertPrInfo(argv.branch, {
       title: argv.title,
       body: argv.body,
     });

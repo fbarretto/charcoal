@@ -21,21 +21,21 @@ export async function createBranchAction(
     );
   }
 
-  context.metaCache.checkoutNewBranch(branchName);
+  context.engine.checkoutNewBranch(branchName);
 
   if (opts.all) {
-    context.metaCache.addAll();
+    context.engine.addAll();
   }
 
-  if (context.metaCache.detectStagedChanges()) {
+  if (context.engine.detectStagedChanges()) {
     try {
-      context.metaCache.commit({
+      context.engine.commit({
         message: opts.message,
         patch: !opts.all && opts.patch,
       });
     } catch (e) {
       try {
-        context.metaCache.deleteBranch(branchName);
+        context.engine.deleteBranch(branchName);
       } catch {
         // pass
       }
@@ -49,8 +49,8 @@ export async function createBranchAction(
   // the `--insert` logic in a separate function is so that we only
   // show the tip if the user creates a branch with siblings.
 
-  const siblings = context.metaCache
-    .getChildren(context.metaCache.getParentPrecondition(branchName))
+  const siblings = context.engine
+    .getChildren(context.engine.getParentPrecondition(branchName))
     .filter((childBranchName) => childBranchName !== branchName);
 
   if (siblings.length === 0) {
@@ -71,14 +71,14 @@ export async function createBranchAction(
 
   // Change the parent of each sibling to the new branch.
   siblings.forEach((siblingBranchName) =>
-    context.metaCache.setParent(siblingBranchName, branchName)
+    context.engine.setParent(siblingBranchName, branchName)
   );
 
   // If we're restacking siblings onto this branch, we need to restack
   // all of their recursive children as well. Get all the upstacks!
   restackBranches(
     siblings.flatMap((siblingBranchName) =>
-      context.metaCache.getRelativeStack(siblingBranchName, SCOPE.UPSTACK)
+      context.engine.getRelativeStack(siblingBranchName, SCOPE.UPSTACK)
     ),
     context
   );

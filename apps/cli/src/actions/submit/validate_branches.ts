@@ -32,7 +32,7 @@ async function validateNoMergedOrClosedBranches(
   context: TContext
 ): Promise<void> {
   const mergedOrClosedBranches = branchNames.filter((b) =>
-    ['MERGED', 'CLOSED'].includes(context.metaCache.getPrInfo(b)?.state ?? '')
+    ['MERGED', 'CLOSED'].includes(context.engine.getPrInfo(b)?.state ?? '')
   );
   if (mergedOrClosedBranches.length === 0) {
     return;
@@ -87,7 +87,7 @@ async function validateNoMergedOrClosedBranches(
   if (response.empty_branches_options === 'abort') {
     throw new KilledError();
   }
-  branchNames.map((branchName) => context.metaCache.clearPrInfo(branchName));
+  branchNames.map((branchName) => context.engine.clearPrInfo(branchName));
   context.splog.newline();
 }
 
@@ -98,10 +98,9 @@ async function validateNoMergedOrClosedBranches(
 function validateBaseRevisions(branchNames: string[], context: TContext): void {
   const validatedBranches = new Set<string>();
   for (const branchName of branchNames) {
-    const parentBranchName =
-      context.metaCache.getParentPrecondition(branchName);
-    if (context.metaCache.isTrunk(parentBranchName)) {
-      if (!context.metaCache.isBranchFixed(branchName)) {
+    const parentBranchName = context.engine.getParentPrecondition(branchName);
+    if (context.engine.isTrunk(parentBranchName)) {
+      if (!context.engine.isBranchFixed(branchName)) {
         context.splog.info(
           `Note that ${chalk.yellow(
             branchName
@@ -109,7 +108,7 @@ function validateBaseRevisions(branchNames: string[], context: TContext): void {
         );
       }
     } else if (validatedBranches.has(parentBranchName)) {
-      if (!context.metaCache.isBranchFixed(branchName)) {
+      if (!context.engine.isBranchFixed(branchName)) {
         throw new ExitFailedError(
           [
             `You are trying to submit at least one branch that has not been restacked on its parent.`,
@@ -120,7 +119,7 @@ function validateBaseRevisions(branchNames: string[], context: TContext): void {
         );
       }
     } else {
-      if (!context.metaCache.branchMatchesRemote(parentBranchName)) {
+      if (!context.engine.branchMatchesRemote(parentBranchName)) {
         throw new ExitFailedError(
           [
             `You are trying to submit at least one branch whose base does not match its parent remotely, without including its parent.`,
@@ -141,7 +140,7 @@ export async function validateNoEmptyBranches(
   branchNames: string[],
   context: TContext
 ): Promise<void> {
-  const emptyBranches = branchNames.filter(context.metaCache.isBranchEmpty);
+  const emptyBranches = branchNames.filter(context.engine.isBranchEmpty);
   if (emptyBranches.length === 0) {
     return;
   }

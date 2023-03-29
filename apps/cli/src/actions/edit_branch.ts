@@ -7,14 +7,14 @@ import { printConflictStatus } from './print_conflict_status';
 import { restackBranches } from './restack';
 
 export function editBranchAction(context: TContext): void {
-  const currentBranchName = context.metaCache.currentBranchPrecondition;
+  const currentBranchName = context.engine.currentBranchPrecondition;
 
-  const result = context.metaCache.rebaseInteractive(currentBranchName);
+  const result = context.engine.rebaseInteractive(currentBranchName);
 
   if (result.result === 'REBASE_CONFLICT') {
     persistContinuation(
       {
-        branchesToRestack: context.metaCache.getRelativeStack(
+        branchesToRestack: context.engine.getRelativeStack(
           currentBranchName,
           SCOPE.UPSTACK_EXCLUSIVE
         ),
@@ -32,8 +32,8 @@ export function editBranchAction(context: TContext): void {
   }
 
   restackBranches(
-    context.metaCache.getRelativeStack(
-      context.metaCache.currentBranchPrecondition,
+    context.engine.getRelativeStack(
+      context.engine.currentBranchPrecondition,
       SCOPE.UPSTACK_EXCLUSIVE
     ),
     context

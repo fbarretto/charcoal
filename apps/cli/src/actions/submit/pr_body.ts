@@ -12,7 +12,7 @@ export async function getPRBody(
   },
   context: TContext
 ): Promise<string> {
-  const priorSubmitBody = context.metaCache.getPrInfo(args.branchName)?.body;
+  const priorSubmitBody = context.engine.getPrInfo(args.branchName)?.body;
   const { inferredBody, skipDescription } = inferPRBody(
     { branchName: args.branchName, template: await getPRTemplate() },
     context
@@ -112,7 +112,7 @@ export function inferPRBody(
     };
   }
 
-  const messages = context.metaCache
+  const messages = context.engine
     .getAllCommits(branchName, 'MESSAGE')
     .reverse();
   const isSingleCommit = messages.length === 1;

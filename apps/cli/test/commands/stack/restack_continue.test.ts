@@ -26,9 +26,7 @@ for (const scene of allScenes) {
       scene.repo.runGitCommand(['rebase', '--abort']);
 
       expect(scene.repo.rebaseInProgress()).to.be.false;
-      expect(scene.getContext().metaCache.currentBranchPrecondition).to.equal(
-        'b'
-      );
+      expect(scene.getContext().engine.currentBranchPrecondition).to.equal('b');
       expect(scene.repo.currentBranchName()).to.equal('b');
 
       scene.repo.checkoutBranch('b');

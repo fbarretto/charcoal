@@ -33,7 +33,7 @@ export async function submitAction(
       `Can't use both --publish and --draft flags in one command`
     );
   }
-  const populateRemoteShasPromise = context.metaCache.populateRemoteShas();
+  const populateRemoteShasPromise = context.engine.populateRemoteShas();
   const cliAuthToken = cliAuthPrecondition(context);
   if (args.dryRun) {
     context.splog.info(
@@ -59,9 +59,9 @@ export async function submitAction(
     context.splog.newline();
   }
 
-  const allBranchNames = context.metaCache
-    .getRelativeStack(context.metaCache.currentBranchPrecondition, args.scope)
-    .filter((branchName) => !context.metaCache.isTrunk(branchName));
+  const allBranchNames = context.engine
+    .getRelativeStack(context.engine.currentBranchPrecondition, args.scope)
+    .filter((branchName) => !context.engine.isTrunk(branchName));
 
   const branchNames = args.select
     ? await selectBranches(allBranchNames)
@@ -111,7 +111,7 @@ export async function submitAction(
 
   for (const submissionInfo of submissionInfos) {
     try {
-      context.metaCache.pushBranch(submissionInfo.head, args.forcePush);
+      context.engine.pushBranch(submissionInfo.head, args.forcePush);
     } catch (err) {
       if (
         err instanceof CommandFailedError &&

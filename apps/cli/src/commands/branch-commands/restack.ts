@@ -24,5 +24,5 @@ export const handler = async (argv: argsT): Promise<void> =>
       ].join('\n')
     );
 
-    restackBranches([context.metaCache.currentBranchPrecondition], context);
+    restackBranches([context.engine.currentBranchPrecondition], context);
   });

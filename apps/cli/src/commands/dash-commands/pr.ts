@@ -33,10 +33,10 @@ export const handler = async (argv: argsT): Promise<void> =>
       );
     }
 
-    const branchName = argv.pr ? argv.pr : context.metaCache.currentBranch;
+    const branchName = argv.pr ? argv.pr : context.engine.currentBranch;
 
     const branchPrNumber = branchName
-      ? context.metaCache.getPrInfo(branchName)?.number
+      ? context.engine.getPrInfo(branchName)?.number
       : undefined;
 
     if (branchPrNumber) {

@@ -26,8 +26,8 @@ export const handler = async (argv: argsT): Promise<void> =>
     );
 
     restackBranches(
-      context.metaCache.getRelativeStack(
-        context.metaCache.currentBranchPrecondition,
+      context.engine.getRelativeStack(
+        context.engine.currentBranchPrecondition,
         SCOPE.DOWNSTACK
       ),
       context

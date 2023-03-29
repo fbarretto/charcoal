@@ -24,6 +24,6 @@ export const builder = args;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
-    context.splog.info(context.metaCache.getFileContents(argv.ref, argv.file));
+    context.splog.info(context.engine.getFileContents(argv.ref, argv.file));
   });
 };

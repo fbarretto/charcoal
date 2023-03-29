@@ -34,7 +34,7 @@ describe(`(${scene}): correctly get PR information for branches`, function () {
       fs.writeFileSync(editFilePath, updatedBody);
     };
     // Pretend the stack has been submitted
-    context.metaCache.getPrInfo = function (_branchName: string) {
+    context.engine.getPrInfo = function (_branchName: string) {
       return {
         number: 1,
       };

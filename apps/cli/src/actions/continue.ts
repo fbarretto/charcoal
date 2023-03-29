@@ -10,13 +10,13 @@ export async function continueAction(
   opts: { addAll: boolean },
   context: TContext
 ): Promise<void> {
-  if (!context.metaCache.rebaseInProgress()) {
+  if (!context.engine.rebaseInProgress()) {
     clearContinuation(context);
     throw new NoGraphiteContinue();
   }
 
   if (opts.addAll) {
-    context.metaCache.addAll();
+    context.engine.addAll();
   }
   const rebasedBranchBase = context.continueConfig.data.rebasedBranchBase;
   const branchesToSync = context.continueConfig.data?.branchesToSync;
@@ -27,7 +27,7 @@ export async function continueAction(
     throw new NoGraphiteContinue('git rebase --continue');
   }
 
-  const cont = context.metaCache.continueRebase(rebasedBranchBase);
+  const cont = context.engine.continueRebase(rebasedBranchBase);
   if (cont.result === 'REBASE_CONFLICT') {
     persistContinuation(
       { branchesToRestack: branchesToRestack, rebasedBranchBase },
@@ -45,7 +45,7 @@ export async function continueAction(
     await getBranchesFromRemote(
       {
         downstack: branchesToSync,
-        base: context.metaCache.currentBranchPrecondition,
+        base: context.engine.currentBranchPrecondition,
         force: false,
       },
       context

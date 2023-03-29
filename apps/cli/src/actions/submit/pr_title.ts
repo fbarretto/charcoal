@@ -12,8 +12,8 @@ export async function getPRTitle(
   // First check if we have a saved title;
   // otherwise, use the subject of the oldest commit on the branch.
   const title =
-    context.metaCache.getPrInfo(args.branchName)?.title ??
-    context.metaCache.getAllCommits(args.branchName, 'SUBJECT').reverse()[0];
+    context.engine.getPrInfo(args.branchName)?.title ??
+    context.engine.getAllCommits(args.branchName, 'SUBJECT').reverse()[0];
 
   if (args.editPRFieldsInline === false) {
     return title;

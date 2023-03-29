@@ -8,14 +8,14 @@ import { checkoutBranch } from './checkout_branch';
 export async function trackBranchInteractive(
   context: TContext
 ): Promise<boolean> {
-  const parentBranchName = context.metaCache.currentBranchPrecondition;
-  const choices = context.metaCache.allBranchNames
+  const parentBranchName = context.engine.currentBranchPrecondition;
+  const choices = context.engine.allBranchNames
     .filter(
       (branchName) =>
-        !context.metaCache.isTrunk(branchName) &&
-        !context.metaCache.isBranchTracked(branchName) &&
-        (context.metaCache.isTrunk(parentBranchName) ||
-          context.metaCache.isDescendantOf(branchName, parentBranchName))
+        !context.engine.isTrunk(branchName) &&
+        !context.engine.isBranchTracked(branchName) &&
+        (context.engine.isTrunk(parentBranchName) ||
+          context.engine.isDescendantOf(branchName, parentBranchName))
     )
     .map((branchName) => ({ title: branchName, value: branchName }));
 
@@ -61,13 +61,13 @@ function getPotentialParents(
   },
   context: TContext
 ): { title: string; value: string }[] {
-  return context.metaCache.allBranchNames
+  return context.engine.allBranchNames
     .filter(
       (potentialParentBranchName) =>
-        context.metaCache.isTrunk(potentialParentBranchName) ||
+        context.engine.isTrunk(potentialParentBranchName) ||
         ((!args.onlyTrackedParents ||
-          context.metaCache.isBranchTracked(potentialParentBranchName)) &&
-          context.metaCache.isDescendantOf(
+          context.engine.isBranchTracked(potentialParentBranchName)) &&
+          context.engine.isDescendantOf(
             args.branchName,
             potentialParentBranchName
           ))
@@ -75,8 +75,8 @@ function getPotentialParents(
     .sort((left, right) => {
       return left === right
         ? 0
-        : context.metaCache.isTrunk(right) ||
-          context.metaCache.isDescendantOf(left, right)
+        : context.engine.isTrunk(right) ||
+          context.engine.isDescendantOf(left, right)
         ? -1 // left is a descendant of right
         : 1; // left is not a descendant of right
     })
@@ -93,15 +93,15 @@ export async function trackStack(
   context: TContext
 ): Promise<void> {
   const force = args.force || !context.interactive;
-  const branchName = args.branchName ?? context.metaCache.currentBranch;
+  const branchName = args.branchName ?? context.engine.currentBranch;
 
   if (!branchName) {
     throw new ExitFailedError(`No branch checked out.`);
   }
 
   if (
-    context.metaCache.isTrunk(branchName) ||
-    context.metaCache.isBranchTracked(branchName)
+    context.engine.isTrunk(branchName) ||
+    context.engine.isBranchTracked(branchName)
   ) {
     context.splog.info(`${chalk.cyan(branchName)} is already tracked!`);
     return;
@@ -115,7 +115,7 @@ export async function trackStack(
 
   if (choices.length === 0) {
     throw new ExitFailedError(
-      `No possible parents for this branch. Try running \`git rebase ${context.metaCache.trunk} ${branchName}\``
+      `No possible parents for this branch. Try running \`git rebase ${context.engine.trunk} ${branchName}\``
     );
   }
 
@@ -151,7 +151,7 @@ export async function trackBranch(
   },
   context: TContext
 ): Promise<void> {
-  const branchName = args.branchName ?? context.metaCache.currentBranch;
+  const branchName = args.branchName ?? context.engine.currentBranch;
   if (!branchName) {
     throw new ExitFailedError(`No branch checked out.`);
   }
@@ -164,7 +164,7 @@ export async function trackBranch(
 
     if (choices.length === 0) {
       throw new ExitFailedError(
-        `No possible parents for this branch. Try running \`git rebase ${context.metaCache.trunk} ${branchName}\``
+        `No possible parents for this branch. Try running \`git rebase ${context.engine.trunk} ${branchName}\``
       );
     }
 
@@ -205,8 +205,8 @@ export async function trackBranch(
   }
 
   if (
-    !context.metaCache.isTrunk(args.parentBranchName) &&
-    !context.metaCache.isDescendantOf(branchName, args.parentBranchName)
+    !context.engine.isTrunk(args.parentBranchName) &&
+    !context.engine.isDescendantOf(branchName, args.parentBranchName)
   ) {
     context.splog.tip(
       `Are you sure that ${chalk.cyan(
@@ -238,7 +238,7 @@ function trackHelper(
   },
   context: TContext
 ) {
-  context.metaCache.trackBranch(branchName, parentBranchName);
+  context.engine.trackBranch(branchName, parentBranchName);
   context.splog.info(
     `Tracked branch ${chalk.green(branchName)} with parent ${chalk.cyan(
       parentBranchName

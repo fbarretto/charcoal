@@ -26,7 +26,7 @@ import {
 import { validateOrFixParentBranchRevision } from './parse_branches_and_meta';
 import { TScopeSpec } from './scope_spec';
 
-export type TMetaCache = {
+export type TEngine = {
   debug: string;
   persist: () => void;
   clear: () => void;
@@ -146,7 +146,7 @@ export type TMetaCache = {
 };
 
 // eslint-disable-next-line max-lines-per-function
-export function composeMetaCache({
+export function composeEngine({
   git,
   trunkName,
   currentBranchOverride,
@@ -162,7 +162,7 @@ export function composeMetaCache({
   noVerify: boolean;
   remote: string;
   restackCommitterDateIsAuthorDate?: boolean;
-}): TMetaCache {
+}): TEngine {
   const cacheLoader = composeCacheLoader(splog);
   void cacheLoader;
   const cache = {

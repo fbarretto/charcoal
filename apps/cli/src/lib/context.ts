@@ -1,5 +1,5 @@
 import { upsertPrInfoForBranches } from '../actions/sync_pr_info';
-import { composeMetaCache, TMetaCache } from './engine/cache';
+import { composeEngine, TEngine } from './engine/engine';
 import { TGit } from './git/git';
 import { rebaseInProgress } from './git/rebase_in_progress';
 import {
@@ -33,7 +33,7 @@ export type TContextLite = {
 type TRepoContext = {
   repoConfig: TRepoConfig;
   continueConfig: TContinueConfig;
-  metaCache: TMetaCache;
+  engine: TEngine;
 };
 
 export function initContextLite(opts?: {
@@ -76,7 +76,7 @@ export function initContext(
     continueConfigFactory.load().delete();
   }
   const continueConfig = continueConfigFactory.load();
-  const metaCache = composeMetaCache({
+  const engine = composeEngine({
     git,
     trunkName: repoConfig.data.trunk,
     currentBranchOverride: continueConfig.data.currentBranchOverride,
@@ -88,13 +88,13 @@ export function initContext(
   });
   const prInfoConfig = prInfoConfigFactory.loadIfExists();
   if (prInfoConfig) {
-    upsertPrInfoForBranches(prInfoConfig.data.prInfoToUpsert ?? [], metaCache);
+    upsertPrInfoForBranches(prInfoConfig.data.prInfoToUpsert ?? [], engine);
     prInfoConfig.delete();
   }
   return {
     ...contextLite,
     repoConfig,
     continueConfig,
-    metaCache,
+    engine,
   };
 }

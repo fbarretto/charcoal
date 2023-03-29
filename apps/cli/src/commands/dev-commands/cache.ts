@@ -22,8 +22,8 @@ export const handler = async (argv: argsT): Promise<void> => {
   cacheLock.lock();
   const context = initContext(initContextLite({ debug: true }), composeGit());
   if (argv.clear) {
-    context.metaCache.clear();
+    context.engine.clear();
   }
-  context.splog.debug(context.metaCache.debug);
+  context.splog.debug(context.engine.debug);
   cacheLock.release();
 };

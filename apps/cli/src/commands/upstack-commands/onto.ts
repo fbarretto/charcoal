@@ -28,7 +28,7 @@ export const handler = async (argv: argsT): Promise<void> => {
         (await interactiveBranchSelection(
           {
             message: `Choose a new base for ${chalk.yellow(
-              context.metaCache.currentBranchPrecondition
+              context.engine.currentBranchPrecondition
             )} (autocomplete or arrow keys)`,
             omitCurrentBranch: true,
           },

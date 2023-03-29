@@ -18,14 +18,14 @@ export async function getAction(
 ): Promise<void> {
   uncommittedTrackedChangesPrecondition();
   context.splog.info(
-    `Pulling ${chalk.cyan(context.metaCache.trunk)} from remote...`
+    `Pulling ${chalk.cyan(context.engine.trunk)} from remote...`
   );
 
   context.splog.info(
-    context.metaCache.pullTrunk() === 'PULL_UNNEEDED'
-      ? `${chalk.green(context.metaCache.trunk)} is up to date.`
-      : `${chalk.green(context.metaCache.trunk)} fast-forwarded to ${chalk.gray(
-          context.metaCache.getRevision(context.metaCache.trunk)
+    context.engine.pullTrunk() === 'PULL_UNNEEDED'
+      ? `${chalk.green(context.engine.trunk)} is up to date.`
+      : `${chalk.green(context.engine.trunk)} fast-forwarded to ${chalk.gray(
+          context.engine.getRevision(context.engine.trunk)
         )}.`
   );
   context.splog.newline();
@@ -33,9 +33,8 @@ export async function getAction(
   const authToken = cliAuthPrecondition(context);
   const downstackToSync = await getDownstackDependencies(
     {
-      branchName:
-        args.branchName ?? context.metaCache.currentBranchPrecondition,
-      trunkName: context.metaCache.trunk,
+      branchName: args.branchName ?? context.engine.currentBranchPrecondition,
+      trunkName: context.engine.trunk,
     },
     {
       authToken,
@@ -48,13 +47,13 @@ export async function getAction(
   await getBranchesFromRemote(
     {
       downstack: downstackToSync,
-      base: context.metaCache.trunk,
+      base: context.engine.trunk,
       force: args.force,
     },
     context
   );
 
-  await syncPrInfo(context.metaCache.allBranchNames, context);
+  await syncPrInfo(context.engine.allBranchNames, context);
 }
 
 export async function getBranchesFromRemote(
@@ -63,17 +62,17 @@ export async function getBranchesFromRemote(
 ): Promise<void> {
   let parentBranchName = args.base;
   for (const [index, branchName] of args.downstack.entries()) {
-    context.metaCache.fetchBranch(branchName, parentBranchName);
-    if (args.force || !context.metaCache.branchExists(branchName)) {
-      context.metaCache.checkoutBranchFromFetched(branchName, parentBranchName);
+    context.engine.fetchBranch(branchName, parentBranchName);
+    if (args.force || !context.engine.branchExists(branchName)) {
+      context.engine.checkoutBranchFromFetched(branchName, parentBranchName);
       context.splog.info(`Synced ${chalk.cyan(branchName)} from remote.`);
-    } else if (!context.metaCache.isBranchTracked(branchName)) {
+    } else if (!context.engine.isBranchTracked(branchName)) {
       await handleUntrackedLocally(branchName, parentBranchName, context);
     } else if (
-      context.metaCache.getParentPrecondition(branchName) !== parentBranchName
+      context.engine.getParentPrecondition(branchName) !== parentBranchName
     ) {
       await handleDifferentParents(branchName, parentBranchName, context);
-    } else if (context.metaCache.branchMatchesFetched(branchName)) {
+    } else if (context.engine.branchMatchesFetched(branchName)) {
       context.splog.info(`${chalk.cyan(branchName)} is up to date.`);
     } else {
       const remainingBranchesToSync = args.downstack.slice(index + 1);
@@ -149,7 +148,7 @@ async function maybeOverwriteBranch(
     throw new KilledError();
   }
 
-  context.metaCache.checkoutBranchFromFetched(branchName, parentBranchName);
+  context.engine.checkoutBranchFromFetched(branchName, parentBranchName);
   context.splog.info(`Synced ${chalk.cyan(branchName)} from remote.`);
 }
 
@@ -206,7 +205,7 @@ async function handleSameParent(
 
   switch (fetchChoice) {
     case 'REBASE': {
-      const result = context.metaCache.rebaseBranchOntoFetched(args.branchName);
+      const result = context.engine.rebaseBranchOntoFetched(args.branchName);
       if (result.result === 'REBASE_CONFLICT') {
         persistContinuation(
           {
@@ -234,7 +233,7 @@ async function handleSameParent(
       break;
     }
     case 'OVERWRITE':
-      context.metaCache.checkoutBranchFromFetched(
+      context.engine.checkoutBranchFromFetched(
         args.branchName,
         args.parentBranchName
       );

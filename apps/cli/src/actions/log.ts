@@ -8,10 +8,10 @@ import { clearPromptResultLine, suggest } from '../lib/utils/prompts_helpers';
 import { getBranchInfo } from './show_branch';
 
 function getUntrackedBranchNames(context: TContext) {
-  return context.metaCache.allBranchNames.filter(
+  return context.engine.allBranchNames.filter(
     (branchName) =>
-      !context.metaCache.isTrunk(branchName) &&
-      !context.metaCache.isBranchTracked(branchName)
+      !context.engine.isTrunk(branchName) &&
+      !context.engine.isBranchTracked(branchName)
   );
 }
 
@@ -78,7 +78,7 @@ export async function interactiveBranchSelection(
     {
       short: true,
       reverse: false,
-      branchName: context.metaCache.trunk,
+      branchName: context.engine.trunk,
       indentLevel: 0,
       omitCurrentBranch: opts.omitCurrentBranch,
       noStyleBranchName: true,
@@ -104,10 +104,10 @@ export async function interactiveBranchSelection(
     (choice) =>
       choice.value ===
       (opts.omitCurrentBranch
-        ? context.metaCache.getParentPrecondition(
-            context.metaCache.currentBranchPrecondition
+        ? context.engine.getParentPrecondition(
+            context.engine.currentBranchPrecondition
           )
-        : context.metaCache.currentBranch)
+        : context.engine.currentBranch)
   );
 
   const initial =
@@ -174,8 +174,8 @@ function getStackLines(args: TPrintStackArgs, context: TContext): string[] {
 
       const replaceCircle =
         !args.noStyleBranchName &&
-        context.metaCache.currentBranch &&
-        branchNameAndDetails.split(' ')[0] === context.metaCache.currentBranch;
+        context.engine.currentBranch &&
+        branchNameAndDetails.split(' ')[0] === context.engine.currentBranch;
 
       return `${line
         .slice(0, arrowIndex)
@@ -193,13 +193,13 @@ function getDownstackExclusiveLines(
   args: TPrintStackArgs,
   context: TContext
 ): string[] {
-  if (context.metaCache.isTrunk(args.branchName)) {
+  if (context.engine.isTrunk(args.branchName)) {
     return [];
   }
 
   const outputDeep = [
-    context.metaCache.trunk,
-    ...context.metaCache.getRelativeStack(args.branchName, {
+    context.engine.trunk,
+    ...context.engine.getRelativeStack(args.branchName, {
       recursiveParents: true,
     }),
   ]
@@ -232,12 +232,12 @@ function getUpstackExclusiveLines(
   if (args.steps === 0) {
     return [];
   }
-  const children = context.metaCache
+  const children = context.engine
     .getChildren(args.branchName)
     .filter(
       (child) =>
         !args.omitCurrentBranch ||
-        child !== context.metaCache.currentBranchPrecondition
+        child !== context.engine.currentBranchPrecondition
     );
   const numChildren = children.length;
   return children.flatMap((child, i) =>
@@ -261,11 +261,11 @@ function getBranchLines(
   },
   context: TContext
 ): string[] {
-  const children = context.metaCache.getChildren(args.branchName);
+  const children = context.engine.getChildren(args.branchName);
   const numChildren =
     children.length -
     (args.omitCurrentBranch &&
-    children.includes(context.metaCache.currentBranchPrecondition)
+    children.includes(context.engine.currentBranchPrecondition)
       ? 1
       : 0);
 
@@ -290,8 +290,7 @@ function getBranchLines(
           ? '─┐'
           : '─┘'
       }▸${args.branchName}${
-        args.noStyleBranchName ||
-        context.metaCache.isBranchFixed(args.branchName)
+        args.noStyleBranchName || context.engine.isBranchFixed(args.branchName)
           ? ''
           : ` ${chalk.reset(`(needs restack)`)}`
       }`,
@@ -342,7 +341,7 @@ function getInfoLines(
   args: Omit<TPrintStackArgs, 'short'> & { noStem?: boolean },
   context: TContext
 ): string[] {
-  const isCurrent = args.branchName === context.metaCache.currentBranch;
+  const isCurrent = args.branchName === context.engine.currentBranch;
   return getBranchInfo(
     {
       branchName: args.branchName,
