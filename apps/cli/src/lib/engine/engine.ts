@@ -130,6 +130,7 @@ export type TEngine = {
   pullTrunk: () => 'PULL_DONE' | 'PULL_UNNEEDED' | 'PULL_CONFLICT';
   hardReset: (sha?: string) => void;
   resetTrunkToRemote: () => void;
+  clean: () => void;
 
   fetchBranch: (branchName: string, parentBranchName: string) => void;
   branchMatchesFetched: (branchName: string) => boolean;
@@ -927,6 +928,7 @@ export function composeEngine({
         git.switchBranch(currentBranchName);
       }
     },
+    clean: git.clean,
     fetchBranch: (branchName: string, parentBranchName: string) => {
       const parentMeta = assertBranchIsValidOrTrunkAndGetMeta(parentBranchName);
       if (parentMeta.validationResult === 'TRUNK') {

@@ -13,7 +13,7 @@ export class PurgeOperation extends Operation {
   static opName = "Purge";
 
   getArgs() {
-    const args = ["purge", "--files"];
+    const args = ["interactive", "purge"];
     return args;
   }
 

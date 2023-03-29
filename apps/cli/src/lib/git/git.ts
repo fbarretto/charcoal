@@ -7,6 +7,7 @@ import {
   moveBranch,
   switchBranch,
 } from './branch_ops';
+import { clean } from './clean';
 import { commit } from './commit';
 import { getCommitAuthor, getCommitDate } from './commit_info';
 import { getCommitRange } from './commit_range';
@@ -110,5 +111,6 @@ function composeGitInternal() {
     trackedReset,
     setRemoteTracking,
     getBranchNamesAndRevisions,
+    clean,
   };
 }
