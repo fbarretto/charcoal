@@ -3,7 +3,6 @@ import type { EditedMessage } from "../CommitInfo";
 import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
 import type { CommandArg } from "../types";
 
-import { SucceedableRevset } from "../types";
 import { Operation } from "./Operation";
 
 export class AmendMessageOperation extends Operation {
@@ -15,11 +14,13 @@ export class AmendMessageOperation extends Operation {
 
   getArgs() {
     const args: Array<CommandArg> = [
+      "interactive",
       "metaedit",
-      "--rev",
-      SucceedableRevset(this.branch),
-      "--message",
-      `${this.message.title}\n${this.message.description}`,
+      this.branch,
+      "--title",
+      this.message.title,
+      "--body",
+      this.message.description,
     ];
     return args;
   }
@@ -27,8 +28,8 @@ export class AmendMessageOperation extends Operation {
   makeOptimisticApplier(
     context: PreviewContext
   ): ApplyPreviewsFuncType | undefined {
-    const commitToMetaedit = context.treeMap.get(this.branch);
-    if (commitToMetaedit == null) {
+    const branchToMetaEdit = context.treeMap.get(this.branch);
+    if (branchToMetaEdit == null) {
       // metaedit succeeds when we no longer see original commit
       // Note: this assumes we always restack children and never render old commit as obsolete.
       return undefined;
