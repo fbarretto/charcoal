@@ -5,9 +5,10 @@ import { runGitCommand } from './runner';
 
 export function getStatus(): TStatusFile[] {
   const result = runGitCommand({
-    args: [`status`, '-z', '--porcelain'],
+    args: [`status`, '-z'],
     onError: 'ignore',
     resource: 'getStatus',
+    options: { noTrim: true },
   });
 
   const files: TStatusFile[] = [];

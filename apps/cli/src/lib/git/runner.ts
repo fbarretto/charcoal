@@ -28,7 +28,9 @@ export function runGitCommand(params: TRunGitCommandParameters): string {
 
 export type TRunGitCommandParameters = {
   args: string[];
-  options?: Omit<SpawnSyncOptions, 'encoding' | 'maxBuffer'>;
+  options?: Omit<SpawnSyncOptions, 'encoding' | 'maxBuffer'> & {
+    noTrim?: boolean;
+  };
   onError: 'throw' | 'ignore';
   resource: string | null;
 };
@@ -60,7 +62,11 @@ function runGitCommandInternal(params: TRunGitCommandParameters): string {
 
   // command succeeded, return output
   if (!spawnSyncOutput.status) {
-    return spawnSyncOutput.stdout?.trim() || '';
+    return (
+      (params.options?.noTrim
+        ? spawnSyncOutput.stdout
+        : spawnSyncOutput.stdout?.trim()) || ''
+    );
   }
 
   // command failed but we ignore it
