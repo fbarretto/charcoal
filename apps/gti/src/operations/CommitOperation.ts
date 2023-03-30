@@ -21,8 +21,14 @@ export class CommitOperation extends Operation {
    * @param filesPathsToCommit if provided, only these file paths will be included in the commit operation. If undefined, ALL uncommitted changes are included. Paths should be relative to repo root.
    */
   constructor(
+    /**
+     * description is currently ignored
+     */
     private message: EditedMessage,
     private originalHeadHash: BranchName,
+    /**
+     * currently ignored
+     */
     private filesPathsToCommit?: Array<RepoRelativePath>
   ) {
     super();
@@ -32,21 +38,11 @@ export class CommitOperation extends Operation {
 
   getArgs() {
     const args: Array<CommandArg> = [
-      "commit",
+      "branch",
+      "create",
       "--message",
-      `${this.message.title}\n${this.message.description}`,
+      `${this.message.title}`,
     ];
-    if (this.filesPathsToCommit) {
-      args.push(
-        ...this.filesPathsToCommit.map((file) =>
-          // tag file arguments specialy so the remote repo can convert them to the proper cwd-relative format.
-          ({
-            type: "repo-relative-file" as const,
-            path: file,
-          })
-        )
-      );
-    }
     return args;
   }
 
