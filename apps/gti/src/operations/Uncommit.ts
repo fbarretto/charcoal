@@ -20,7 +20,7 @@ export class UncommitOperation extends Operation {
   static opName = "Uncommit";
 
   getArgs() {
-    const args = ["uncommit"];
+    const args = ["branch", "unbranch"];
     return args;
   }
 

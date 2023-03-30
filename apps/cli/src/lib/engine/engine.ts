@@ -91,6 +91,7 @@ export type TEngine = {
 
   addAll: () => void;
   detach: () => void;
+  unbranch: () => void;
   detachAndResetBranchChanges: () => void;
   applySplitToCommits: (args: {
     branchToSplit: string;
@@ -736,6 +737,15 @@ export function composeEngine({
       const branchName = getCurrentBranchOrThrow();
       const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
       git.switchBranch(cachedMeta.branchRevision, { detach: true });
+    },
+    unbranch() {
+      const branchName = getCurrentBranchOrThrow();
+      const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      git.switchBranch(cachedMeta.branchRevision, { detach: true });
+      const parentBranchName = cachedMeta.parentBranchName;
+      deleteAllBranchData(branchName);
+      git.mixedReset(parentBranchName);
+      git.switchBranch(parentBranchName);
     },
     detachAndResetBranchChanges() {
       const branchName = getCurrentBranchOrThrow();

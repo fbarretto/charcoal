@@ -707,7 +707,7 @@ function runCommand(
     cwd,
     options_
   );
-  logger.log("run command: ", command, args[0]);
+  logger.log("run command: ", command, ...args);
   return execa(command, args, options);
 }
 

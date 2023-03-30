@@ -8,6 +8,14 @@ export function softReset(sha: string): void {
   });
 }
 
+export function mixedReset(sha?: string): void {
+  runGitCommand({
+    args: [`reset`, `-q`, `--mixed`, ...(sha ? [sha] : [])],
+    onError: 'throw',
+    resource: 'mixedReset',
+  });
+}
+
 export function hardReset(sha?: string): void {
   runGitCommand({
     args: [`reset`, `-q`, `--hard`, ...(sha ? [sha] : [])],
