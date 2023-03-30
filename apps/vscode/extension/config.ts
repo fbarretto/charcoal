@@ -1,4 +1,3 @@
-import { Internal } from "@withgraphite/gti-server/src/Internal";
 import os from "os";
 import * as vscode from "vscode";
 
@@ -11,7 +10,6 @@ export function getCLICommand(): string {
   // prettier-disable
   return (
     vscode.workspace.getConfiguration("graphite").get("commandPath") ||
-    Internal.SLCommand ||
     (os.platform() === "win32" ? "gt.exe" : "gt")
   );
 }
