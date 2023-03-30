@@ -16,7 +16,8 @@ export class RevertOperation extends Operation {
 
   getArgs() {
     const args = [
-      "revert",
+      "interactive",
+      "restore",
       ...this.files.map((file) =>
         // tag file arguments specialy so the remote repo can convert them to the proper cwd-relative format.
         ({

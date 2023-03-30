@@ -61,6 +61,7 @@ export type TEngine = {
   getStackDiff: (branchName: string) => string;
   getChangedFiles: (branchName: string) => TChangedFile[];
   getFileContents: (ref: string, file: string) => string;
+  restoreFile: (file: string) => void;
 
   getRevision: (branchName: string) => string;
   getBaseRevision: (branchName: string) => string;
@@ -529,6 +530,7 @@ export function composeEngine({
       );
     },
     getFileContents: git.getFileContents,
+    restoreFile: git.restoreFile,
     showDiff: (branchName: string) => {
       const meta = assertBranchIsValidOrTrunkAndGetMeta(branchName);
       return git.showDiff(
