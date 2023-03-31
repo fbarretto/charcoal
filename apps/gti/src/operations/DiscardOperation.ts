@@ -13,6 +13,10 @@ import { Operation } from "./Operation";
 export class DiscardOperation extends Operation {
   static opName = "Discard";
 
+  constructor() {
+    super("DiscardOperation");
+  }
+
   getArgs() {
     return ["interactive", "discard"];
   }

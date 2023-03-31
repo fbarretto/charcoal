@@ -1,5 +1,3 @@
+import { parseArgs, runProxyMain } from "./startServer";
 
-
-import {parseArgs, runProxyMain} from './startServer';
-
-runProxyMain(parseArgs());
+void runProxyMain(parseArgs());

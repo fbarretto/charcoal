@@ -57,7 +57,7 @@ export const DiffBadge = observer(
     });
     return (
       <ExternalLink
-        url={openerUrl}
+        href={openerUrl}
         className={`diff-badge ${provider.name}-diff-badge`}
         onContextMenu={contextMenu}
       >

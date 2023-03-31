@@ -1,9 +1,3 @@
-
-
-/*
-  * We don't assume we're rendered directly into <body>,
-  * so we don't put any styles on <body> itself.
-  */
 .gti-root {
   /**
    * These CSS variables come from the VS Code webview UI toolkit:
@@ -21,6 +15,9 @@
   --pad: 10px;
   --halfpad: 5px;
 
+  --vscode-button-height: 26px; /* height of vscode-button */
+  --vscode-icon-button-height: 22px; /* height of vscode-button with appearance="icon" */
+
   height: 100vh;
   max-height: 100vh;
   display: flex;
@@ -36,14 +33,6 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
-.center-container {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-}
-
 .empty-app-state {
   display: flex;
   flex-direction: column;
@@ -55,12 +44,4 @@ code {
 
 vscode-button::part(content) {
   white-space: nowrap;
-}
-
-.load-more {
-  display: flex;
-  gap: var(--pad);
-  align-items: center;
-  margin: var(--pad);
-  margin-left: var(--halfpad);
 }

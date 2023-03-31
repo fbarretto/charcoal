@@ -6,26 +6,28 @@ import { VSCodePlatform } from "./vscodePlatform";
 import { onClientConnection } from "@withgraphite/gti-server/src";
 import { unwrap } from "@withgraphite/gti-shared/utils";
 import * as vscode from "vscode";
+import { executeVSCodeCommand } from "./commands";
 
-let gtiPanel: vscode.WebviewPanel | undefined = undefined;
+let gtiPanelOrView: vscode.WebviewView | vscode.WebviewPanel | undefined =
+  undefined;
 
 const viewType = "graphite.gti";
 
-export function createOrFocusISLWebview(
+function createOrFocusISLWebview(
   context: vscode.ExtensionContext,
   logger: Logger
-): vscode.WebviewPanel {
+): vscode.WebviewView | vscode.WebviewPanel {
   // Try to re-use existing ISL panel
-  if (gtiPanel) {
-    gtiPanel.reveal();
-    return gtiPanel;
+  if (gtiPanelOrView) {
+    isPanel(gtiPanelOrView) ? gtiPanelOrView.reveal() : gtiPanelOrView.show();
+    return gtiPanelOrView;
   }
-  // Otherwise, create a new panel
+  // Otherwise, create a new panel/view
 
   const column =
     vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One;
 
-  gtiPanel = populateAndSetISLWebview(
+  gtiPanelOrView = populateAndSetISLWebview(
     context,
     vscode.window.createWebviewPanel(
       viewType,
@@ -35,7 +37,7 @@ export function createOrFocusISLWebview(
     ),
     logger
   );
-  return unwrap(gtiPanel);
+  return unwrap(gtiPanelOrView);
 }
 
 function getWebviewOptions(
@@ -51,19 +53,46 @@ function getWebviewOptions(
   };
 }
 
+function shouldUseWebviewView(): boolean {
+  return (
+    vscode.workspace
+      .getConfiguration("graphite.gti")
+      .get<boolean>("showInSidebar") ?? false
+  );
+}
+
 export function registerGTICommands(
   context: vscode.ExtensionContext,
   logger: Logger
 ): vscode.Disposable {
+  const webviewViewProvider = new GTIWebviewViewProvider(context, logger);
   return vscode.Disposable.from(
     vscode.commands.registerCommand("graphite.open-gti", () => {
       try {
+        if (shouldUseWebviewView()) {
+          // just open the sidebar view
+          void executeVSCodeCommand("graphite.gti.focus");
+          return;
+        }
         createOrFocusISLWebview(context, logger);
       } catch (err: unknown) {
         void vscode.window.showErrorMessage(`error opening gti: ${err}`);
       }
     }),
-    registerDeserializer(context, logger)
+    registerDeserializer(context, logger),
+    vscode.window.registerWebviewViewProvider(viewType, webviewViewProvider),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      // if we start using ISL as a view, dispose the panel
+      if (e.affectsConfiguration("graphite.isl.showInSidebar")) {
+        if (
+          gtiPanelOrView &&
+          isPanel(gtiPanelOrView) &&
+          shouldUseWebviewView()
+        ) {
+          gtiPanelOrView.dispose();
+        }
+      }
+    })
   );
 }
 
@@ -77,6 +106,12 @@ function registerDeserializer(
       webviewPanel: vscode.WebviewPanel,
       _state: unknown
     ) {
+      if (shouldUseWebviewView()) {
+        // if we try to deserialize a panel while we're trying to use view, destroy the panel and open the sidebar instead
+        webviewPanel.dispose();
+        void executeVSCodeCommand("graphite.gti.focus");
+        return Promise.resolve();
+      }
       // Reset the webview options so we use latest uri for `localResourceRoots`.
       webviewPanel.webview.options = getWebviewOptions(context);
       populateAndSetISLWebview(context, webviewPanel, logger);
@@ -85,28 +120,63 @@ function registerDeserializer(
   });
 }
 
-function populateAndSetISLWebview(
+/**
+ * Provides the ISL webview contents as a VS Code Webview View, aka a webview that lives in the sidebar/bottom
+ * rather than an editor pane. We always register this provider, even if the user doesn't have the config enabled
+ * that shows this view.
+ */
+class GTIWebviewViewProvider implements vscode.WebviewViewProvider {
+  constructor(
+    private extensionContext: vscode.ExtensionContext,
+    private logger: Logger
+  ) {}
+
+  resolveWebviewView(webviewView: vscode.WebviewView): void | Thenable<void> {
+    webviewView.webview.options = getWebviewOptions(this.extensionContext);
+    populateAndSetISLWebview(this.extensionContext, webviewView, this.logger);
+  }
+}
+
+function isPanel(
+  panelOrView: vscode.WebviewPanel | vscode.WebviewView
+): panelOrView is vscode.WebviewPanel {
+  // panels have a .reveal property, views have .show
+  return (panelOrView as vscode.WebviewPanel).reveal !== undefined;
+}
+
+function populateAndSetISLWebview<
+  W extends vscode.WebviewPanel | vscode.WebviewView
+>(
   context: vscode.ExtensionContext,
-  panel: vscode.WebviewPanel,
+  panelOrView: W,
   logger: Logger
-): vscode.WebviewPanel {
-  logger.info("Populating GTI webview panel");
-  gtiPanel = panel;
-  panel.webview.html = htmlForISLWebview(context, panel.webview);
-  panel.iconPath = vscode.Uri.joinPath(
-    context.extensionUri,
-    "resources",
-    "graphite-favicon.svg"
+): vscode.WebviewPanel | vscode.WebviewView {
+  logger.info(
+    `Populating GTI webview ${isPanel(panelOrView) ? "panel" : "view"}`
+  );
+  if (isPanel(panelOrView)) {
+    gtiPanelOrView = panelOrView;
+    panelOrView.iconPath = vscode.Uri.joinPath(
+      context.extensionUri,
+      "resources",
+      "graphite-favicon.svg"
+    );
+  }
+  panelOrView.webview.html = htmlForGTIWebview(
+    context,
+    panelOrView.webview,
+    isPanel(panelOrView) ? "panel" : "view"
   );
 
   logger.log("populate gti webview");
   const disposeConnection = onClientConnection({
     postMessage(message: string) {
-      return panel.webview.postMessage(message) as Promise<boolean>;
+      return panelOrView.webview.postMessage(message) as Promise<boolean>;
     },
     onDidReceiveMessage(handler) {
-      return panel.webview.onDidReceiveMessage((m) => {
-        void handler(m);
+      return panelOrView.webview.onDidReceiveMessage((m) => {
+        const isBinary = m instanceof ArrayBuffer;
+        void handler(m, isBinary);
       });
     },
     cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd(), // TODO
@@ -116,18 +186,23 @@ function populateAndSetISLWebview(
     version: packageJson.version,
   });
 
-  panel.onDidDispose(() => {
-    logger.info("Disposing GTI panel");
-    gtiPanel = undefined;
+  panelOrView.onDidDispose(() => {
+    if (isPanel(panelOrView)) {
+      logger.info("Disposing GTI panel");
+      gtiPanelOrView = undefined;
+    } else {
+      logger.info("Disposing GTI view");
+    }
     disposeConnection();
   });
 
-  return gtiPanel;
+  return panelOrView;
 }
 
-function htmlForISLWebview(
+function htmlForGTIWebview(
   context: vscode.ExtensionContext,
-  webview: vscode.Webview
+  webview: vscode.Webview,
+  kind: "panel" | "view"
 ) {
   // Only allow accessing resources relative to webview dir,
   // and make paths relative to here.
@@ -143,6 +218,8 @@ function htmlForISLWebview(
 
   const loadingText = "Loading...";
   const titleText = "Graphite interactive";
+
+  const extraRootClass = `webview-${kind}`;
 
   const CSP = [
     "default-src 'none'",
@@ -170,7 +247,7 @@ function htmlForISLWebview(
 		<script defer="defer" nonce="${nonce}" src="${scriptUri}"></script>
 	</head>
 	<body>
-		<div id="root">${loadingText}</div>
+		<div id="root" class="${extraRootClass}">${loadingText}</div>
 	</body>
 	</html>`;
 }

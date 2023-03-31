@@ -2,6 +2,7 @@ import type { Platform } from "./platform";
 
 import serverAPI from "./ClientToServerAPI";
 import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
+import type { OneIndexedLineNumber } from "./types";
 
 export const browserPlatform: Platform = {
   platformName: "browser",
@@ -10,8 +11,11 @@ export const browserPlatform: Platform = {
     return Promise.resolve(ok);
   },
 
-  openFile: (path: RepoRelativePath) => {
-    serverAPI.postMessage({ type: "platform/openFile", path });
+  openFile: (
+    path: RepoRelativePath,
+    options?: { line?: OneIndexedLineNumber }
+  ) => {
+    serverAPI.postMessage({ type: "platform/openFile", path, options });
   },
 
   openExternalLink(url: string): void {

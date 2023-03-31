@@ -22,7 +22,7 @@ export class AmendOperation extends Operation {
     private filePathsToAmend?: Array<RepoRelativePath>,
     private message?: EditedMessage
   ) {
-    super();
+    super("AmendOperation");
   }
 
   static opName = "Amend";

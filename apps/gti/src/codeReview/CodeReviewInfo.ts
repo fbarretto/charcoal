@@ -23,8 +23,8 @@ export const codeReviewProvider = computed<UICodeReviewProvider | null>(() => {
 });
 
 export const diffSummary = family({
-  genKey: (diffId: PRNumber) => diffId,
-  genValue: (diffId: PRNumber) => {
+  genKey: (diffId: PRNumber | undefined) => diffId || "__UNDEFINED__",
+  genValue: (diffId: PRNumber | undefined) => {
     return computed(() => {
       const all = allDiffSummaries.get();
       if (all == null) {
@@ -32,6 +32,9 @@ export const diffSummary = family({
       }
       if (all.error) {
         return { error: all.error };
+      }
+      if (diffId == null) {
+        return { value: undefined };
       }
       return { value: all.value?.get(diffId) };
     });

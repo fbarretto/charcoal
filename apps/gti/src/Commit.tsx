@@ -1,7 +1,6 @@
 import type { SuccessorInfo } from "./types";
 
 import { gtiDrawerState } from "./App";
-import { hasUnsavedEditedCommitMessage } from "./CommitInfo";
 import { BranchIndicator } from "./CommitTreeList";
 import { Tooltip } from "./Tooltip";
 import { UncommitButton } from "./UncommitButton";
@@ -29,6 +28,9 @@ import { Icon } from "@withgraphite/gti-shared/Icon";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
+import { highlightedCommits } from "./HighlightedCommits";
+import { notEmpty } from "@withgraphite/gti-shared/utils";
+import { hasUnsavedEditedCommitMessage } from "./CommitInfoState";
 
 function isDraggablePreview(previewType?: CommitPreview): boolean {
   switch (previewType) {
@@ -40,6 +42,7 @@ function isDraggablePreview(previewType?: CommitPreview): boolean {
     case CommitPreview.REBASE_OLD:
     case CommitPreview.HIDDEN_ROOT:
     case CommitPreview.HIDDEN_DESCENDANT:
+    case CommitPreview.NON_ACTIONABLE_COMMIT:
       return false;
 
     // you CAN let go of the preview and drag it again
@@ -88,9 +91,13 @@ export const Commit = memo(
 
       const handlePreviewedOperation = useRunPreviewedOperation();
       const runOperation = useRunOperation();
+      const isHighlighted = highlightedCommits.has(commit.branch);
 
       const { isSelected, onClickToSelect } = useCommitSelection(commit.branch);
       const actionsPrevented = previewPreventsActions(previewType);
+
+      const isNonActionable =
+        previewType === CommitPreview.NON_ACTIONABLE_COMMIT;
 
       function onDoubleClickToShowDrawer(e: React.MouseEvent<HTMLDivElement>) {
         // Select the commit if it was deselected.
@@ -126,11 +133,16 @@ export const Commit = memo(
 
       return (
         <div
-          className={"commit" + (commit.isHead ? " head-commit" : "")}
+          className={
+            "commit" +
+            (commit.isHead ? " head-commit" : "") +
+            (isHighlighted ? " highlighted" : "")
+          }
           data-testid={`commit-${commit.branch}`}
         >
-          {commit.isHead ||
-          previewType === CommitPreview.GOTO_PREVIOUS_LOCATION ? (
+          {!isNonActionable &&
+          (commit.isHead ||
+            previewType === CommitPreview.GOTO_PREVIOUS_LOCATION) ? (
             <HeadCommitInfo
               commit={commit}
               previewType={previewType}
@@ -245,7 +257,10 @@ const DivIfChildren = observer(
     React.HTMLAttributes<HTMLDivElement>,
     HTMLDivElement
   >) => {
-    if (!children || (Array.isArray(children) && children.length === 0)) {
+    if (
+      !children ||
+      (Array.isArray(children) && children.filter(notEmpty).length === 0)
+    ) {
       return null;
     }
     return <div {...props}>{children}</div>;
@@ -363,94 +378,98 @@ function handleDragEnd(event: Event) {
   document.removeEventListener("dragover", preventDefault);
 }
 
-function DraggableCommit({
-  commit,
-  children,
-  className,
-  draggable,
-  onClick,
-  onDoubleClick,
-  onContextMenu,
-}: {
-  commit: BranchInfo;
-  children: React.ReactNode;
-  className: string;
-  draggable: boolean;
-  onClick?: (
-    e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>
-  ) => unknown;
-  onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => unknown;
-  onContextMenu?: React.MouseEventHandler<HTMLDivElement>;
-}) {
-  const handleDragEnter = useCallback(() => {
-    const treeMap = latestCommitTreeMap.get();
+const DraggableCommit = observer(
+  ({
+    commit,
+    children,
+    className,
+    draggable,
+    onClick,
+    onDoubleClick,
+    onContextMenu,
+  }: {
+    commit: BranchInfo;
+    children: React.ReactNode;
+    className: string;
+    draggable: boolean;
+    onClick?: (
+      e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>
+    ) => unknown;
+    onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => unknown;
+    onContextMenu?: React.MouseEventHandler<HTMLDivElement>;
+  }) => {
+    const handleDragEnter = useCallback(() => {
+      const treeMap = latestCommitTreeMap.get();
 
-    if (
-      commitBeingDragged != null &&
-      commit.branch !== commitBeingDragged.branch
-    ) {
-      const draggedTree = treeMap.get(commitBeingDragged.branch);
-      if (draggedTree) {
-        if (
-          // can't rebase a commit onto its descendants
-          !isDescendant(commit.branch, draggedTree) &&
-          // can't rebase a commit onto its parent... it's already there!
-          !(commitBeingDragged.parents as Array<string>).includes(commit.branch)
-        ) {
-          // if the dest commit has a remote bookmark, use that instead of the hash.
-          // this is easier to understand in the command history and works better with optimistic state
-          const destination = commit.branch;
-          operationBeingPreviewed.set(
-            new RebaseOperation(commitBeingDragged.branch, destination)
-          );
+      if (
+        commitBeingDragged != null &&
+        commit.branch !== commitBeingDragged.branch
+      ) {
+        const draggedTree = treeMap.get(commitBeingDragged.branch);
+        if (draggedTree) {
+          if (
+            // can't rebase a commit onto its descendants
+            !isDescendant(commit.branch, draggedTree) &&
+            // can't rebase a commit onto its parent... it's already there!
+            !(commitBeingDragged.parents as Array<string>).includes(
+              commit.branch
+            )
+          ) {
+            // if the dest commit has a remote bookmark, use that instead of the hash.
+            // this is easier to understand in the command history and works better with optimistic state
+            const destination = commit.branch;
+            operationBeingPreviewed.set(
+              new RebaseOperation(commitBeingDragged.branch, destination)
+            );
+          }
         }
       }
-    }
-  }, [commit]);
+    }, [commit]);
 
-  const handleDragStart = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
-      // can't rebase with uncommitted changes
-      const loadable = latestUncommittedChanges.get();
-      const hasUncommittedChanges = loadable.length > 0;
+    const handleDragStart = useCallback(
+      (event: React.DragEvent<HTMLDivElement>) => {
+        // can't rebase with uncommitted changes
+        const loadable = latestUncommittedChanges.get();
+        const hasUncommittedChanges = loadable.length > 0;
 
-      if (hasUncommittedChanges) {
-        event.preventDefault();
-      }
-
-      commitBeingDragged = commit;
-      event.dataTransfer.dropEffect = "none";
-
-      const draggedDOMNode = event.target;
-      // prevent animation of commit returning to drag start location on drop
-      draggedDOMNode.addEventListener("dragend", handleDragEnd);
-      document.addEventListener("drop", preventDefault);
-      document.addEventListener("dragover", preventDefault);
-    },
-    [commit]
-  );
-
-  return (
-    <div
-      className={className}
-      onDragStart={handleDragStart}
-      onDragEnter={handleDragEnter}
-      draggable={draggable}
-      onClick={onClick}
-      onDoubleClick={onDoubleClick}
-      onKeyPress={(event) => {
-        if (event.key === "Enter") {
-          onClick?.(event);
+        if (hasUncommittedChanges) {
+          event.preventDefault();
         }
-      }}
-      onContextMenu={onContextMenu}
-      tabIndex={0}
-      data-testid={"draggable-commit"}
-    >
-      {children}
-    </div>
-  );
-}
+
+        commitBeingDragged = commit;
+        event.dataTransfer.dropEffect = "none";
+
+        const draggedDOMNode = event.target;
+        // prevent animation of commit returning to drag start location on drop
+        draggedDOMNode.addEventListener("dragend", handleDragEnd);
+        document.addEventListener("drop", preventDefault);
+        document.addEventListener("dragover", preventDefault);
+      },
+      [commit]
+    );
+
+    return (
+      <div
+        className={className}
+        onDragStart={handleDragStart}
+        onDragEnter={handleDragEnter}
+        draggable={draggable}
+        onClick={onClick}
+        onDoubleClick={onDoubleClick}
+        onKeyPress={(event) => {
+          if (event.key === "Enter") {
+            onClick?.(event);
+          }
+        }}
+        onContextMenu={onContextMenu}
+        tabIndex={0}
+        data-testid={"draggable-commit"}
+      >
+        {children}
+      </div>
+    );
+  }
+);
 
 export function SuccessorInfoToDisplay({
   successorInfo,

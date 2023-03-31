@@ -1,4 +1,4 @@
-import type { Context, LineRangeParams } from "./types";
+import type { Context, LineRangeParams, OneIndexedLineNumber } from "./types";
 import type { Hunk, ParsedDiff } from "diff";
 
 import SplitDiffRow from "./SplitDiffRow";
@@ -19,12 +19,12 @@ export type SplitDiffTableProps<Id> = {
 };
 
 export const SplitDiffTable = React.memo(
-  <Id,>({
+  ({
     ctx,
     path,
     patch,
     preamble,
-  }: SplitDiffTableProps<Id>): React.ReactElement => {
+  }: SplitDiffTableProps<string | number>): React.ReactElement => {
     const [deletedFileExpanded, setDeletedFileExpanded] =
       useState<boolean>(false);
     const [expandedSeparators, setExpandedSeparators] = useState<
@@ -54,7 +54,7 @@ export const SplitDiffTable = React.memo(
           // TODO: test empty file that went from 644 to 755?
           const key = "s0";
           if (expandedSeparators.has(key)) {
-            const range: LineRangeParams<Id> = {
+            const range: LineRangeParams<string | number> = {
               id: ctx.id,
               start: 1,
               numLines: hunk.oldStart - 1,
@@ -83,7 +83,7 @@ export const SplitDiffTable = React.memo(
           }
         }
 
-        addRowsForHunk(hunk, path, rows);
+        addRowsForHunk(hunk, path, rows, ctx.openFileToLine);
 
         if (index !== lastHunkIndex) {
           const nextHunk = hunks[index + 1];
@@ -91,7 +91,7 @@ export const SplitDiffTable = React.memo(
           if (expandedSeparators.has(key)) {
             const start = hunk.oldStart + hunk.oldLines;
             const numLines = nextHunk.oldStart - start;
-            const range: LineRangeParams<Id> = {
+            const range: LineRangeParams<string | number> = {
               id: ctx.id,
               start,
               numLines,
@@ -160,7 +160,8 @@ export const SplitDiffTable = React.memo(
 function addRowsForHunk(
   hunk: Hunk,
   path: string,
-  rows: React.ReactElement[]
+  rows: React.ReactElement[],
+  openFileToLine?: (line: OneIndexedLineNumber) => unknown
 ): void {
   const { oldStart, newStart, lines } = hunk;
   const groups = organizeLinesIntoGroups(lines);
@@ -175,7 +176,8 @@ function addRowsForHunk(
       "common",
       beforeLineNumber,
       afterLineNumber,
-      rows
+      rows,
+      openFileToLine
     );
     beforeLineNumber += common.length;
     afterLineNumber += common.length;
@@ -196,6 +198,7 @@ function addRowsForHunk(
             after={after}
             rowType="modify"
             path={path}
+            openFileToLine={openFileToLine}
           />
         );
         ++beforeLineNumber;
@@ -210,6 +213,7 @@ function addRowsForHunk(
             after={null}
             rowType="remove"
             path={path}
+            openFileToLine={openFileToLine}
           />
         );
         ++beforeLineNumber;
@@ -223,6 +227,7 @@ function addRowsForHunk(
             after={addedLine}
             rowType="add"
             path={path}
+            openFileToLine={openFileToLine}
           />
         );
         ++afterLineNumber;
@@ -240,7 +245,8 @@ function addUnmodifiedRows(
   rowType: "common" | "expanded",
   initialBeforeLineNumber: number,
   initialAfterLineNumber: number,
-  rows: React.ReactElement[]
+  rows: React.ReactElement[],
+  openFileToLine?: (line: OneIndexedLineNumber) => unknown
 ): void {
   let beforeLineNumber = initialBeforeLineNumber;
   let afterLineNumber = initialAfterLineNumber;
@@ -254,6 +260,7 @@ function addUnmodifiedRows(
         after={lineContent}
         rowType={rowType}
         path={path}
+        openFileToLine={openFileToLine}
       />
     );
     ++beforeLineNumber;
@@ -358,7 +365,7 @@ const ExpandingSeparator = observer(
     afterLineStart,
     t,
   }: ExpandingSeparatorProps<string | number>): React.ReactElement => {
-    const loadable = ctx.atoms.lineRange(range);
+    const loadable = ctx.atoms.lineRange(range).get();
     switch (loadable.state) {
       case "fulfilled": {
         const rows: React.ReactElement[] = [];
@@ -369,7 +376,8 @@ const ExpandingSeparator = observer(
           "expanded",
           beforeLineStart,
           afterLineStart,
-          rows
+          rows,
+          ctx.openFileToLine
         );
         return <>{rows}</>;
       }

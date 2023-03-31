@@ -3,52 +3,99 @@ import type { CommitTreeWithPreviews } from "./getCommitTree";
 import { Commit } from "./Commit";
 import { ErrorNotice } from "./ErrorNotice";
 import { treeWithPreviews, useMarkOperationsCompleted } from "./previews";
-import { commitFetchError } from "./serverAPIState";
+import {
+  commitFetchError,
+  commitsShownRange,
+  isFetchingAdditionalCommits,
+  useRunOperation,
+} from "./serverAPIState";
 import { Icon } from "@withgraphite/gti-shared/Icon";
+import serverAPI from "./ClientToServerAPI";
 
 import "./CommitTreeList.scss";
 import { observer } from "mobx-react-lite";
 import type { BranchName } from "@withgraphite/gti-cli-shared-types";
+import { useArrowKeysToChangeSelection } from "./selection";
+import { FlexRow, LargeSpinner } from "./ComponentUtils";
+import { notEmpty } from "@withgraphite/gti-shared/utils";
+import { ErrorShortMessages } from "@withgraphite/gti-server/src/constants";
+import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
+import { CreateEmptyInitialCommitOperation } from "./operations/CreateEmptyInitialCommitOperation";
+import { DOCUMENTATION_DELAY, Tooltip } from "./Tooltip";
+import { HighlightCommitsWhileHovering } from "./HighlightedCommits";
+import {
+  ContextMenuItem,
+  useContextMenu,
+} from "@withgraphite/gti-shared/ContextMenu";
+import {
+  allDiffSummaries,
+  codeReviewProvider,
+} from "./codeReview/CodeReviewInfo";
 
 export const CommitTreeList = observer(() => {
-  // TOMAS: I believe the below is unnecessary now with MobX, but leaving for a sec
-  // Make sure we trigger subscription to changes to uncommitted changes *before* we have a tree to render,
-  // so we don't miss the first returned uncommitted changes mesage.
-  // TODO: This is a little ugly, is there a better way to tell recoil to start the subscription immediately?
-  // Or should we queue/cache messages?
-  // useRecoilState(latestUncommittedChanges);
-  // useRecoilState(pageVisibility);
-
   useMarkOperationsCompleted();
+
+  useArrowKeysToChangeSelection();
 
   const { trees } = treeWithPreviews.get();
   const fetchError = commitFetchError.get();
   return fetchError == null && trees.length === 0 ? (
     <Center>
-      <Spinner />
+      <LargeSpinner />
     </Center>
   ) : (
     <>
-      {fetchError ? (
-        <ErrorNotice title={"Failed to fetch commits"} error={fetchError} />
-      ) : null}
-      <div className="commit-tree-root commit-group">
+      {fetchError ? <CommitFetchError error={fetchError} /> : null}
+      <div
+        className="commit-tree-root commit-group"
+        data-testid="commit-tree-root"
+      >
         <MainLineEllipsis />
-        {trees.map((tree) => createSubtree(tree))}
-        <MainLineEllipsis />
+        {trees.map((tree) => createSubtree(tree, /* depth */ 0))}
+        <MainLineEllipsis>
+          <FetchingAdditionalCommitsButton />
+          <FetchingAdditionalCommitsIndicator />
+        </MainLineEllipsis>
       </div>
     </>
   );
 });
 
+const CommitFetchError = observer(({ error }: { error: Error }) => {
+  const runOperation = useRunOperation();
+  if (error.message === ErrorShortMessages.NoCommitsFetched) {
+    return (
+      <ErrorNotice
+        title={"No commits found"}
+        description={
+          "If this is a new repository, try adding an initial commit first."
+        }
+        error={error}
+        buttons={[
+          <VSCodeButton
+            appearance="secondary"
+            onClick={() => {
+              runOperation(new CreateEmptyInitialCommitOperation());
+            }}
+          >
+            Create empty initial commit
+          </VSCodeButton>,
+        ]}
+      />
+    );
+  }
+  return <ErrorNotice title={"Failed to fetch commits"} error={error} />;
+});
+
 function createSubtree(
-  tree: CommitTreeWithPreviews
+  tree: CommitTreeWithPreviews,
+  depth: number
 ): Array<React.ReactElement> {
   const { info, children, previewType } = tree;
   const isPublic = info.partOfTrunk;
 
   const renderedChildren = (children ?? [])
-    .map((tree) => createSubtree(tree))
+    .map((tree) => createSubtree(tree, depth + 1))
     .map((components, i) => {
       if (!isPublic && i === 0) {
         // first child can be rendered without branching, so single-child lineages render in the same branch
@@ -71,15 +118,8 @@ function createSubtree(
       previewType={previewType}
       hasChildren={renderedChildren.length > 0}
     />,
-  ];
-}
-
-function Spinner() {
-  return (
-    <div data-testid="loading-spinner">
-      <Icon icon="loading" size="L" />
-    </div>
-  );
+    depth === 1 ? <StackActions key="stack-actions" tree={tree} /> : null,
+  ].filter(notEmpty);
 }
 
 function Center({ children }: { children: React.ReactNode }) {
@@ -99,10 +139,6 @@ function Branch({
       <BranchIndicator />
     </div>
   );
-}
-
-function MainLineEllipsis() {
-  return <div className="commit-ellipsis" />;
 }
 
 const COMPONENT_PADDING = 10;
@@ -133,3 +169,170 @@ export const BranchIndicator = () => {
     </svg>
   );
 };
+
+/**
+ * Vertical ellipsis to be rendered on top of the branch line.
+ * Expects to rendered as a child of commit-tree-root.
+ * Optionally accepts children to render next to the "..."
+ */
+function MainLineEllipsis({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="commit-ellipsis">
+      <Icon icon="kebab-vertical" />
+      <div className="commit-ellipsis-children">{children}</div>
+    </div>
+  );
+}
+
+const FetchingAdditionalCommitsIndicator = observer(() => {
+  const isFetching = isFetchingAdditionalCommits.get();
+  return isFetching ? <Icon icon="loading" /> : null;
+});
+
+const FetchingAdditionalCommitsButton = observer(() => {
+  const shownRange = commitsShownRange.get();
+  const isFetching = isFetchingAdditionalCommits.get();
+  if (shownRange === undefined) {
+    return null;
+  }
+  const commitsShownMessage = `Showing comits from the last ${shownRange.toString()} days`;
+  return (
+    <Tooltip
+      placement="bottom"
+      delayMs={DOCUMENTATION_DELAY}
+      title={commitsShownMessage}
+    >
+      <VSCodeButton
+        key="load-more-commit-button"
+        disabled={isFetching}
+        onClick={() => {
+          serverAPI.postMessage({
+            type: "loadMoreCommits",
+          });
+        }}
+        appearance="icon"
+      >
+        <Icon icon="unfold" slot="start" />
+        <>Load more commits</>
+      </VSCodeButton>
+    </Tooltip>
+  );
+});
+
+const StackActions = observer(
+  ({ tree }: { tree: CommitTreeWithPreviews }): React.ReactElement | null => {
+    const reviewProvider = codeReviewProvider.get();
+    const diffMap = allDiffSummaries.get();
+    const runOperation = useRunOperation();
+
+    // buttons at the bottom of the stack
+    const actions = [];
+    // additional actions hidden behind [...] menu.
+    // Non-empty only when actions is non-empty.
+    const moreActions: Array<ContextMenuItem> = [];
+
+    const reviewActions =
+      diffMap.value == null
+        ? {}
+        : reviewProvider?.getSupportedStackActions(tree, diffMap.value);
+    const resubmittableStack = reviewActions?.resubmittableStack;
+    const submittableStack = reviewActions?.submittableStack;
+    const MIN_STACK_SIZE_TO_SUGGEST_SUBMIT = 2; // don't show "submit stack" on single commits... they're not really "stacks".
+
+    const contextMenu = useContextMenu(() => moreActions);
+    if (reviewProvider == null) {
+      return null;
+    }
+    // any existing diffs -> show resubmit stack,
+    if (
+      resubmittableStack != null &&
+      resubmittableStack.length >= MIN_STACK_SIZE_TO_SUGGEST_SUBMIT
+    ) {
+      actions.push(
+        <HighlightCommitsWhileHovering
+          key="resubmit-stack"
+          toHighlight={resubmittableStack}
+        >
+          <VSCodeButton
+            appearance="icon"
+            onClick={() => {
+              runOperation(reviewProvider.submitOperation(resubmittableStack));
+            }}
+          >
+            <Icon icon="cloud-upload" slot="start" />
+            Resubmit stack
+          </VSCodeButton>
+        </HighlightCommitsWhileHovering>
+      );
+      //     any non-submitted diffs -> "submit all commits this stack" in hidden group
+      if (
+        submittableStack != null &&
+        submittableStack.length > 0 &&
+        submittableStack.length > resubmittableStack.length
+      ) {
+        moreActions.push({
+          label: (
+            <HighlightCommitsWhileHovering
+              key="submit-entire-stack"
+              toHighlight={submittableStack}
+            >
+              <FlexRow>
+                <Icon icon="cloud-upload" slot="start" />
+                Submit entire stack
+              </FlexRow>
+            </HighlightCommitsWhileHovering>
+          ),
+          onClick: () => {
+            runOperation(
+              reviewProvider.submitOperation([
+                ...resubmittableStack,
+                ...submittableStack,
+              ])
+            );
+          },
+        });
+      }
+      //     NO non-submitted diffs -> nothing in hidden group
+    } else if (
+      submittableStack != null &&
+      submittableStack.length >= MIN_STACK_SIZE_TO_SUGGEST_SUBMIT
+    ) {
+      // NO existing diffs -> show submit stack ()
+      actions.push(
+        <HighlightCommitsWhileHovering
+          key="submit-stack"
+          toHighlight={submittableStack}
+        >
+          <VSCodeButton
+            appearance="icon"
+            onClick={() => {
+              runOperation(reviewProvider.submitOperation(submittableStack));
+            }}
+          >
+            <Icon icon="cloud-upload" slot="start" />
+            Submit stack
+          </VSCodeButton>
+        </HighlightCommitsWhileHovering>
+      );
+    }
+    if (actions.length === 0) {
+      return null;
+    }
+    const moreActionsButton =
+      moreActions.length === 0 ? null : (
+        <VSCodeButton
+          key="more-actions"
+          appearance="icon"
+          onClick={contextMenu}
+        >
+          <Icon icon="ellipsis" />
+        </VSCodeButton>
+      );
+    return (
+      <div className="commit-tree-stack-actions">
+        {actions}
+        {moreActionsButton}
+      </div>
+    );
+  }
+);

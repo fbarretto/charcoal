@@ -8,6 +8,7 @@ import type {
 
 import * as pathModule from "path";
 import * as vscode from "vscode";
+import { executeVSCodeCommand } from "./commands";
 
 export const VSCodePlatform: ServerPlatform = {
   platformName: "vscode",
@@ -27,7 +28,35 @@ export const VSCodePlatform: ServerPlatform = {
             message.path
           );
           const uri = vscode.Uri.file(path);
-          void vscode.window.showTextDocument(uri);
+          const editorPromise = vscode.window.showTextDocument(uri);
+          const line = message.options?.line;
+          if (line != null) {
+            const editor = await editorPromise;
+            const lineZeroIndexed = line - 1; // vscode uses 0-indexed line numbers
+            editor.selections = [
+              new vscode.Selection(lineZeroIndexed, 0, lineZeroIndexed, 0),
+            ]; // move cursor to line
+            editor.revealRange(
+              new vscode.Range(lineZeroIndexed, 0, lineZeroIndexed, 0),
+              vscode.TextEditorRevealType.InCenterIfOutsideViewport
+            ); // scroll to line
+          }
+          break;
+        }
+        case "platform/openDiff": {
+          if (repo == null) {
+            break;
+          }
+          const path: AbsolutePath = pathModule.join(
+            repo.info.repoRoot,
+            message.path
+          );
+          const uri = vscode.Uri.file(path);
+          void executeVSCodeCommand(
+            "graphite.open-file-diff",
+            uri,
+            message.comparison
+          );
           break;
         }
         case "platform/openExternal": {

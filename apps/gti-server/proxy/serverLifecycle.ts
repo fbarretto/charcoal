@@ -85,7 +85,7 @@ export async function readExistingServerFileWithRetries(
       // eslint-disable-next-line no-await-in-loop
       return await readExistingServerFile(port);
     } catch (error) {
-      sleepMs(500);
+      await sleepMs(500);
     }
     tries--;
   }

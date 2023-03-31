@@ -54,7 +54,7 @@ import("./server")
 
 process.on("uncaughtException", (err) => {
   const { logFileLocation } = args;
-  fs.promises.appendFile(
+  void fs.promises.appendFile(
     logFileLocation,
     `\n[${new Date().toString()}] GTI server child process got an uncaught exception:\n${
       err?.stack ?? err?.message

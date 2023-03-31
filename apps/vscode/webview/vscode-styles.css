@@ -4,6 +4,12 @@ body {
   overflow: hidden;
 }
 
+.webview-view .gti-root {
+  --background: var(--vscode-sidebar-background);
+  outline: 1px solid var(--vscode-panel-border);
+  outline-offset: -1px;
+}
+
 code {
   /* vscode webview default styling sets color to var(--vscode-textPreformat-foreground),
    which is an undesirably noticeable red color.

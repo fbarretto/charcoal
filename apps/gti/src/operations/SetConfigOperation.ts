@@ -6,10 +6,10 @@ export class SetConfigOperation extends Operation {
     private configName: string,
     private value: string
   ) {
-    super();
+    super("SetConfigOperation");
   }
 
-  static opName = "Add";
+  static opName = "SetConfig";
 
   getArgs() {
     return ["config", `--${this.scope}`, this.configName, this.value];

@@ -1,13 +1,35 @@
-import {
-  FormEvent,
-  ForwardedRef,
-  MutableRefObject,
-  ReactNode,
-  useCallback,
-} from "react";
+import { ReactNode, useCallback } from "react";
 
-import { YouAreHere } from "./Commit";
+import {
+  VSCodeBadge,
+  VSCodeButton,
+  VSCodeDivider,
+  VSCodeRadio,
+  VSCodeRadioGroup,
+} from "@vscode/webview-ui-toolkit/react";
+import React, { useEffect } from "react";
+import {
+  allDiffSummaries,
+  codeReviewProvider,
+} from "./codeReview/CodeReviewInfo";
+import { Commit, YouAreHere } from "./Commit";
 import { OpenComparisonViewButton } from "./ComparisonView/OpenComparisonViewButton";
+import { AmendMessageOperation } from "./operations/AmendMessageOperation";
+import { AmendOperation } from "./operations/AmendOperation";
+import { CommitOperation } from "./operations/CommitOperation";
+import platform from "./platform";
+import {
+  CommitPreview,
+  treeWithPreviews,
+  uncommittedChangesWithPreviews,
+} from "./previews";
+import { RelativeDate } from "./relativeDate";
+import { selectedCommitInfos, selectedCommits } from "./selection";
+import {
+  commitMessageTemplate,
+  repositoryInfo,
+  useRunOperation,
+} from "./serverAPIState";
 import { Subtle } from "./Subtle";
 import { Tooltip } from "./Tooltip";
 import {
@@ -15,43 +37,29 @@ import {
   deselectedUncommittedChanges,
   UncommittedChanges,
 } from "./UncommittedChanges";
-import { codeReviewProvider } from "./codeReview/CodeReviewInfo";
-import { AmendMessageOperation } from "./operations/AmendMessageOperation";
-import { AmendOperation } from "./operations/AmendOperation";
-import { CommitOperation } from "./operations/CommitOperation";
-import platform from "./platform";
-import { treeWithPreviews, uncommittedChangesWithPreviews } from "./previews";
-import { RelativeDate } from "./relativeDate";
-import { selectedCommits } from "./selection";
-import {
-  commitMessageTemplate,
-  latestCommitTreeMap,
-  repositoryInfo,
-  useRunOperation,
-} from "./serverAPIState";
 import { assert, firstOfIterable } from "./utils";
-import {
-  VSCodeBadge,
-  VSCodeButton,
-  VSCodeDivider,
-  VSCodeRadio,
-  VSCodeRadioGroup,
-  VSCodeTextArea,
-} from "@vscode/webview-ui-toolkit/react";
-import React, { forwardRef, useEffect, useRef } from "react";
 
 import { ComparisonType } from "@withgraphite/gti-shared/Comparison";
 import { Icon } from "@withgraphite/gti-shared/Icon";
 import { unwrap } from "@withgraphite/gti-shared/utils";
 
-import "./CommitInfo.scss";
-import { computed, observable } from "mobx";
-import { family } from "./lib/mobx-recoil/family";
+import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
 import { observer } from "mobx-react-lite";
-import type {
-  BranchInfo,
-  BranchName,
-} from "@withgraphite/gti-cli-shared-types";
+import {
+  submitAsDraft,
+  SubmitAsDraftCheckbox,
+} from "./codeReview/DraftCheckbox";
+import "./CommitInfo.scss";
+import {
+  commitFieldsBeingEdited,
+  commitMode,
+  editedCommitMessages,
+  hasUnsavedEditedCommitMessage,
+} from "./CommitInfoState";
+import { Center } from "./ComponentUtils";
+import { HighlightCommitsWhileHovering } from "./HighlightedCommits";
+import { numPendingImageUploads } from "./ImageUpload";
+import { CommitInfoField } from "./TextArea";
 
 export type EditedMessage = { title: string; description: string };
 
@@ -73,90 +81,6 @@ type EditedMessageUnlessOptimistic =
   | { type: "optimistic"; title?: undefined; description?: undefined };
 
 /**
- * Map of hash -> latest edited commit message, representing any changes made to the commit's message fields.
- * This also stores the state of new commit messages being written, keyed by "head" instead of a commit hash.
- * Even though messages are not edited by default, we can compute an initial state from the commit's original message,
- * which allows this state to be non-nullable which is very convenient. This shouldn't do any actual storage until it is written to.
- * Note: this state should be cleared when amending / committing / meta-editing.
- *
- * Note: since commits are looked up without optimistic state, its possible that we fail to look up the commit.
- * This would mean its a commit that only exists due to previews/optimitisc state,
- * for example the fake commit optimistically inserted as the new head while `commit` is running.
- * In such a state, we don't know the commit message we should use in the editor, nor do we have
- * a hash we could associate it with. For simplicity, the UI should prevent you from editing such commits' messages.
- * (TODO: hypothetically, we could track commit succession to take your partially edited message and persist it
- * once optimistic state resolves, but it would be complicated for not much benefit.)
- * We return a sentinel value without an edited message attached so the UI knows it cannot edit.
- * This optimistic value is never returned in commit mode.
- */
-const editedCommitMessagesDefaults = family({
-  genKey: (hash: BranchName | "head") => hash,
-  genValue: (hash: BranchName | "head") => {
-    return computed<EditedMessageUnlessOptimistic>(() => {
-      if (hash === "head") {
-        const templates = commitMessageTemplate.get();
-        const templateEntries = templates ? Object.entries(templates) : [];
-        return templateEntries.length === 1
-          ? {
-              title: "",
-              description: templateEntries[0][1],
-            }
-          : {
-              title: "",
-              description: "",
-            };
-      }
-      // TODO: is there a better way we should derive `isOptimistic`
-      // from `get(treeWithPreviews)`, rather than using non-previewed map?
-      const map = latestCommitTreeMap.get();
-      const info = map.get(hash)?.info;
-      if (info == null) {
-        return { type: "optimistic" as const };
-      }
-      return { title: info.title, description: info.description };
-    });
-  },
-});
-const editedCommitMessages = family({
-  genKey: (hash: BranchName | "head") => hash,
-  genValue: (hash: BranchName | "head") => {
-    const def = editedCommitMessagesDefaults(hash).get();
-    return observable.box<EditedMessageUnlessOptimistic>(def);
-  },
-});
-
-export const hasUnsavedEditedCommitMessage = family({
-  genKey: (hash: BranchName | "head") => hash,
-  genValue: (hash: BranchName | "head") => {
-    return computed(() => {
-      const edited = editedCommitMessages(hash).get();
-      if (edited.type === "optimistic") {
-        return false;
-      }
-      if (hash === "head") {
-        return Boolean(edited.title || edited.description);
-      }
-      // TODO: use treeWithPreviews so this indicator is accurate on top of previews
-      const original = latestCommitTreeMap.get().get(hash)?.info;
-      return (
-        edited.title !== original?.title ||
-        edited.description !== original?.description
-      );
-    });
-  },
-});
-
-export const commitFieldsBeingEdited = observable.box<FieldsBeingEdited>(
-  {
-    title: false,
-    description: false,
-  },
-  { deep: false }
-);
-
-export const commitMode = observable.box<CommitInfoMode>("amend");
-
-/**
  * Throw if the edited message is of optimistic type.
  * We expect:
  *  - editedCommitMessage('head') should never be optimistic
@@ -173,25 +97,79 @@ function assertNonOptimistic(
 }
 
 export const CommitInfoSidebar = observer(() => {
-  const { treeMap, headCommit } = treeWithPreviews.get();
+  const { headCommit } = treeWithPreviews.get();
+  const selected = selectedCommitInfos.get();
 
   // show selected commit, if there's exactly 1
-  const selectedCommit =
-    selectedCommits.size === 1
-      ? treeMap.get(unwrap(firstOfIterable(selectedCommits.values())))
-      : undefined;
-  const commit = selectedCommit?.info ?? headCommit;
+  const selectedCommit = selected.length === 1 ? selected[0] : undefined;
+  const commit = selectedCommit ?? headCommit;
 
   if (commit == null) {
     return (
       <div className="commit-info-view" data-testid="commit-info-view-loading">
-        <Icon icon="loading" />
+        <Center>
+          <Icon icon="loading" />
+        </Center>
       </div>
     );
   } else {
+    if (selected.length > 1) {
+      return <MultiCommitInfo selectedCommits={selected} />;
+    }
+
+    // only one commit selected
     return <CommitInfoDetails commit={commit} />;
   }
 });
+
+export const MultiCommitInfo = observer(
+  ({ selectedCommits }: { selectedCommits: Array<BranchInfo> }) => {
+    const provider = codeReviewProvider.get();
+    const diffSummaries = allDiffSummaries.get();
+    const runOperation = useRunOperation();
+    const submittable =
+      (diffSummaries.value != null
+        ? provider?.getSubmittableDiffs(selectedCommits, diffSummaries.value)
+        : undefined) ?? [];
+    return (
+      <div
+        className="commit-info-view-multi-commit"
+        data-testid="commit-info-view"
+      >
+        <strong className="commit-list-header">
+          <Icon icon="layers" size="M" />
+          {selectedCommits.length} Commits Selected
+        </strong>
+        <VSCodeDivider />
+        <div className="commit-list">
+          {selectedCommits.map((commit) => (
+            <Commit
+              key={commit.branch}
+              commit={commit}
+              hasChildren={false}
+              previewType={CommitPreview.NON_ACTIONABLE_COMMIT}
+            />
+          ))}
+        </div>
+        <div className="commit-info-actions-bar">
+          {submittable.length === 0 ? null : (
+            <HighlightCommitsWhileHovering toHighlight={submittable}>
+              <VSCodeButton
+                onClick={() => {
+                  runOperation(
+                    unwrap(provider).submitOperation(selectedCommits)
+                  );
+                }}
+              >
+                Submit Selected Commits
+              </VSCodeButton>
+            </HighlightCommitsWhileHovering>
+          )}
+        </div>
+      </div>
+    );
+  }
+);
 
 export const CommitInfoDetails = observer(
   ({ commit }: { commit: BranchInfo }) => {
@@ -467,6 +445,8 @@ const ActionsBar = observer(
 
     const provider = codeReviewProvider.get();
     const repoInfo = repositoryInfo.get();
+    const diffSummaries = allDiffSummaries.get();
+    const shouldSubmitAsDraft = submitAsDraft.get();
 
     // after committing/amending, if you've previously selected the head commit,
     // we should show you the newly amended/committed commit instead of the old one.
@@ -503,7 +483,7 @@ const ActionsBar = observer(
         }
 
         editedCommitMessages(isCommitMode ? "head" : commit.branch).set(
-          editedCommitMessagesDefaults(commit.branch).get()
+          editedCommitMessages(commit.branch).get()
         );
         commitFieldsBeingEdited.set({ title: false, description: false });
       },
@@ -542,89 +522,134 @@ const ActionsBar = observer(
     const canSubmitWithCodeReviewProvider =
       codeReviewProviderName !== "none" && codeReviewProviderName !== "unknown";
 
+    const submittable =
+      diffSummaries.value &&
+      provider?.getSubmittableDiffs([commit], diffSummaries.value);
+    const canSubmitIndividualDiffs = submittable && submittable.length > 0;
+
+    const ongoingImageUploads = numPendingImageUploads.get();
+    const areImageUploadsOngoing = ongoingImageUploads > 0;
+
     return (
       <div
         className="commit-info-actions-bar"
         data-testid="commit-info-actions-bar"
       >
-        {isAnythingBeingEdited && !isCommitMode ? (
-          <VSCodeButton
-            appearance="secondary"
-            onClick={() => clearEditedCommitMessage()}
-          >
-            <>Cancel</>
-          </VSCodeButton>
-        ) : null}
-
-        {commit.isHead ? (
-          <Tooltip
-            title={
-              isCommitMode
-                ? deselected.size === 0
-                  ? "No changes to commit"
-                  : "No selected changes to commit"
-                : deselected.size === 0
-                ? "No changes to amend"
-                : "No selected changes to amend"
-            }
-            trigger={anythingToCommit ? "disabled" : "hover"}
-          >
+        <div className="commit-info-actions-bar-left">
+          <SubmitAsDraftCheckbox
+            commitsToBeSubmit={isCommitMode ? [] : [commit]}
+          />
+        </div>
+        <div className="commit-info-actions-bar-right">
+          {isAnythingBeingEdited && !isCommitMode ? (
             <VSCodeButton
               appearance="secondary"
-              disabled={!anythingToCommit || editedMessage == null}
-              onClick={doAmendOrCommit}
+              onClick={() => clearEditedCommitMessage()}
             >
-              {isCommitMode ? <>Commit</> : <>Amend</>}
+              Cancel
             </VSCodeButton>
-          </Tooltip>
-        ) : (
-          <VSCodeButton
-            appearance="secondary"
-            disabled={!isAnythingBeingEdited || editedMessage == null}
-            onClick={() => {
-              runOperation(
-                new AmendMessageOperation(
-                  commit.branch,
-                  assertNonOptimistic(editedMessage)
-                )
-              );
-              void clearEditedCommitMessage(/* skip confirmation */ true);
-            }}
-          >
-            <>Amend Message</>
-          </VSCodeButton>
-        )}
-        {commit.isHead ? (
-          <Tooltip
-            title={
-              canSubmitWithCodeReviewProvider
-                ? `Submit for code review with ${codeReviewProviderName}`
-                : "Submitting for code review is currently only supported for GitHub-backed repos"
-            }
-            placement="top"
-          >
-            <VSCodeButton
-              disabled={!canSubmitWithCodeReviewProvider}
-              onClick={async () => {
-                if (anythingToCommit) {
-                  doAmendOrCommit();
-                }
+          ) : null}
 
-                runOperation(unwrap(provider).submitOperation());
-              }}
+          {commit.isHead ? (
+            <Tooltip
+              title={
+                areImageUploadsOngoing
+                  ? "Image uploads are still pending"
+                  : isCommitMode
+                  ? deselected.size === 0
+                    ? "No changes to commit"
+                    : "No selected changes to commit"
+                  : deselected.size === 0
+                  ? "No changes to amend"
+                  : "No selected changes to amend"
+              }
+              trigger={
+                areImageUploadsOngoing || !anythingToCommit
+                  ? "hover"
+                  : "disabled"
+              }
             >
-              {anythingToCommit ? (
-                isCommitMode ? (
-                  <>Commit and Submit</>
+              <VSCodeButton
+                appearance="secondary"
+                disabled={
+                  !anythingToCommit ||
+                  editedMessage == null ||
+                  areImageUploadsOngoing
+                }
+                onClick={doAmendOrCommit}
+              >
+                {isCommitMode ? <>Commit</> : <>Amend</>}
+              </VSCodeButton>
+            </Tooltip>
+          ) : (
+            <Tooltip
+              title={"Image uploads are still pending"}
+              trigger={areImageUploadsOngoing ? "hover" : "disabled"}
+            >
+              <VSCodeButton
+                appearance="secondary"
+                disabled={
+                  !isAnythingBeingEdited ||
+                  editedMessage == null ||
+                  areImageUploadsOngoing
+                }
+                onClick={() => {
+                  runOperation(
+                    new AmendMessageOperation(
+                      commit.branch,
+                      assertNonOptimistic(editedMessage)
+                    )
+                  );
+                  void clearEditedCommitMessage(/* skip confirmation */ true);
+                }}
+              >
+                <>Amend Message</>
+              </VSCodeButton>
+            </Tooltip>
+          )}
+          {commit.isHead || canSubmitIndividualDiffs ? (
+            <Tooltip
+              title={
+                areImageUploadsOngoing
+                  ? "Image uploads are still pending"
+                  : canSubmitWithCodeReviewProvider
+                  ? "Submit for code review"
+                  : "Submitting for code review is currently only supported for GitHub-backed repos"
+              }
+              placement="top"
+            >
+              <VSCodeButton
+                disabled={
+                  !canSubmitWithCodeReviewProvider || areImageUploadsOngoing
+                }
+                onClick={async () => {
+                  if (anythingToCommit) {
+                    doAmendOrCommit();
+                  }
+
+                  runOperation(
+                    unwrap(provider).submitOperation(
+                      commit.isHead ? [] : [commit], // [] means to submit the head commit
+                      {
+                        draft: shouldSubmitAsDraft,
+                      }
+                    )
+                  );
+                }}
+              >
+                {commit.isHead && anythingToCommit ? (
+                  isCommitMode ? (
+                    <>Commit and Submit</>
+                  ) : (
+                    <>Amend and Submit</>
+                  )
                 ) : (
-                  <>Amend and Submit</>
-                )
-              ) : (
-                <>Submit</>
-              )}
-            </VSCodeButton>
-          </Tooltip>
-        ) : null}
+                  <>Submit</>
+                )}
+              </VSCodeButton>
+            </Tooltip>
+          ) : null}
+        </div>
       </div>
     );
   }
@@ -723,98 +748,5 @@ function ClickToEditField({
     >
       {children}
     </div>
-  );
-}
-
-/**
- * Wrap `VSCodeTextArea` to auto-resize to minimum height and disallow newlines.
- * Like a `VSCodeTextField` that has text wrap inside.
- */
-const MinHeightTextField = forwardRef(
-  (
-    props: React.ComponentProps<typeof VSCodeTextArea> & {
-      onInput: (event: { target: { value: string } }) => unknown;
-    },
-    ref: ForwardedRef<typeof VSCodeTextArea>
-  ) => {
-    const { onInput, ...rest } = props;
-
-    // ref could also be a callback ref; don't bother supporting that right now.
-    assert(typeof ref === "object", "MinHeightTextArea requires ref object");
-
-    // whenever the value is changed, recompute & apply the minimum height
-    useEffect(() => {
-      const r = ref as MutableRefObject<typeof VSCodeTextArea>;
-      const current = r?.current as unknown as HTMLInputElement;
-      // height must be applied to textarea INSIDE shadowRoot of the VSCodeTextArea
-      const innerTextArea = current?.shadowRoot?.querySelector("textarea");
-      if (innerTextArea) {
-        const resize = () => {
-          innerTextArea.style.height = "";
-          innerTextArea.style.height = `${innerTextArea.scrollHeight}px`;
-        };
-        resize();
-        const obs = new ResizeObserver(resize);
-        obs.observe(innerTextArea);
-        return () => obs.unobserve(innerTextArea);
-      }
-    }, [props.value, ref]);
-
-    return (
-      <VSCodeTextArea
-        ref={ref}
-        {...rest}
-        className={`min-height-text-area${
-          rest.className ? " " + rest.className : ""
-        }`}
-        onInput={(e) => {
-          const newValue = (e.target as HTMLInputElement)?.value
-            // remove newlines so this acts like a textField rather than a textArea
-            .replace(/(\r|\n)/g, "");
-          onInput({ target: { value: newValue } });
-        }}
-      />
-    );
-  }
-);
-
-function CommitInfoField({
-  which,
-  autoFocus,
-  editedMessage,
-  setEditedCommitMessage,
-}: {
-  which: keyof EditedMessage;
-  autoFocus: boolean;
-  editedMessage: EditedMessage;
-  setEditedCommitMessage: (value: EditedMessageUnlessOptimistic) => void;
-}) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (ref.current && autoFocus) {
-      (ref.current as HTMLInputElement | null)?.focus();
-    }
-  }, [autoFocus, ref]);
-  const Component = which === "title" ? MinHeightTextField : VSCodeTextArea;
-  const props =
-    which === "title"
-      ? {}
-      : {
-          rows: 30,
-          resize: "vertical",
-        };
-  return (
-    <Component
-      ref={ref}
-      {...props}
-      value={editedMessage[which]}
-      data-testid={`commit-info-${which}-field`}
-      onInput={(event: FormEvent) => {
-        setEditedCommitMessage({
-          ...assertNonOptimistic(editedMessage),
-          [which]: (event.target as HTMLInputElement)?.value,
-        });
-      }}
-    />
   );
 }

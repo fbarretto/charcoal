@@ -13,7 +13,8 @@
   "activationEvents": [
     "onStartupFinished",
     "onCommand:graphite.open-gti",
-    "onWebviewPanel:graphite.gti"
+    "onWebviewPanel:graphite.gti",
+    "onView:graphite.gti"
   ],
   "extensionKind": [
     "workspace"
@@ -40,8 +41,32 @@
           "type": "string",
           "default": "",
           "description": "Controls which executable to use for running Graphite commands. Default: use `gt` on your PATH. Restart required to take effect."
+        },
+        "graphite.gti.showInSidebar": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show Graphite interactive in the sidebar instead of its own panel."
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "graphite",
+          "icon": "resources/graphite-favicon-transparent.svg",
+          "title": "Graphite"
+        }
+      ]
+    },
+    "views": {
+      "graphite": [
+        {
+          "type": "webview",
+          "id": "graphite.gti",
+          "name": "Graphite interactive",
+          "when": "config.graphite.gti.showInSidebar"
+        }
+      ]
     },
     "commands": [
       {
@@ -49,8 +74,20 @@
         "title": "Open Graphite GTI",
         "category": "Graphite GTI",
         "icon": "resources/graphite-favicon.svg"
+      },
+      {
+        "command": "graphite.gti.focus",
+        "title": "Focus Graphite interactive Sidebar"
       }
-    ]
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "graphite.gti.focus",
+          "when": "config.graphite.gti.showInSidebar"
+        }
+      ]
+    }
   },
   "scripts": {
     "eslint": "eslint extension webview --ext .ts --ext .tsx",
@@ -72,7 +109,6 @@
     "mini-css-extract-plugin": "^2.6.1",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
-    "recoil": "^0.7.5",
     "sass": "^1.51.0",
     "sass-loader": "^13.2.2",
     "ts-node": "^10.9.1",
@@ -80,5 +116,8 @@
     "vscode-uri": "^3.0.6",
     "webpack": "^5.74.0",
     "webpack-cli": "^4.10.0"
+  },
+  "optionalDependencies": {
+    "vsce": "^2.15.0"
   }
 }

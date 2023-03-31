@@ -1,6 +1,8 @@
 import type {
+  ApplyMergeConflictsPreviewsFuncType,
   ApplyPreviewsFuncType,
   ApplyUncommittedChangesPreviewsFuncType,
+  MergeConflictsPreviewContext,
   PreviewContext,
   UncommittedChangesPreviewContext,
 } from "../previews";
@@ -8,6 +10,7 @@ import type { CommandArg } from "../types";
 
 import { CommandRunner } from "../types";
 import { randomId } from "@withgraphite/gti-shared/utils";
+import type { TrackEventName } from "@withgraphite/gti-server/src/analytics/eventNames";
 
 /**
  * Operations represent commands that mutate the repository, such as rebasing, committing, etc.
@@ -18,6 +21,8 @@ import { randomId } from "@withgraphite/gti-shared/utils";
 export abstract class Operation {
   static operationName: string;
   public id: string = randomId();
+
+  constructor(public trackEventName: TrackEventName) {}
 
   abstract getArgs(): Array<CommandArg>;
 
@@ -36,4 +41,13 @@ export abstract class Operation {
   makeOptimisticUncommittedChangesApplier?(
     context: UncommittedChangesPreviewContext
   ): ApplyUncommittedChangesPreviewsFuncType | undefined;
+
+  makeOptimisticMergeConflictsApplier?(
+    context: MergeConflictsPreviewContext
+  ): ApplyMergeConflictsPreviewsFuncType | undefined;
+}
+
+/** Access static opName field of an operation */
+export function getOpName(op: Operation): string {
+  return (op.constructor as unknown as { opName: string }).opName;
 }

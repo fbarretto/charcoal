@@ -14,4 +14,10 @@ export const [GTICommandContext, useCommand, dispatchCommand] =
       KeyCode.SingleQuote,
     ],
     Escape: [Modifier.NONE, KeyCode.Escape],
+    SelectUpwards: [Modifier.NONE, KeyCode.UpArrow],
+    SelectDownwards: [Modifier.NONE, KeyCode.DownArrow],
+    ContinueSelectionUpwards: [Modifier.SHIFT, KeyCode.UpArrow],
+    ContinueSelectionDownwards: [Modifier.SHIFT, KeyCode.DownArrow],
   });
+
+export type GTICommandName = Parameters<typeof useCommand>[0];

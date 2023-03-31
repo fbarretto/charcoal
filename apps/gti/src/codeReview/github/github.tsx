@@ -27,9 +27,10 @@ export class GithubUICodeReviewProvider implements UICodeReviewProvider {
     }
     return (
       <div
-        className={`github-diff-status${
-          diff?.state ? " github-diff-status-" + diff.state : ""
-        }`}
+        className={
+          "github-diff-status" +
+          (diff?.state ? ` github-diff-status-${diff.state}` : "")
+        }
       >
         <Tooltip title={"Click to open Pull Request in GitHub"} delayMs={500}>
           {diff && <Icon icon={iconForPRState(diff.state)} />}
@@ -53,12 +54,25 @@ export class GithubUICodeReviewProvider implements UICodeReviewProvider {
     );
   };
 
-  submitOperation(): Operation {
-    return new PrSubmitOperation();
+  submitOperation(
+    _commits: [],
+    options: { draft?: boolean; updateMessage?: string }
+  ): Operation {
+    return new PrSubmitOperation(options);
   }
+
+  getSupportedStackActions() {
+    return {};
+  }
+
+  getSubmittableDiffs() {
+    return [];
+  }
+
+  supportSubmittingAsDraft = "newDiffsOnly" as const;
 }
 
-type BadgeState = "Open" | "Merged" | "Closed" | "ERROR";
+type BadgeState = "Open" | "Merged" | "Closed" | "ERROR" | "Draft";
 
 function iconForPRState(state?: BadgeState) {
   switch (state) {
@@ -70,6 +84,8 @@ function iconForPRState(state?: BadgeState) {
       return "git-merge";
     case "Closed":
       return "git-pull-request-closed";
+    case "Draft":
+      return "git-pull-request";
     default:
       return "git-pull-request";
   }
@@ -85,6 +101,8 @@ function PRStateLabel({ state }: { state: BadgeState }) {
       return <>Closed</>;
     case "ERROR":
       return <>Error</>;
+    case "Draft":
+      return <>Draft</>;
     default:
       return <>{state}</>;
   }

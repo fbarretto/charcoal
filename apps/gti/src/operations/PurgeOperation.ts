@@ -12,6 +12,10 @@ import { Operation } from "./Operation";
 export class PurgeOperation extends Operation {
   static opName = "Purge";
 
+  constructor() {
+    super("PurgeOperation");
+  }
+
   getArgs() {
     const args = ["interactive", "purge"];
     return args;

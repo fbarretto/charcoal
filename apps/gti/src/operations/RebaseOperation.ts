@@ -7,7 +7,7 @@ import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 
 export class RebaseOperation extends Operation {
   constructor(private source: BranchName, private destination: Revset) {
-    super();
+    super("RebaseOperation");
   }
 
   static opName = "Rebase";

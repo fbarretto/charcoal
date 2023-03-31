@@ -8,6 +8,7 @@ import type {
   BranchInfo,
   PRNumber,
 } from "@withgraphite/gti-cli-shared-types";
+import type { TrackEventName } from "@withgraphite/gti-server/src/analytics/eventNames";
 
 export type Result<T> =
   | { value: T; error?: undefined }
@@ -144,50 +145,50 @@ export function SucceedableRevset(revset: Revset): CommandArg {
   return { type: "succeedable-revset", revset };
 }
 
-/* uncommited changes */
+/* Subscriptions */
 
-export type SubscribeUncommittedChanges = {
-  type: "subscribeUncommittedChanges";
-  /** Identifier to include in each event published. */
+/**
+ * A subscription allows the client to ask for a stream of events from the server.
+ * The client may send subscribe and corresponding unsubscribe messages.
+ * Subscriptions are indexed by a subscriptionId field.
+ * Responses to subscriptions are of type Fetched<T>
+ */
+export type Subscribe<K extends string> =
+  | { type: `subscribe${K}`; subscriptionID: string }
+  | { type: `unsubscribe${K}`; subscriptionID: string };
+
+/** Reponses to subscriptions, including data and the time duration the fetch lasted */
+export type Fetched<K extends string, V> = {
+  type: `fetched${K}`;
   subscriptionID: string;
-};
+} & V;
 
 export type UncommittedChanges = Array<ChangedFile>;
-
-export type UncommittedChangesEvent = {
-  type: "uncommittedChanges";
-  subscriptionID: string;
+export type FetchedUncommittedChanges = {
   files: Result<UncommittedChanges>;
+  fetchStartTimestamp: number;
+  fetchCompletedTimestamp: number;
 };
 
 export type BeganFetchingUncommittedChangesEvent = {
   type: "beganFetchingUncommittedChangesEvent";
 };
 
-/* smartlog commits */
-
-export type SubscribeSmartlogCommits = {
-  type: "subscribeSmartlogCommits";
-  /** Identifier to include in each event published. */
-  subscriptionID: string;
-};
-
 export type SmartlogCommits = Array<BranchInfo>;
-
-export type SmartlogCommitsEvent = {
-  type: "smartlogCommits";
-  subscriptionID: string;
+export type FetchedCommits = {
   commits: Result<SmartlogCommits>;
+  fetchStartTimestamp: number;
+  fetchCompletedTimestamp: number;
 };
 
 export type BeganFetchingSmartlogCommitsEvent = {
   type: "beganFetchingSmartlogCommitsEvent";
 };
 
-/* merge conflicts */
-
 type ConflictInfo = {
   files: Array<ChangedFile>;
+  fetchStartTimestamp: number;
+  fetchCompletedTimestamp: number;
 };
 export type MergeConflicts =
   | ({ state: "loading" } & AllUndefined<ConflictInfo>)
@@ -195,24 +196,13 @@ export type MergeConflicts =
       state: "loaded";
     } & ConflictInfo);
 
-export type SubscribeMergeConflicts = {
-  type: "subscribeMergeConflicts";
-  /** Identifier to include in each event published. */
-  subscriptionID: string;
-};
-
-export type MergeConflictsEvent = {
-  type: "mergeConflicts";
-  subscriptionID: string;
-  conflicts: MergeConflicts | undefined;
-};
-
 /* Operations */
 
 export type RunnableOperation = {
   args: Array<CommandArg>;
   id: string;
   runner: CommandRunner;
+  trackEventName: TrackEventName;
 };
 
 export type OperationProgress =
@@ -222,7 +212,7 @@ export type OperationProgress =
   | { id: string; kind: "spawn"; queue: Array<string> }
   | { id: string; kind: "stderr"; message: string }
   | { id: string; kind: "stdout"; message: string }
-  | { id: string; kind: "exit"; exitCode: number | null }
+  | { id: string; kind: "exit"; exitCode: number; timestamp: number }
   | { id: string; kind: "error"; error: string };
 
 export type OperationCommandProgressReporter = (
@@ -230,12 +220,15 @@ export type OperationCommandProgressReporter = (
     | ["spawn"]
     | ["stdout", string]
     | ["stderr", string]
-    | ["exit", number | null]
+    | ["exit", number]
 ) => void;
 
 export type OperationProgressEvent = {
   type: "operationProgress";
 } & OperationProgress;
+
+/** A line number starting from 1 */
+export type OneIndexedLineNumber = Exclude<number, 0>;
 
 /* protocol */
 
@@ -244,7 +237,16 @@ export type OperationProgressEvent = {
  * to be handled uniquely per server type.
  */
 export type PlatformSpecificClientToServerMessages =
-  | { type: "platform/openFile"; path: RepoRelativePath }
+  | {
+      type: "platform/openFile";
+      path: RepoRelativePath;
+      options?: { line?: OneIndexedLineNumber };
+    }
+  | {
+      type: "platform/openDiff";
+      path: RepoRelativePath;
+      comparison: Comparison;
+    }
   | { type: "platform/openExternal"; url: string }
   | { type: "platform/confirm"; message: string; details?: string | undefined };
 
@@ -273,10 +275,29 @@ export type FileABugProgressMessage = {
   type: "fileBugReportProgress";
 } & FileABugProgress;
 
+/**
+ * Like ClientToServerMessage, but these messages will be followed
+ * on the message bus by an additional binary ArrayBuffer payload message.
+ */
+export type ClientToServerMessageWithPayload = {
+  type: "uploadFile";
+  filename: string;
+  id: string;
+} & { hasBinaryPayload: true };
+
+export type SubscriptionKind =
+  | "uncommittedChanges"
+  | "smartlogCommits"
+  | "mergeConflicts";
+
+export type ConfigName = "gti.submitAsDraft";
+
 export type ClientToServerMessage =
   | {
       type: "refresh";
     }
+  | { type: "getConfig"; name: ConfigName }
+  | { type: "setConfig"; name: ConfigName; value: string }
   | { type: "track"; data: TrackDataWithEventName }
   | { type: "fileBugReport"; data: FileABugFields; uiState?: Json }
   | { type: "runOperation"; operation: RunnableOperation }
@@ -301,18 +322,31 @@ export type ClientToServerMessage =
       numLines: number;
     }
   | { type: "loadMoreCommits" }
-  | SubscribeUncommittedChanges
-  | SubscribeSmartlogCommits
-  | SubscribeMergeConflicts
+  | { type: "subscribe"; kind: SubscriptionKind; subscriptionID: string }
+  | { type: "unsubscribe"; kind: SubscriptionKind; subscriptionID: string }
   | PlatformSpecificClientToServerMessages;
 
+export type SubscriptionResultsData = {
+  uncommittedChanges: FetchedUncommittedChanges;
+  smartlogCommits: FetchedCommits;
+  mergeConflicts: MergeConflicts | undefined;
+};
+
+export type SubscriptionResult<K extends SubscriptionKind> = {
+  type: "subscriptionResult";
+  subscriptionID: string;
+  kind: K;
+  data: SubscriptionResultsData[K];
+};
+
 export type ServerToClientMessage =
-  | UncommittedChangesEvent
-  | SmartlogCommitsEvent
-  | MergeConflictsEvent
+  | SubscriptionResult<"smartlogCommits">
+  | SubscriptionResult<"uncommittedChanges">
+  | SubscriptionResult<"mergeConflicts">
   | BeganFetchingSmartlogCommitsEvent
   | BeganFetchingUncommittedChangesEvent
   | FileABugProgressMessage
+  | { type: "gotConfig"; name: ConfigName; value: string | undefined }
   | { type: "fetchedCommitMessageTemplate"; templates: Record<string, string> }
   | { type: "applicationInfo"; platformName: string; version: string }
   | { type: "repoInfo"; info: RepoInfo; cwd?: string }
@@ -321,6 +355,7 @@ export type ServerToClientMessage =
       type: "fetchedDiffSummaries";
       summaries: Result<Map<PRNumber, DiffSummary>>;
     }
+  | { type: "uploadFileResult"; id: string; result: Result<string> }
   | { type: "comparison"; comparison: Comparison; data: ComparisonData }
   | {
       type: "comparisonContextLines";

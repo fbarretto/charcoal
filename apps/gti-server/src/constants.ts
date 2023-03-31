@@ -7,3 +7,11 @@ export const CLOSED_AND_SHOULD_NOT_RECONNECT_CODE = 4100;
 export const ONE_MINUTE_MS = 60_000;
 
 export const DEFAULT_DAYS_OF_COMMITS_TO_LOAD = undefined;
+
+/**
+ * Short error messages sent from the server to the client.
+ * Usually, the client will intercept and re-render these with more details + i18n.
+ */
+export enum ErrorShortMessages {
+  NoCommitsFetched = "No commits found",
+}

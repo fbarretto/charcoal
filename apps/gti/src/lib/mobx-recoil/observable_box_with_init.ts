@@ -10,7 +10,7 @@ import { action, makeObservable, observable } from "mobx";
 
 type TDisposer = () => void;
 type TSetter<T> = (value: T | ((old: T) => T)) => void;
-type TEffect<T> = (args: { setSelf: TSetter<T> }) => TDisposer;
+export type TEffect<T> = (args: { setSelf: TSetter<T> }) => TDisposer;
 
 export function observableBoxWithInitializers<T>(args: {
   default: T;

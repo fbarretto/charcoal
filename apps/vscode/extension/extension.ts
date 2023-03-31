@@ -4,14 +4,41 @@ import { watchAndCreateRepositoriesForWorkspaceFolders } from "./VSCodeRepo";
 import { registerGTICommands } from "./gtiWebviewPanel";
 import * as util from "util";
 import * as vscode from "vscode";
+import packageJson from "../package.json";
+import { VSCodePlatform } from "./vscodePlatform";
+import { makeServerSideTracker } from "@withgraphite/gti-server/src/analytics/serverSideTracker";
+import { registerCommands } from "./commands";
+import { registerGraphiteDiffContentProvider } from "./DiffContentProvider";
 
 export async function activate(context: vscode.ExtensionContext) {
+  const start = Date.now();
   const [outputChannel, logger] = createOutputChannelLogger();
-  context.subscriptions.push(registerGTICommands(context, logger));
-  context.subscriptions.push(outputChannel);
-  context.subscriptions.push(
-    watchAndCreateRepositoriesForWorkspaceFolders(logger)
+  const extensionTracker = makeServerSideTracker(
+    logger,
+    VSCodePlatform,
+    packageJson.version
   );
+  try {
+    context.subscriptions.push(registerGTICommands(context, logger));
+    context.subscriptions.push(outputChannel);
+    context.subscriptions.push(
+      watchAndCreateRepositoriesForWorkspaceFolders(logger)
+    );
+    context.subscriptions.push(registerGraphiteDiffContentProvider(logger));
+    context.subscriptions.push(...registerCommands(extensionTracker));
+    extensionTracker.track("VSCodeExtensionActivated", {
+      duration: Date.now() - start,
+    });
+  } catch (error) {
+    extensionTracker.error(
+      "VSCodeExtensionActivated",
+      "VSCodeActivationError",
+      error as Error,
+      {
+        duration: Date.now() - start,
+      }
+    );
+  }
 }
 
 function createOutputChannelLogger(): [vscode.OutputChannel, Logger] {

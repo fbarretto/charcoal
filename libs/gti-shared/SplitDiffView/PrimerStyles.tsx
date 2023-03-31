@@ -1,4 +1,5 @@
 import { useTheme } from "@primer/react";
+import { observer } from "mobx-react-lite";
 import React from "react";
 
 /**
@@ -6,11 +7,12 @@ import React from "react";
  * from the active Primer theme.
  */
 // eslint-disable-next-line prefer-arrow-callback
-export default React.memo(function PrimerStyles(): React.ReactElement {
-  const { theme } = useTheme();
-  return (
-    <style>
-      {`
+export default React.memo(
+  observer(function PrimerStyles(): React.ReactElement {
+    const { theme } = useTheme();
+    return (
+      <style>
+        {`
 .patch-word-begin {
   border-top-left-radius: .2em;
   border-bottom-left-radius: .2em;
@@ -59,6 +61,13 @@ export default React.memo(function PrimerStyles(): React.ReactElement {
   font-family: ${theme?.fonts.mono}
 }
 
+.lineNumber.clickable {
+  cursor: pointer;
+}
+
+.lineNumber.clickable:hover {
+  text-decoration: underline;
+}
 /**
  * pl = prettylights theme
  *
@@ -138,6 +147,7 @@ export default React.memo(function PrimerStyles(): React.ReactElement {
   color: ${theme?.colors.prettylights.syntax.variable};
 }
 `}
-    </style>
-  );
-});
+      </style>
+    );
+  })
+);

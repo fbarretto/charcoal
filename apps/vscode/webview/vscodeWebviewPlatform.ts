@@ -1,3 +1,5 @@
+import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
+import type { Comparison } from "@withgraphite/gti-shared/Comparison";
 import type { Platform } from "@withgraphite/gti/src/platform";
 import type { ThemeColor } from "@withgraphite/gti/src/theme";
 
@@ -21,8 +23,18 @@ export const vscodeWebviewPlatform: Platform = {
       );
     });
   },
-  openFile: (path) =>
-    window.clientToServerAPI?.postMessage({ type: "platform/openFile", path }),
+  openFile: (path, options) =>
+    window.clientToServerAPI?.postMessage({
+      type: "platform/openFile",
+      path,
+      options,
+    }),
+  openDiff: (path: RepoRelativePath, comparison: Comparison) =>
+    window.clientToServerAPI?.postMessage({
+      type: "platform/openDiff",
+      path,
+      comparison,
+    }),
   openExternalLink: (url) => {
     window.clientToServerAPI?.postMessage({
       type: "platform/openExternal",

@@ -1,9 +1,11 @@
 import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
 import type {
+  ApplyMergeConflictsPreviewsFuncType,
   ApplyUncommittedChangesPreviewsFuncType,
+  MergeConflictsPreviewContext,
   UncommittedChangesPreviewContext,
 } from "../previews";
-import type { CommandArg, UncommittedChanges } from "../types";
+import type { CommandArg, MergeConflicts, UncommittedChanges } from "../types";
 
 import { Operation } from "./Operation";
 
@@ -17,7 +19,7 @@ export enum ResolveTool {
 
 export class ResolveOperation extends Operation {
   constructor(private filePath: RepoRelativePath, private tool: ResolveTool) {
-    super();
+    super("ResolveOperation");
   }
 
   static opName = "Resolve";
@@ -65,6 +67,36 @@ export class ResolveOperation extends Operation {
           ? { path: change.path, status: "Resolved" }
           : change
       );
+    };
+    return func;
+  }
+
+  makeOptimisticMergeConflictsApplier?(
+    context: MergeConflictsPreviewContext
+  ): ApplyMergeConflictsPreviewsFuncType | undefined {
+    if (
+      context.conflicts?.files?.some(
+        (change) => change.path === this.filePath && change.status !== "U"
+      ) === true
+    ) {
+      return undefined;
+    }
+
+    const func: ApplyMergeConflictsPreviewsFuncType = (
+      conflicts?: MergeConflicts
+    ) => {
+      if (conflicts?.state !== "loaded") {
+        return conflicts;
+      }
+      return {
+        ...conflicts,
+        files:
+          conflicts?.files?.map((change) =>
+            change.path === this.filePath
+              ? { path: change.path, status: "Resolved" as const }
+              : change
+          ) ?? [],
+      };
     };
     return func;
   }

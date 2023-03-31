@@ -5,8 +5,6 @@ import type {
   CommandArg,
   SmartlogCommits,
   SuccessorInfo,
-  UncommittedChanges,
-  Result,
   RepoInfo,
   OperationCommandProgressReporter,
   AbsolutePath,
@@ -17,12 +15,17 @@ import type {
   ValidatedRepoInfo,
   CodeReviewSystem,
   Revset,
+  FetchedCommits,
+  FetchedUncommittedChanges,
 } from "@withgraphite/gti/src/types";
 
 import { OperationQueue } from "./OperationQueue";
 import { PageFocusTracker } from "./PageFocusTracker";
 import { WatchForChanges } from "./WatchForChanges";
-import { DEFAULT_DAYS_OF_COMMITS_TO_LOAD } from "./constants";
+import {
+  DEFAULT_DAYS_OF_COMMITS_TO_LOAD,
+  ErrorShortMessages,
+} from "./constants";
 import { GitHubCodeReviewProvider } from "./github/githubCodeReviewProvider";
 import { handleAbortSignalOnProcess, serializeAsyncCall } from "./utils";
 import execa from "execa";
@@ -40,6 +43,7 @@ import type {
   RepoRelativePath,
   Status,
 } from "@withgraphite/gti-cli-shared-types";
+import type { ServerSideTracker } from "./analytics/serverSideTracker";
 
 export const COMMIT_END_MARK = "<<COMMIT_END_MARK>>";
 export const NULL_CHAR = "\0";
@@ -85,8 +89,8 @@ export class Repository {
   public IGNORE_COMMIT_MESSAGE_LINES_REGEX = /^((?:HG|SL):.*)/gm;
 
   private mergeConflicts: MergeConflicts | undefined = undefined;
-  private uncommittedChanges: UncommittedChanges | null = null;
-  private smartlogCommits: SmartlogCommits | null = null;
+  private uncommittedChanges: FetchedUncommittedChanges | null = null;
+  private smartlogCommits: FetchedCommits | null = null;
 
   private mergeConflictsEmitter = new TypedEventEmitter<
     "change",
@@ -94,11 +98,11 @@ export class Repository {
   >();
   private uncommittedChangesEmitter = new TypedEventEmitter<
     "change",
-    UncommittedChanges
+    FetchedUncommittedChanges
   >();
   private smartlogCommitsChangesEmitter = new TypedEventEmitter<
     "change",
-    SmartlogCommits
+    FetchedCommits
   >();
 
   private smartlogCommitsBeginFetchingEmitter = new TypedEventEmitter<
@@ -181,14 +185,10 @@ export class Repository {
             signal
           );
         } else if (operation.runner === CommandRunner.CodeReviewProvider) {
-          if (operation.args.some((arg) => typeof arg === "object")) {
-            return Promise.reject(
-              Error(
-                "CodeReviewProvider runner does not support non-string CommandArgs"
-              )
-            );
-          }
-          const normalizedArgs = operation.args as Array<string>;
+          const normalizedArgs = this.normalizeOperationArgs(
+            cwd,
+            operation.args
+          );
 
           if (this.codeReviewProvider?.runExternalCommand == null) {
             return Promise.reject(
@@ -213,10 +213,10 @@ export class Repository {
 
     // refetch summaries whenever we see new diffIds
     const seenDiffs = new Set();
-    const subscription = this.subscribeToSmartlogCommitsChanges((commits) => {
-      if (commits.value) {
+    const subscription = this.subscribeToSmartlogCommitsChanges((fetched) => {
+      if (fetched.commits.value) {
         const newDiffs = [];
-        const diffIds = commits.value
+        const diffIds = fetched.commits.value
           .filter((commit) => commit.pr)
           .map((commit) => commit.pr?.number);
         for (const diffId of diffIds) {
@@ -303,6 +303,7 @@ export class Repository {
     // More expensive full check for conflicts. Necessary if we see .gt/merge change, or if
     // we're already in a conflict and need to re-check if a conflict was resolved.
 
+    const fetchStartTimestamp = Date.now();
     let output: Status;
     try {
       const proc = await this.runCommand(["interactive", "status"]);
@@ -325,6 +326,8 @@ export class Repository {
       const conflicts: MergeConflicts = {
         state: "loaded",
         files: [],
+        fetchStartTimestamp,
+        fetchCompletedTimestamp: Date.now(),
       };
       if (
         previousConflicts?.files != null &&
@@ -436,9 +439,15 @@ export class Repository {
   async runOrQueueOperation(
     operation: RunnableOperation,
     onProgress: (progress: OperationProgress) => void,
+    tracker: ServerSideTracker,
     cwd: string
   ): Promise<void> {
-    await this.operationQueue.runOrQueueOperation(operation, onProgress, cwd);
+    await this.operationQueue.runOrQueueOperation(
+      operation,
+      onProgress,
+      tracker,
+      cwd
+    );
 
     // After any operation finishes, make sure we poll right away,
     // so the UI is guarnateed to get the latest data.
@@ -455,18 +464,13 @@ export class Repository {
   /**
    * Called by this.operationQueue in response to runOrQueueOperation when an operation is ready to actually run.
    */
-  private async runOperation(
-    operation: {
-      id: string;
-      args: Array<CommandArg>;
-    },
-    onProgress: OperationCommandProgressReporter,
+  private normalizeOperationArgs(
     cwd: string,
-    signal: AbortSignal
-  ): Promise<void> {
+    args: Array<CommandArg>
+  ): Array<string> {
     const repoRoot = unwrap(this.info.repoRoot);
 
-    const cwdRelativeArgs = operation.args.map((arg) => {
+    return args.map((arg) => {
       if (typeof arg === "object") {
         switch (arg.type) {
           case "repo-relative-file":
@@ -479,6 +483,21 @@ export class Repository {
       }
       return arg;
     });
+  }
+
+  /**
+   * Called by this.operationQueue in response to runOrQueueOperation when an operation is ready to actually run.
+   */
+  private async runOperation(
+    operation: {
+      id: string;
+      args: Array<CommandArg>;
+    },
+    onProgress: OperationCommandProgressReporter,
+    cwd: string,
+    signal: AbortSignal
+  ): Promise<void> {
+    const cwdRelativeArgs = this.normalizeOperationArgs(cwd, operation.args);
 
     const { command, args, options } = getExecParams(
       this.info.command,
@@ -504,7 +523,7 @@ export class Repository {
       onProgress("stderr", data.toString());
     });
     void execution.on("exit", (exitCode) => {
-      onProgress("exit", exitCode);
+      onProgress("exit", exitCode || 0);
     });
     signal.addEventListener("abort", () => {
       this.logger.log("kill operation: ", command, cwdRelativeArgs.join(" "));
@@ -518,35 +537,36 @@ export class Repository {
   }
 
   /** Return the latest fetched value for UncommittedChanges. */
-  getUncommittedChanges(): UncommittedChanges | null {
+  getUncommittedChanges(): FetchedUncommittedChanges | null {
     return this.uncommittedChanges;
   }
 
   subscribeToUncommittedChanges(
-    callback: (result: Result<UncommittedChanges>) => unknown
+    callback: (result: FetchedUncommittedChanges) => unknown
   ): Disposable {
-    const onData = (data: UncommittedChanges) => callback({ value: data });
-    const onError = (error: Error) => callback({ error });
-    this.uncommittedChangesEmitter.on("change", onData);
-    this.uncommittedChangesEmitter.on("error", onError);
+    this.uncommittedChangesEmitter.on("change", callback);
     return {
       dispose: () => {
-        this.uncommittedChangesEmitter.off("change", onData);
-        this.uncommittedChangesEmitter.off("error", onError);
+        this.uncommittedChangesEmitter.off("change", callback);
       },
     };
   }
 
   fetchUncommittedChanges = serializeAsyncCall(async () => {
+    const fetchStartTimestamp = Date.now();
     try {
       this.uncommittedChangesBeginFetchingEmitter.emit("start");
       const proc = await this.runCommand(["interactive", "status"]);
-      this.uncommittedChanges = (JSON.parse(proc.stdout) as Status).files.map(
-        (change) => ({
-          ...change,
-          path: removeLeadingPathSep(change.path),
-        })
-      );
+      const files = (JSON.parse(proc.stdout) as Status).files.map((change) => ({
+        ...change,
+        path: removeLeadingPathSep(change.path),
+      }));
+
+      this.uncommittedChanges = {
+        fetchStartTimestamp,
+        fetchCompletedTimestamp: Date.now(),
+        files: { value: files },
+      };
       this.uncommittedChangesEmitter.emit("change", this.uncommittedChanges);
     } catch (err) {
       this.logger.error("Error fetching files: ", err);
@@ -558,28 +578,27 @@ export class Repository {
           return;
         }
       }
-      this.uncommittedChangesEmitter.emit("error", err as Error);
+      // emit an error, but don't save it to this.uncommittedChanges
+      this.uncommittedChangesEmitter.emit("change", {
+        fetchStartTimestamp,
+        fetchCompletedTimestamp: Date.now(),
+        files: { error: err instanceof Error ? err : new Error(err as string) },
+      });
     }
   });
 
   /** Return the latest fetched value for SmartlogCommits. */
-  getSmartlogCommits(): SmartlogCommits | null {
+  getSmartlogCommits(): FetchedCommits | null {
     return this.smartlogCommits;
   }
 
   subscribeToSmartlogCommitsChanges(
-    callback: (result: Result<SmartlogCommits>) => unknown
+    callback: (result: FetchedCommits) => unknown
   ) {
-    const onData = (data: SmartlogCommits) => {
-      callback({ value: data });
-    };
-    const onError = (error: Error) => callback({ error });
-    this.smartlogCommitsChangesEmitter.on("change", onData);
-    this.smartlogCommitsChangesEmitter.on("error", onError);
+    this.smartlogCommitsChangesEmitter.on("change", callback);
     return {
       dispose: () => {
-        this.smartlogCommitsChangesEmitter.off("change", onData);
-        this.smartlogCommitsChangesEmitter.off("error", onError);
+        this.smartlogCommitsChangesEmitter.off("change", callback);
       },
     };
   }
@@ -609,28 +628,42 @@ export class Repository {
   }
 
   fetchSmartlogCommits = serializeAsyncCall(async () => {
+    const fetchStartTimestamp = Date.now();
     try {
       this.smartlogCommitsBeginFetchingEmitter.emit("start");
       const proc = await this.runCommand(["interactive", "log"]);
-      this.smartlogCommits = parseCommitInfoOutput(
-        this.logger,
-        proc.stdout.trim()
-      );
+      const commits = parseCommitInfoOutput(this.logger, proc.stdout.trim());
+      if (commits.length === 0) {
+        throw new Error(ErrorShortMessages.NoCommitsFetched);
+      }
+      this.smartlogCommits = {
+        fetchStartTimestamp,
+        fetchCompletedTimestamp: Date.now(),
+        commits: { value: commits },
+      };
       this.smartlogCommitsChangesEmitter.emit("change", this.smartlogCommits);
     } catch (err) {
       this.logger.error("Error fetching commits: ", err);
-      this.smartlogCommitsChangesEmitter.emit("error", err as Error);
+      this.smartlogCommitsChangesEmitter.emit("change", {
+        fetchStartTimestamp,
+        fetchCompletedTimestamp: Date.now(),
+        commits: {
+          error: err instanceof Error ? err : new Error(err as string),
+        },
+      });
     }
   });
 
   /** Watch for changes to the head commit, e.g. from checking out a new commit */
   subscribeToHeadCommit(callback: (head: BranchInfo) => unknown) {
-    let headCommit = this.smartlogCommits?.find((commit) => commit.isHead);
+    let headCommit = this.smartlogCommits?.commits.value?.find(
+      (commit) => commit.isHead
+    );
     if (headCommit != null) {
       callback(headCommit);
     }
-    const onData = (data: SmartlogCommits) => {
-      const newHead = data.find((commit) => commit.isHead);
+    const onData = (data: FetchedCommits) => {
+      const newHead = data?.commits.value?.find((commit) => commit.isHead);
       if (newHead != null && newHead.branch !== headCommit?.branch) {
         callback(newHead);
         headCommit = newHead;
@@ -665,7 +698,7 @@ export class Repository {
   public getAllDiffIds(): Array<PRNumber> {
     return (
       this.getSmartlogCommits()
-        ?.map((commit) => commit.pr?.number)
+        ?.commits.value?.map((commit) => commit.pr?.number)
         .filter(notEmpty) ?? []
     );
   }
@@ -690,6 +723,20 @@ export class Repository {
       this.logger,
       this.info.repoRoot,
       configName
+    );
+  }
+  public setConfig(
+    level: ConfigLevel,
+    configName: string,
+    configValue: string
+  ): Promise<void> {
+    return setConfig(
+      this.info.command,
+      this.logger,
+      this.info.repoRoot,
+      level,
+      configName,
+      configValue
     );
   }
 }
@@ -779,6 +826,22 @@ async function getConfig(
     return undefined;
   }
 }
+type ConfigLevel = "user" | "system" | "local";
+async function setConfig(
+  command: string,
+  logger: Logger,
+  cwd: string,
+  level: ConfigLevel,
+  configName: string,
+  configValue: string
+): Promise<void> {
+  await runCommand(
+    command,
+    ["interactive", "config", `--${level}`, configName, configValue],
+    logger,
+    cwd
+  );
+}
 
 function getExecParams(
   command: string,
@@ -851,6 +914,7 @@ export function parseSuccessorData(
  * https://github.com/owner/repo.git
  * git@github.com:owner/repo.git
  * ssh:git@github.com:owner/repo.git
+ * ssh://git@github.com/owner/repo.git
  * git+ssh:git@github.com:owner/repo.git
  *
  * or similar urls with GitHub Enterprise hostnames:
@@ -860,7 +924,7 @@ export function extractRepoInfoFromUrl(
   url: string
 ): { repo: string; owner: string; hostname: string } | null {
   const match =
-    /(?:https:\/\/(.*)\/|(?:git\+ssh:\/\/|ssh:\/\/)?git@(.*):)([^/]+)\/(.+?)(?:\.git)?$/.exec(
+    /(?:https:\/\/(.*)\/|(?:git\+ssh:\/\/|ssh:\/\/)?git@([^:/]*)[:/])([^/]+)\/(.+?)(?:\.git)?$/.exec(
       url
     );
 
@@ -894,6 +958,14 @@ export function absolutePathForFileInRepo(
   } else {
     return null;
   }
+}
+
+export function repoRelativePathForAbsolutePath(
+  absolutePath: AbsolutePath,
+  repo: Repository,
+  pathMod = path
+): RepoRelativePath {
+  return pathMod.relative(repo.info.repoRoot, absolutePath);
 }
 
 function isProcessError(s: unknown): s is { stderr: string } {

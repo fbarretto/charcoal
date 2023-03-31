@@ -1,3 +1,5 @@
+import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
+import type { SmartlogCommits } from "@withgraphite/gti/src/types";
 import type { ExecaChildProcess } from "execa";
 
 import os from "os";
@@ -92,4 +94,32 @@ export function handleAbortSignalOnProcess(
       child.kill("SIGTERM", { forceKillAfterTimeout: 5000 });
     }
   });
+}
+
+/**
+ * Given a list of commits and a starting commit,
+ * traverse up the chain of `parents` until we find a public commit
+ */
+export function findPublicAncestor(
+  allCommits: SmartlogCommits | undefined,
+  from: BranchInfo
+): BranchInfo | undefined {
+  let publicCommit: BranchInfo | undefined;
+  if (allCommits != null) {
+    const map = new Map(allCommits.map((commit) => [commit.branch, commit]));
+
+    let current: BranchInfo | undefined = from;
+    while (current != null) {
+      if (current.partOfTrunk) {
+        publicCommit = current;
+        break;
+      }
+      if (current.parents[0] == null) {
+        break;
+      }
+      current = map.get(current.parents[0]);
+    }
+  }
+
+  return publicCommit;
 }

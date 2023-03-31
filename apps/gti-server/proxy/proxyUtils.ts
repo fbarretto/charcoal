@@ -1,6 +1,4 @@
-
-
-import {timingSafeEqual} from 'crypto';
+import { timingSafeEqual } from "crypto";
 
 /**
  * Timing safe comparison of tokens coming from strings.

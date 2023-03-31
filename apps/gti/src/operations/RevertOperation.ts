@@ -11,7 +11,7 @@ export class RevertOperation extends Operation {
   static opName = "Revert";
 
   constructor(private files: Array<RepoRelativePath>) {
-    super();
+    super("RevertOperation");
   }
 
   getArgs() {

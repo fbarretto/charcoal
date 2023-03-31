@@ -61,3 +61,14 @@ export function labelForComparison(comparison: Comparison): string {
       return `In ${comparison.hash}`;
   }
 }
+
+export function comparisonIsAgainstHead(comparison: Comparison): boolean {
+  switch (comparison.type) {
+    case ComparisonType.UncommittedChanges:
+    case ComparisonType.HeadChanges:
+    case ComparisonType.StackChanges:
+      return true;
+    case ComparisonType.Committed:
+      return false;
+  }
+}

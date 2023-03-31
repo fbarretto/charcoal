@@ -192,7 +192,7 @@ export function startServer({
       }
 
       const dispose = onClientConnection({
-        postMessage(message: string) {
+        postMessage(message: string | ArrayBuffer) {
           socket.send(message);
           return Promise.resolve(true);
         },

@@ -1,7 +1,5 @@
-
-
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 /**
  * fs.promises.rm() was introduced in Node v14.14.0, so to in order to run in
@@ -14,7 +12,7 @@ export default async function rmtree(file: string): Promise<void> {
   try {
     stat = await fs.promises.lstat(file);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       // If the file does not exist, nothing to do!
       return;
     } else {
@@ -61,7 +59,7 @@ async function rmtreeIterative(stack: Array<string>): Promise<void> {
       } else {
         await fs.promises.unlink(fullPath);
       }
-    }),
+    })
   );
 
   // If nothing was pushed onto the stack, then we can assume this folder is

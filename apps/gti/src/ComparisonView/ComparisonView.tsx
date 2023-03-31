@@ -1,5 +1,8 @@
 import type { Result } from "../types";
-import type { Comparison } from "@withgraphite/gti-shared/Comparison";
+import {
+  Comparison,
+  comparisonIsAgainstHead,
+} from "@withgraphite/gti-shared/Comparison";
 import type { LineRangeParams } from "@withgraphite/gti-shared/SplitDiffView/types";
 import type { ParsedDiff } from "@withgraphite/gti-shared/patch/parse";
 
@@ -205,75 +208,77 @@ const defaultComparisons = [
   ComparisonType.HeadChanges as const,
   ComparisonType.StackChanges as const,
 ];
-function ComparisonViewHeader({ comparison }: { comparison: Comparison }) {
-  const [compared, reloadComparison] = useComparisonData(comparison);
+const ComparisonViewHeader = observer(
+  ({ comparison }: { comparison: Comparison }) => {
+    const [compared, reloadComparison] = useComparisonData(comparison);
 
-  return (
-    <>
-      <div className="comparison-view-header">
-        <span className="comparison-view-header-group">
-          <VSCodeDropdown
-            data-testid="comparison-view-picker"
-            value={comparison.type}
-            onChange={(event) =>
+    return (
+      <>
+        <div className="comparison-view-header">
+          <span className="comparison-view-header-group">
+            <VSCodeDropdown
+              data-testid="comparison-view-picker"
+              value={comparison.type}
+              onChange={(event) =>
+                runInAction(() => {
+                  const previous = currentComparisonMode.get();
+                  currentComparisonMode.set({
+                    ...previous,
+                    comparison: {
+                      type: (event as React.FormEvent<HTMLSelectElement>)
+                        .currentTarget.value as (typeof defaultComparisons)[0],
+                    },
+                  });
+                })
+              }
+            >
+              {defaultComparisons.map((comparison) => (
+                <VSCodeOption value={comparison} key={comparison}>
+                  {labelForComparison({ type: comparison })}
+                </VSCodeOption>
+              ))}
+              {!defaultComparisons.includes(
+                comparison.type as (typeof defaultComparisons)[0]
+              ) ? (
+                <VSCodeOption value={comparison.type} key={comparison.type}>
+                  {labelForComparison(comparison)}
+                </VSCodeOption>
+              ) : null}
+            </VSCodeDropdown>
+            <Tooltip
+              delayMs={1000}
+              title={
+                "Reload this comparison. Comparisons do not refresh automatically."
+              }
+            >
+              <VSCodeButton appearance="secondary" onClick={reloadComparison}>
+                <Icon icon="refresh" data-testid="comparison-refresh-button" />
+              </VSCodeButton>
+            </Tooltip>
+            {compared.isLoading ? (
+              <Icon icon="loading" data-testid="comparison-loading" />
+            ) : null}
+          </span>
+          <VSCodeButton
+            data-testid="close-comparison-view-button"
+            appearance="icon"
+            onClick={() =>
               runInAction(() => {
                 const previous = currentComparisonMode.get();
                 currentComparisonMode.set({
                   ...previous,
-                  comparison: {
-                    type: (event as React.FormEvent<HTMLSelectElement>)
-                      .currentTarget.value as (typeof defaultComparisons)[0],
-                  },
+                  visible: false,
                 });
               })
             }
           >
-            {defaultComparisons.map((comparison) => (
-              <VSCodeOption value={comparison} key={comparison}>
-                {labelForComparison({ type: comparison })}
-              </VSCodeOption>
-            ))}
-            {!defaultComparisons.includes(
-              comparison.type as (typeof defaultComparisons)[0]
-            ) ? (
-              <VSCodeOption value={comparison.type} key={comparison.type}>
-                {labelForComparison(comparison)}
-              </VSCodeOption>
-            ) : null}
-          </VSCodeDropdown>
-          <Tooltip
-            delayMs={1000}
-            title={
-              "Reload this comparison. Comparisons do not refresh automatically."
-            }
-          >
-            <VSCodeButton appearance="secondary" onClick={reloadComparison}>
-              <Icon icon="refresh" data-testid="comparison-refresh-button" />
-            </VSCodeButton>
-          </Tooltip>
-          {compared.isLoading ? (
-            <Icon icon="loading" data-testid="comparison-loading" />
-          ) : null}
-        </span>
-        <VSCodeButton
-          data-testid="close-comparison-view-button"
-          appearance="icon"
-          onClick={() =>
-            runInAction(() => {
-              const previous = currentComparisonMode.get();
-              currentComparisonMode.set({
-                ...previous,
-                visible: false,
-              });
-            })
-          }
-        >
-          <Icon icon="x" />
-        </VSCodeButton>
-      </div>
-    </>
-  );
-}
+            <Icon icon="x" />
+          </VSCodeButton>
+        </div>
+      </>
+    );
+  }
+);
 
 function ComparisonViewFile({
   diff,
@@ -287,6 +292,10 @@ function ComparisonViewFile({
     id: { path, comparison },
     atoms: { lineRange },
     copy: platform.clipboardCopy,
+    // only offer clickable line numbers for comparisons against head, otherwise line numbers will be inaccurate
+    openFileToLine: comparisonIsAgainstHead(comparison)
+      ? (line: number) => platform.openFile(path, { line })
+      : undefined,
   };
   return (
     <div className="comparison-view-file" key={path}>

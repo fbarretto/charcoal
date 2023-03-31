@@ -9,7 +9,7 @@ import { Operation } from "./Operation";
 
 export class AddOperation extends Operation {
   constructor(private filePath: RepoRelativePath) {
-    super();
+    super("AddOperation");
   }
 
   static opName = "Add";

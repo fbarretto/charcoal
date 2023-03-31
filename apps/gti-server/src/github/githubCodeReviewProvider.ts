@@ -13,7 +13,7 @@ import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
 export type GitHubDiffSummary = {
   type: "github";
   title: string;
-  state: "Open" | "Merged" | "Closed";
+  state: "Open" | "Merged" | "Closed" | "Draft";
   number: PRNumber;
   url: string;
   commentCount: number;

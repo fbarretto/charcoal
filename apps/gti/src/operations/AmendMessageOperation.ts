@@ -7,7 +7,7 @@ import { Operation } from "./Operation";
 
 export class AmendMessageOperation extends Operation {
   constructor(private branch: BranchName, private message: EditedMessage) {
-    super();
+    super("AmendMessageOperation");
   }
 
   static opName = "Metaedit";

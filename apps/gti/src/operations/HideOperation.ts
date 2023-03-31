@@ -6,7 +6,7 @@ import { Operation } from "./Operation";
 
 export class HideOperation extends Operation {
   constructor(private source: BranchName) {
-    super();
+    super("HideOperation");
   }
 
   static opName = "Hide";
