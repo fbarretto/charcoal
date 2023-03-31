@@ -14,7 +14,7 @@ export type Result<T> =
   | { value?: undefined; error: Error };
 
 /** known supported "Platforms" in which GTI may be embedded */
-export type PlatformName = "browser" | "androidStudio" | "vscode";
+export type PlatformName = "browser" | "vscode";
 
 export type AbsolutePath = string;
 

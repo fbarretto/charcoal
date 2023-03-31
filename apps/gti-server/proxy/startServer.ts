@@ -237,7 +237,7 @@ function generateToken(): Promise<string> {
   }
 }
 
-const validPlatforms: Array<PlatformName> = ["androidStudio"];
+const validPlatforms: Array<PlatformName> = [];
 function isValidCustomPlatform(name: unknown): name is PlatformName {
   return validPlatforms.includes(name as PlatformName);
 }

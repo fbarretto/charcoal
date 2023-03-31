@@ -184,13 +184,8 @@ export function startServer({
         return;
       }
 
-      let platformImpl: ServerPlatform | undefined = undefined;
+      const platformImpl: ServerPlatform | undefined = undefined;
       switch (platform as PlatformName) {
-        case "androidStudio":
-          platformImpl = (
-            await import("../platform/androidstudioServerPlatform")
-          ).platform;
-          break;
         default:
         case undefined:
           break;

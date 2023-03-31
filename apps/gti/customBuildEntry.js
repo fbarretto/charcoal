@@ -5,9 +5,7 @@
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
-const platforms = {
-  androidStudio: 'src/platform/androidStudioPlatform.ts',
-};
+const platforms = {};
 
 module.exports = {
   injectAdditionalPlatforms(config) {
