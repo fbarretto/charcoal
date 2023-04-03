@@ -30,7 +30,6 @@ export type TrackEventName =
   | "RevertOperation"
   | "SetConfigOperation"
   | "UncommitOperation"
-  // @fb-only
   | "OptimisticFilesStateForceResolved"
   | "OptimisticCommitsStateForceResolved"
   | "OptimisticConflictsStateForceResolved"
