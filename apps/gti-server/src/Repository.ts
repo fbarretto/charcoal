@@ -14,7 +14,6 @@ import type {
   MergeConflicts,
   ValidatedRepoInfo,
   CodeReviewSystem,
-  Revset,
   FetchedCommits,
   FetchedUncommittedChanges,
 } from "@withgraphite/gti/src/types";
@@ -31,7 +30,7 @@ import { handleAbortSignalOnProcess, serializeAsyncCall } from "./utils";
 import execa from "execa";
 import { CommandRunner } from "@withgraphite/gti/src/types";
 import os from "os";
-import path from "path";
+import path, { relative } from "path";
 import { RateLimiter } from "@withgraphite/gti-shared/RateLimiter";
 import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
 import { exists } from "@withgraphite/gti-shared/fs";
@@ -44,6 +43,10 @@ import type {
   Status,
 } from "@withgraphite/gti-cli-shared-types";
 import type { ServerSideTracker } from "./analytics/serverSideTracker";
+import {
+  Comparison,
+  ComparisonType,
+} from "@withgraphite/gti-shared/Comparison";
 
 export const COMMIT_END_MARK = "<<COMMIT_END_MARK>>";
 export const NULL_CHAR = "\0";
@@ -681,18 +684,37 @@ export class Repository {
     this.logger.info("[cat]", s)
   );
   /** Return file content at a given revset, e.g. hash or `.` */
-  public cat(file: AbsolutePath, rev: Revset): Promise<string> {
+  public cat(file: AbsolutePath, comparison: Comparison): Promise<string> {
+    const relativePath = path.relative(this.info.repoRoot, file);
+
     return this.catLimiter.enqueueRun(async () => {
       // For `gt cat`, we want the output of the command verbatim.
       const options = { stripFinalNewline: false };
       return (
         await this.runCommand(
-          ["interative", "cat", rev, file],
+          [
+            "interactive",
+            "relative-cat",
+            ...this.catArgs(comparison, relativePath),
+          ],
           /*cwd=*/ undefined,
           options
         )
       ).stdout;
     });
+  }
+
+  private catArgs(comparison: Comparison, file: string): Array<string> {
+    switch (comparison.type) {
+      case ComparisonType.UncommittedChanges:
+        return ["uncommitted", file];
+      case ComparisonType.HeadChanges:
+        return ["head", file];
+      case ComparisonType.StackChanges:
+        return ["stack", file];
+      case ComparisonType.Committed:
+        return ["stack", file, "--ref", comparison.hash];
+    }
   }
 
   public getAllDiffIds(): Array<PRNumber> {

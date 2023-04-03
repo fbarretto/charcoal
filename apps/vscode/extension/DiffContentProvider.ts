@@ -11,7 +11,6 @@ import type { Disposable } from "@withgraphite/gti/src/types";
 import type { Comparison } from "@withgraphite/gti-shared/Comparison";
 
 import { repositoryCache } from "@withgraphite/gti-server/src/RepositoryCache";
-import { revsetForComparison } from "@withgraphite/gti-shared/Comparison";
 import { LRU } from "@withgraphite/gti-shared/LRU";
 import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
 import { ensureTrailingPathSep } from "@withgraphite/gti-shared/pathUtils";
@@ -162,11 +161,9 @@ export class GraphiteDiffContentProvider
       return cachedFileContent;
     }
 
-    const revset = revsetForComparison(data.comparison);
-
     // fall back to fetching from the repo
     const fetchedFileContent = await repo
-      .cat(fsPath, revset)
+      .cat(fsPath, data.comparison)
       // An error during `cat` usually means the right side of the comparison was added since the left,
       // so `cat` claims `no such file` at that revset.
       // TODO: it would be more accurate to check that the error is due to this, and return null if not.

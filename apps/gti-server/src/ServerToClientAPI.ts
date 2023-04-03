@@ -15,10 +15,7 @@ import type { ServerSideTracker } from "./analytics/serverSideTracker";
 import type { Repository } from "./Repository";
 import type { ServerPlatform } from "./serverPlatform";
 
-import {
-  revsetArgsForComparison,
-  revsetForComparison,
-} from "@withgraphite/gti-shared/Comparison";
+import { revsetArgsForComparison } from "@withgraphite/gti-shared/Comparison";
 import { randomId, unwrap } from "@withgraphite/gti-shared/utils";
 import {
   deserializeFromString,
@@ -550,7 +547,7 @@ export default class ServerToClientAPI {
         // Note: we would still need to fall back to cat for comparisons that do not involve
         // the working copy.
         const cat: Promise<string> = repo
-          .cat(relativePath, revsetForComparison(comparison))
+          .cat(relativePath, comparison)
           .catch(() => "");
 
         void cat.then((content) =>

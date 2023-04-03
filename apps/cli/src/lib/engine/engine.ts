@@ -59,6 +59,7 @@ export type TEngine = {
   showDiff: (branchName: string) => string;
   getDiff: (left: string, right: string | undefined) => string;
   getStackDiff: (branchName: string) => string;
+  getParentOrPrev: (branchName: string) => string;
   getChangedFiles: (branchName: string) => TChangedFile[];
   getFileContents: (ref: string, file: string) => string;
   restoreFile: (file: string) => void;
@@ -549,6 +550,12 @@ export function composeEngine({
           : meta.parentBranchRevision,
         branchName
       );
+    },
+    getParentOrPrev: (branchName: string) => {
+      const meta = assertBranchIsValidOrTrunkAndGetMeta(branchName);
+      return meta.validationResult === 'TRUNK'
+        ? `${branchName}~`
+        : meta.parentBranchRevision;
     },
     getRevision: (branchName: string) => {
       assertBranch(branchName);
