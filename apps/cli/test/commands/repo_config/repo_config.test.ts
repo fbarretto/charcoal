@@ -10,25 +10,38 @@ for (const scene of [new BasicScene()]) {
     configureTest(this, scene);
 
     it('Can infer cloned repos', () => {
-      const { owner, name } = getOwnerAndNameFromURL(
+      const match = getOwnerAndNameFromURL(
         'https://github.com/withgraphite/graphite-cli.git'
       );
+      if (match === null) {
+        expect.fail('Match should not be null');
+      }
+      const { owner, name } = match;
+
       expect(owner === 'withgraphite').to.be.true;
       expect(name === 'graphite-cli').to.be.true;
     });
 
     it('Can infer SSH cloned repos', () => {
-      const { owner, name } = getOwnerAndNameFromURL(
+      const match = getOwnerAndNameFromURL(
         'git@github.com:withgraphite/graphite-cli.git'
       );
+      if (match === null) {
+        expect.fail('Match should not be null');
+      }
+      const { owner, name } = match;
       expect(owner === 'withgraphite').to.be.true;
       expect(name === 'graphite-cli').to.be.true;
     });
 
     it('Can infer SSH cloned repos (with git@ configured separately)', () => {
-      const { owner, name } = getOwnerAndNameFromURL(
+      const match = getOwnerAndNameFromURL(
         'github.com/withgraphite/graphite-cli.git'
       );
+      if (match === null) {
+        expect.fail('Match should not be null');
+      }
+      const { owner, name } = match;
       expect(owner === 'withgraphite').to.be.true;
       expect(name === 'graphite-cli').to.be.true;
     });
@@ -48,12 +61,18 @@ for (const scene of [new BasicScene()]) {
       const clone = getOwnerAndNameFromURL(
         'https://github.com/withgraphite/graphite-cli'
       );
+      if (clone === null) {
+        expect.fail('Match should not be null');
+      }
       expect(clone.owner === 'withgraphite').to.be.true;
       expect(clone.name === 'graphite-cli').to.be.true;
 
       const sshClone = getOwnerAndNameFromURL(
         'git@github.com:withgraphite/graphite-cli'
       );
+      if (sshClone === null) {
+        expect.fail('Match should not be null');
+      }
       expect(sshClone.owner === 'withgraphite').to.be.true;
       expect(sshClone.name === 'graphite-cli').to.be.true;
     });

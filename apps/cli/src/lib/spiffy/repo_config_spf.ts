@@ -90,37 +90,48 @@ function inferRepoGitHubInfo(remote: string): {
     throw inferError;
   }
 
-  const { owner, name } = getOwnerAndNameFromURL(url);
-  if (owner === undefined || name === undefined) {
+  const match = getOwnerAndNameFromURL(url);
+  if (match === null) {
     throw inferError;
   }
 
   return {
-    repoOwner: owner,
-    repoName: name,
+    repoOwner: match.owner,
+    repoName: match.name,
   };
 }
 
-const OWNER_NAME_REGEX = /.*github\.com[:/]([^/]+)\/(.+)/;
+/**
+ * FROM ISL: https://github.com/facebook/sapling/blob/main/addons/isl-server/src/Repository.ts#L887-L914
+ *
+ * extract repo info from a remote url, typically for GitHub or GitHub Enterprise,
+ * in various formats:
+ * https://github.com/owner/repo
+ * https://github.com/owner/repo.git
+ * github.com:owner/repo.git
+ * git@github.com:owner/repo.git
+ * ssh:git@github.com:owner/repo.git
+ * ssh://git@github.com/owner/repo.git
+ * git+ssh:git@github.com:owner/repo.git
+ *
+ * or similar urls with GitHub Enterprise hostnames:
+ * https://ghe.myCompany.com/owner/repo
+ */
+export function getOwnerAndNameFromURL(
+  url: string
+): { name: string; owner: string } | null {
+  const match =
+    /(?:https:\/\/(.*)\/|(?:git\+ssh:\/\/|ssh:\/\/)?(?:git@)?([^:/]*)[:/])([^/]+)\/(.+?)(?:\.git)?$/.exec(
+      url
+    );
 
-export function getOwnerAndNameFromURL(originURL: string): {
-  owner: string | undefined;
-  name: string | undefined;
-} {
-  // Most of the time these URLs end with '.git', but sometimes they don't. To
-  // keep things clean, when we see it we'll just chop it off.
-  let url = originURL;
-  if (url.endsWith('.git')) {
-    url = url.slice(0, -'.git'.length);
+  if (match == null) {
+    return null;
   }
 
-  // e.g. in withgraphite/graphite-cli we're trying to get the owner
-  // ('withgraphite') and the repo name ('graphite-cli')
-  const matches = OWNER_NAME_REGEX.exec(url);
-  return {
-    owner: matches?.[1],
-    name: matches?.[2],
-  };
+  const [, hostname1, hostname2, owner, repo] = match;
+  void hostname1, hostname2;
+  return { owner, name: repo };
 }
 
 export type TRepoConfig = ReturnType<typeof repoConfigFactory.load>;
