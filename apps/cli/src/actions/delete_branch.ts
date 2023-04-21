@@ -56,6 +56,8 @@ export function isSafeToDelete(
       ? `${chalk.green(branchName)} is merged into ${chalk.cyan(
           context.engine.trunk
         )}`
+      : context.engine.isBranchEmpty(branchName)
+      ? `${chalk.yellow(branchName)} is empty`
       : undefined;
 
   return reason ? { result: true, reason } : { result: false };

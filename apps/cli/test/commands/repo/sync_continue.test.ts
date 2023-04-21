@@ -15,9 +15,11 @@ for (const scene of allScenes) {
     beforeEach(() => {
       // We need to stub out the endpoint that sends back information on
       // the GitHub PRs associated with each branch.
-      nock(DEFAULT_GRAPHITE_API_SERVER).post(API_ROUTES.pullRequestInfo.url).reply(200, {
-        prs: [],
-      });
+      nock(DEFAULT_GRAPHITE_API_SERVER)
+        .post(API_ROUTES.pullRequestInfo.url)
+        .reply(200, {
+          prs: [],
+        });
 
       // Querying this endpoint requires a repo owner and name so we set
       // that here too. Note that these values are meaningless (for now)

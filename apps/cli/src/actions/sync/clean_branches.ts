@@ -186,6 +186,14 @@ async function shouldDeleteBranch(
     return false;
   }
 
+  // Don't delete empty branches without an associated PR
+  if (
+    context.engine.isBranchEmpty(args.branchName) &&
+    !context.engine.getPrInfo(args.branchName)?.number
+  ) {
+    return false;
+  }
+
   if (args.force) {
     return true;
   }
