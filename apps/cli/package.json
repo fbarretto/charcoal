@@ -1,6 +1,6 @@
 {
   "name": "@withgraphite/graphite-cli",
-  "version": "0.20.16",
+  "version": "0.20.17",
   "license": "None",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -29,6 +29,9 @@
       "node16-linux"
     ],
     "outputPath": "pkg"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "prepublishOnly": "yarn build",

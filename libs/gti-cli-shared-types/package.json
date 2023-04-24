@@ -1,23 +1,10 @@
 {
   "name": "@withgraphite/gti-cli-shared-types",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "@primer/react": "35.7.0",
-    "@types/diff": "^5.0.2",
-    "@vscode/codicons": "^0.0.32",
-    "diff": "^5.0.0",
-    "mobx": "^6.6.2",
-    "mobx-react-lite": "^3.4.0",
-    "mobx-utils": "^6.0.6",
-    "node-abort-controller": "^3.1.1",
-    "react": "^18.1.0",
-    "sass": "^1.51.0",
-    "styled-components": "^5.3.5",
-    "vscode-oniguruma": "^1.6.1",
-    "vscode-textmate": "^6.0.0"
-  },
+  "version": "0.3.0",
   "scripts": {
     "eslint": "eslint . --ext .ts --ext .tsx"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
