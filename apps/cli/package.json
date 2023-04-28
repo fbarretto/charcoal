@@ -22,7 +22,10 @@
   },
   "pkg": {
     "scripts": "dist/src/**/*.js",
-    "assets": "dist/src/commands/**/*",
+    "assets": [
+      "dist/src/commands/**/*",
+      "dist/.CHANGELOG.md"
+    ],
     "targets": [
       "node16-macos",
       "node16-win",
