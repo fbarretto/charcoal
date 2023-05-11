@@ -23,44 +23,55 @@ We *do not* consistently check GH issues — if you have any questions or issue
 
 ## Developing and Running tests
 
-*Note: not currently exactly up-to-date since we moved to Turborepo — the CLI itself was moved to /apps/cli*
-
 Interested in contributing to graphite CLI? Here's how to get started.
 
 You'll need to install yarn on your machine
+
 ```
 npm install --global yarn
 ```
 
 Build the CLI
+
 ```
+cd apps/cli
 nvm use
 yarn install
 yarn build
 ```
 
 Running tests
+
 ```
+cd apps/cli
 DEBUG=1 yarn test --full-trace
 ```
 
 Running a subset of tests
+
 ```
+cd apps/cli
 DEBUG=1 yarn test --full-trace -g "test pattern"
 ```
 
 Running one test
+
 ```
+cd apps/cli
 DEBUG=1 yarn test-one "<path to .js test file in dist folder>"
 ```
 
 Running the CLI locally (after build)
+
 ```
+cd apps/cli
 yarn cli <command> # (to run `gt <command>`)
 ```
 
 Linking `gt` to a locally built version (includes a build)
+
 ```
+cd apps/cli
 yarn dev
 # then to run commands:
 gt <command>
