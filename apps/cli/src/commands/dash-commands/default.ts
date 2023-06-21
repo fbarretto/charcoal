@@ -12,7 +12,7 @@ export const aliases = ['d'];
 
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
-const DASHBOARD_URL = 'https://app.graphite.dev/';
-
 export const handler = async (argv: argsT): Promise<void> =>
-  graphiteWithoutRepo(argv, canonical, async () => void open(DASHBOARD_URL));
+  graphiteWithoutRepo(argv, canonical, async (context) => {
+    void open(context.userConfig.getAppServerUrl());
+  });

@@ -21,15 +21,15 @@ export const aliases = ['p'];
 
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
-const DASHBOARD_URL = 'https://app.graphite.dev/';
-const PR_PATH = DASHBOARD_URL + 'github/pr/';
-
 export const handler = async (argv: argsT): Promise<void> =>
   graphite(argv, canonical, async (context) => {
+    const dashboardUrl = context.userConfig.getAppServerUrl();
+    const prPath = `${dashboardUrl}/github/pr/`;
+
     const prNumber = parseInt(argv.pr || '');
     if (prNumber) {
       return void open(
-        `${PR_PATH}${context.repoConfig.getRepoOwner()}/${context.repoConfig.getRepoName()}/${prNumber}`
+        `${prPath}${context.repoConfig.getRepoOwner()}/${context.repoConfig.getRepoName()}/${prNumber}`
       );
     }
 
@@ -41,9 +41,9 @@ export const handler = async (argv: argsT): Promise<void> =>
 
     if (branchPrNumber) {
       return void open(
-        `${PR_PATH}${context.repoConfig.getRepoOwner()}/${context.repoConfig.getRepoName()}/${branchPrNumber}`
+        `${prPath}${context.repoConfig.getRepoOwner()}/${context.repoConfig.getRepoName()}/${branchPrNumber}`
       );
     }
 
-    return void open(DASHBOARD_URL);
+    return void open(dashboardUrl);
   });
