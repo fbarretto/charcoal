@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
 import { expectCommits } from '../../lib/utils/expect_commits';
+import { removeUnsupportedTrailingCharacters } from '../../../src/lib/utils/branch_name';
 
 for (const scene of allScenes) {
   describe(`(${scene}): branch create`, function () {
@@ -28,9 +29,10 @@ for (const scene of allScenes) {
 
     it('Can create a branch without providing a name', () => {
       scene.repo.createChange('2');
-      scene.repo.runCliCommand([`branch`, `create`, `-m`, `feat(test): info`]);
+      scene.repo.runCliCommand([`branch`, `create`, `-m`, `feat(test): info.`]);
       expect(scene.repo.currentBranchName().includes('feat_test_info')).to.be
         .true;
+      expectCommits(scene.repo, 'feat(test): info.');
     });
 
     it('Can create a branch with add all option', () => {
@@ -68,3 +70,33 @@ for (const scene of allScenes) {
     });
   });
 }
+
+describe('removeUnsupportedTrailingCharacters', () => {
+  [
+    {
+      name: 'No unsupported trailing characters',
+      input: 'Hello world',
+      expected: 'Hello world',
+    },
+    {
+      name: 'Trailing dot',
+      input: 'Hello world.',
+      expected: 'Hello world',
+    },
+    {
+      name: 'Trailing slash',
+      input: 'Hello world/',
+      expected: 'Hello world',
+    },
+    {
+      name: 'Multiple unsupported trailing characters',
+      input: 'Hello world/_./.',
+      expected: 'Hello world/_',
+    },
+  ].forEach((tc) => {
+    it(tc.name, () => {
+      const strippedInput = removeUnsupportedTrailingCharacters(tc.input);
+      expect(strippedInput).equals(tc.expected);
+    });
+  });
+});

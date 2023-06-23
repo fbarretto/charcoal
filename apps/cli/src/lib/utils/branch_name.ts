@@ -3,15 +3,21 @@ import { TContext, TContextLite } from '../context';
 // 255 minus 21 (for 'refs/branch-metadata/')
 const MAX_BRANCH_NAME_BYTE_LENGTH = 234;
 const BRANCH_NAME_REPLACE_REGEX = /[^-_/.a-zA-Z0-9]+/g;
+const BRANCH_NAME_IGNORE_REGEX = /[/.]*$/;
 
 export function replaceUnsupportedCharacters(
   input: string,
   context: TContextLite
 ): string {
-  return input.replace(
+  const strippedInput = removeUnsupportedTrailingCharacters(input);
+  return strippedInput.replace(
     BRANCH_NAME_REPLACE_REGEX,
     getBranchReplacement(context)
   );
+}
+
+export function removeUnsupportedTrailingCharacters(input: string): string {
+  return input.replace(BRANCH_NAME_IGNORE_REGEX, '');
 }
 
 export function getBranchReplacement(context: TContextLite): string {
