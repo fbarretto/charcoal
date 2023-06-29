@@ -116,10 +116,18 @@ async function requestServerToSubmitPRs(
       `Your Graphite auth token is invalid/expired.\n\nPlease obtain a new auth token by visiting ${context.userConfig.getAppServerUrl()}/activate`
     );
   } else {
+    const { headers } = response._response;
+    const debugHeaders = {
+      'x-graphite-request-id': headers.get('x-graphite-request-id'),
+    };
+    const formattedHeaders = Object.entries(debugHeaders)
+      .map(([key, value]) => `  ${key}: ${value || '<empty>'}`)
+      .join('\n');
+
     throw new ExitFailedError(
       `Unexpected server response (${
         response._response.status
-      }).\n\nResponse: ${cuteString(response)}`
+      }).\n\nHeaders:\n${formattedHeaders}\n\nResponse: ${cuteString(response)}`
     );
   }
 }
