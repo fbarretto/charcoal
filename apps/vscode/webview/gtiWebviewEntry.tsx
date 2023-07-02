@@ -1,7 +1,7 @@
 import App from "@withgraphite/gti/src/App";
 import ReactDOM from "react-dom/client";
 
-import "./vscode-styles.css";
+import "./vscode-styles.scss";
 
 window.addEventListener("load", () => {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

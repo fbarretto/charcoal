@@ -1,26 +1,25 @@
-import { commitMessageTemplate, latestCommitTreeMap } from "./serverAPIState";
 import type { BranchName } from "@withgraphite/gti-cli-shared-types";
-import { family } from "./lib/mobx-recoil/family";
 import { computed, observable } from "mobx";
+import { family } from "../lib/mobx-recoil/family";
+import { latestCommitTreeMap } from "../serverAPIState";
 
-export type EditedMessage = { title: string; description: string };
+import type { CommitMessageFields, FieldsBeingEdited } from "./types";
 
-/**
- * Which fields of the message should display as editors instead of rendered values.
- * This can be controlled outside of the commit info view, but it gets updated in an effect as well when commits are changed.
- * `forceWhileOnHead` can be used to prevent auto-updating when in amend mode to bypass this effect.
- * This value is removed whenever the next real update to the value is given.
- */
-export type FieldsBeingEdited = {
-  title: boolean;
-  description: boolean;
-  forceWhileOnHead?: boolean;
-};
+import serverAPI from "../ClientToServerAPI";
+import { observableBoxWithInitializers } from "../lib/mobx-recoil/observable_box_with_init";
+import {
+  commitMessageFieldsSchema,
+  emptyCommitMessageFields,
+  findFieldsBeingEdited,
+  parseCommitMessageFields,
+} from "./CommitMessageFields";
+
+export type EditedMessage = { fields: CommitMessageFields };
 
 export type CommitInfoMode = "commit" | "amend";
 export type EditedMessageUnlessOptimistic =
   | (EditedMessage & { type?: undefined })
-  | { type: "optimistic"; title?: undefined; description?: undefined };
+  | { type: "optimistic"; fields?: CommitMessageFields };
 
 /**
  * Throw if the edited message is of optimistic type.
@@ -37,6 +36,29 @@ export function assertNonOptimistic(
   }
   return editedMessage;
 }
+
+export const commitMessageTemplate = observableBoxWithInitializers<
+  Record<string, string> | undefined
+>({
+  default: undefined,
+  effects: [
+    ({ setSelf }) => {
+      const disposable = serverAPI.onMessageOfType(
+        "fetchedCommitMessageTemplate",
+        (event) => {
+          setSelf(event.templates);
+        }
+      );
+      return () => disposable.dispose();
+    },
+    () =>
+      serverAPI.onConnectOrReconnect(() =>
+        serverAPI.postMessage({
+          type: "fetchCommitMessageTemplate",
+        })
+      ),
+  ],
+});
 
 /**
  * Map of hash -> latest edited commit message, representing any changes made to the commit's message fields.
@@ -64,12 +86,13 @@ const editedCommitMessagesDefaults = family({
         const templateEntries = templates ? Object.entries(templates) : [];
         return templateEntries.length === 1
           ? {
-              title: "",
-              description: templateEntries[0][1],
+              fields: {
+                Title: "",
+                Description: templateEntries[0][1],
+              },
             }
           : {
-              title: "",
-              description: "",
+              fields: emptyCommitMessageFields(commitMessageFieldsSchema.get()),
             };
       }
       // TODO: is there a better way we should derive `isOptimistic`
@@ -79,15 +102,21 @@ const editedCommitMessagesDefaults = family({
       if (info == null) {
         return { type: "optimistic" as const };
       }
-      return { title: info.title, description: info.description };
+      const fields = parseCommitMessageFields(
+        commitMessageFieldsSchema.get(),
+        info.title,
+        info.description
+      );
+      return { fields };
     });
   },
 });
+
 export const editedCommitMessages = family({
   genKey: (hash: BranchName | "head") => hash,
   genValue: (hash: BranchName | "head") => {
     const def = editedCommitMessagesDefaults(hash).get();
-    return observable.box<EditedMessageUnlessOptimistic>(def);
+    return observable.box(def);
   },
 });
 
@@ -100,14 +129,19 @@ export const hasUnsavedEditedCommitMessage = family({
         return false;
       }
       if (hash === "head") {
-        return Boolean(edited.title || edited.description);
+        return Object.values(edited).some(Boolean);
       }
-      // TODO: use treeWithPreviews so this indicator is accurate on top of previews
+      // TODO: T149536695 use treeWithPreviews so this indicator is accurate on top of previews
       const original = latestCommitTreeMap.get().get(hash)?.info;
-      return (
-        edited.title !== original?.title ||
-        edited.description !== original?.description
+      const schema = commitMessageFieldsSchema.get();
+      const parsed = parseCommitMessageFields(
+        schema,
+        original?.title ?? "",
+        original?.description ?? ""
       );
+      return Object.values(
+        findFieldsBeingEdited(schema, edited.fields, parsed)
+      ).some(Boolean);
     });
   },
 });

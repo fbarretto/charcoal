@@ -1,3 +1,6 @@
+
+
+import type { TypeaheadKind, TypeaheadResult } from '@withgraphite/gti/src/CommitInfoView/types';
 import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
 import type {
   DiffSummary,
@@ -29,4 +32,6 @@ export interface CodeReviewProvider {
 
   /** Convert Code Review Provider info into a short summary string, usable in analytics */
   getSummaryName(): string;
+
+  typeahead?(kind: TypeaheadKind, query: string): Promise<Array<TypeaheadResult>>;
 }

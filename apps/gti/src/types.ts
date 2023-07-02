@@ -1,15 +1,22 @@
+import type {
+  BranchInfo,
+  ChangedFile,
+  PRNumber,
+  RepoRelativePath,
+} from "@withgraphite/gti-cli-shared-types";
+import type { TrackEventName } from "@withgraphite/gti-server/src/analytics/eventNames";
 import type { TrackDataWithEventName } from "@withgraphite/gti-server/src/analytics/types";
 import type { GitHubDiffSummary } from "@withgraphite/gti-server/src/github/githubCodeReviewProvider";
 import type { Comparison } from "@withgraphite/gti-shared/Comparison";
 import type { AllUndefined, Json } from "@withgraphite/gti-shared/typeUtils";
-import type {
-  RepoRelativePath,
-  ChangedFile,
-  BranchInfo,
-  PRNumber,
-} from "@withgraphite/gti-cli-shared-types";
-import type { TrackEventName } from "@withgraphite/gti-server/src/analytics/eventNames";
 
+import type { Hash } from "@withgraphite/gti-shared/types/common";
+import type {
+  ExportStack,
+  ImportedStack,
+  ImportStack,
+} from "@withgraphite/gti-shared/types/stack";
+import type { TypeaheadKind, TypeaheadResult } from "./CommitInfoView/types";
 export type Result<T> =
   | { value: T; error?: undefined }
   | { value?: undefined; error: Error };
@@ -24,6 +31,8 @@ export type AbsolutePath = string;
  * Some commands expect cwd-relative paths,
  * but we generally prefer {@link RepoRelativePaths} when possible. */
 export type CwdRelativePath = string;
+
+export type { Hash };
 
 /** Revsets are an eden concept that let you specify commits.
  * This could be a Hash, '.' for HEAD, .^ for parent of head, etc. See `eden help revset` */
@@ -201,6 +210,7 @@ export type MergeConflicts =
 export type RunnableOperation = {
   args: Array<CommandArg>;
   id: string;
+  stdin?: string | undefined;
   runner: CommandRunner;
   trackEventName: TrackEventName;
 };
@@ -248,16 +258,39 @@ export type PlatformSpecificClientToServerMessages =
       comparison: Comparison;
     }
   | { type: "platform/openExternal"; url: string }
-  | { type: "platform/confirm"; message: string; details?: string | undefined };
+  | { type: "platform/confirm"; message: string; details?: string | undefined }
+  | { type: "platform/subscribeToAvailableCwds" }
+  | {
+      type: "platform/setVSCodeConfig";
+      config: string;
+      value: Json | undefined;
+      scope: "workspace" | "global";
+    }
+  | {
+      type: "platform/executeVSCodeCommand";
+      command: string;
+      args: Array<Json>;
+    }
+  | { type: "platform/subscribeToVSCodeConfig"; config: string };
 
 /**
  * messages returned by platform-specific (browser, vscode, electron) server implementation,
  * usually in response to a platform-specific ClientToServer message
  */
-export type PlatformSpecificServerToClientMessages = {
-  type: "platform/confirmResult";
-  result: boolean;
-};
+export type PlatformSpecificServerToClientMessages =
+  | {
+      type: "platform/confirmResult";
+      result: boolean;
+    }
+  | {
+      type: "platform/availableCwds";
+      options: Array<AbsolutePath>;
+    }
+  | {
+      type: "platform/vscodeConfigChanged";
+      config: string;
+      value: Json | undefined;
+    };
 
 export type PageVisibility = "focused" | "visible" | "hidden";
 
@@ -290,7 +323,13 @@ export type SubscriptionKind =
   | "smartlogCommits"
   | "mergeConflicts";
 
-export type ConfigName = "gti.submitAsDraft";
+export type ConfigName =
+  // these config names are for compatibility.
+  | "gti.submitAsDraft"
+  | "gti.changedFilesDisplayType"
+  | "gti.hasShownGettingStarted"
+  // sapling config prefers foo-bar naming.
+  | "gti.experimental-features";
 
 export type ClientToServerMessage =
   | {
@@ -298,12 +337,14 @@ export type ClientToServerMessage =
     }
   | { type: "getConfig"; name: ConfigName }
   | { type: "setConfig"; name: ConfigName; value: string }
+  | { type: "changeCwd"; cwd: string }
   | { type: "track"; data: TrackDataWithEventName }
   | { type: "fileBugReport"; data: FileABugFields; uiState?: Json }
   | { type: "runOperation"; operation: RunnableOperation }
   | { type: "abortRunningOperation"; operationId: string }
   | { type: "deleteFile"; filePath: RepoRelativePath }
   | { type: "fetchCommitMessageTemplate" }
+  | { type: "typeahead"; kind: TypeaheadKind; query: string; id: string }
   | { type: "requestRepoInfo" }
   | { type: "requestApplicationInfo" }
   | { type: "fetchDiffSummaries" }
@@ -324,6 +365,8 @@ export type ClientToServerMessage =
   | { type: "loadMoreCommits" }
   | { type: "subscribe"; kind: SubscriptionKind; subscriptionID: string }
   | { type: "unsubscribe"; kind: SubscriptionKind; subscriptionID: string }
+  | { type: "exportStack"; revs: string; assumeTracked?: Array<string> }
+  | { type: "importStack"; stack: ImportStack }
   | PlatformSpecificClientToServerMessages;
 
 export type SubscriptionResultsData = {
@@ -348,6 +391,7 @@ export type ServerToClientMessage =
   | FileABugProgressMessage
   | { type: "gotConfig"; name: ConfigName; value: string | undefined }
   | { type: "fetchedCommitMessageTemplate"; templates: Record<string, string> }
+  | { type: "typeaheadResult"; id: string; result: Array<TypeaheadResult> }
   | { type: "applicationInfo"; platformName: string; version: string }
   | { type: "repoInfo"; info: RepoInfo; cwd?: string }
   | { type: "repoError"; error: RepositoryError | undefined }
@@ -365,6 +409,18 @@ export type ServerToClientMessage =
   | { type: "beganLoadingMoreCommits" }
   | { type: "commitsShownRange"; rangeInDays: number | undefined }
   | { type: "additionalCommitAvailability"; moreAvailable: boolean }
+  | {
+      type: "exportedStack";
+      revs: string;
+      assumeTracked: Array<string>;
+      stack: ExportStack;
+      error: string | undefined;
+    }
+  | {
+      type: "importedStack";
+      imported: ImportedStack;
+      error: string | undefined;
+    }
   | OperationProgressEvent
   | PlatformSpecificServerToClientMessages;
 

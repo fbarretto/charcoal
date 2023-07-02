@@ -33,7 +33,13 @@ export const SubmitAsDraftCheckbox = observer(
           submitAsDraft.set((e.target as HTMLInputElement).checked)
         }
       >
-        <Tooltip title={"Whether to submit this diff as a draft"}>
+        <Tooltip
+          title={
+            commitsToBeSubmit.length === 1
+              ? "Whether to submit this diff as a draft"
+              : `Whether to submit these ${commitsToBeSubmit.length} diffs as a drafts`
+          }
+        >
           Submit as Draft
         </Tooltip>
       </VSCodeCheckbox>

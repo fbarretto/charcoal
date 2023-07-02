@@ -25,34 +25,30 @@ export function SplitDiffView<Id>({
     SplitDiffTableProps<Id>
   >;
 
-  const t = ctx.translate ?? ((s) => s);
-
   const preamble = [];
   if (patch.type === DiffType.Added) {
     preamble.push(
-      <FileStatusBanner key="added">
-        {t("This file was added")}
-      </FileStatusBanner>
+      <FileStatusBanner key="added">{"This file was added"}</FileStatusBanner>
     );
   }
   if (patch.type === DiffType.Removed) {
     preamble.push(
       <FileStatusBanner key="deleted">
-        {t("This file was removed")}
+        {"This file was removed"}
       </FileStatusBanner>
     );
   }
   if (patch.type === DiffType.Renamed) {
     preamble.push(
       <FileStatusBanner key="renamed">
-        {t("This file was renamed from")} {patch.oldFileName ?? ""}
+        {"This file was renamed from"} {patch.oldFileName ?? ""}
       </FileStatusBanner>
     );
   }
   if (patch.type === DiffType.Copied) {
     preamble.push(
       <FileStatusBanner key="copied">
-        {t("This file was copied from")} {patch.oldFileName ?? ""}
+        {"This file was copied from"} {patch.oldFileName ?? ""}
       </FileStatusBanner>
     );
   }

@@ -1,14 +1,14 @@
 import type { Logger } from "@withgraphite/gti-server/src/logger";
 
-import { watchAndCreateRepositoriesForWorkspaceFolders } from "./VSCodeRepo";
-import { registerGTICommands } from "./gtiWebviewPanel";
+import { makeServerSideTracker } from "@withgraphite/gti-server/src/analytics/serverSideTracker";
 import * as util from "util";
 import * as vscode from "vscode";
 import packageJson from "../package.json";
-import { VSCodePlatform } from "./vscodePlatform";
-import { makeServerSideTracker } from "@withgraphite/gti-server/src/analytics/serverSideTracker";
 import { registerCommands } from "./commands";
 import { registerGraphiteDiffContentProvider } from "./DiffContentProvider";
+import { registerGTICommands } from "./gtiWebviewPanel";
+import { VSCodePlatform } from "./vscodePlatform";
+import { watchAndCreateRepositoriesForWorkspaceFolders } from "./VSCodeRepo";
 
 export async function activate(context: vscode.ExtensionContext) {
   const start = Date.now();
@@ -41,15 +41,23 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 }
 
+const logFileContents: Array<string> = [];
 function createOutputChannelLogger(): [vscode.OutputChannel, Logger] {
   const outputChannel = vscode.window.createOutputChannel("Graphite GTI");
-  const log = (...data: Array<unknown>) =>
-    outputChannel.appendLine(util.format(...data));
+  const log = (...data: Array<unknown>) => {
+    const line = util.format(...data);
+    logFileContents.push(line);
+    outputChannel.appendLine(line);
+  };
   const outputChannelLogger = {
     log,
     info: log,
     warn: log,
     error: log,
+
+    getLogFileContents() {
+      return Promise.resolve(logFileContents.join("\n"));
+    },
   } as Logger;
   return [outputChannel, outputChannelLogger];
 }

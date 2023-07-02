@@ -1,5 +1,5 @@
-import type { MessageBusStatus } from "./MessageBus";
 import type { CommitTree } from "./getCommitTree";
+import type { MessageBusStatus } from "./MessageBus";
 import type { Operation } from "./operations/Operation";
 import type {
   MergeConflicts,
@@ -10,24 +10,24 @@ import type {
   UncommittedChanges,
 } from "./types";
 
-import serverAPI from "./ClientToServerAPI";
-import messageBus from "./MessageBus";
-import { getCommitTree, walkTreePostorder } from "./getCommitTree";
-import { operationBeingPreviewed } from "./previews";
-import { initialParams } from "./urlParams";
-import { DEFAULT_DAYS_OF_COMMITS_TO_LOAD } from "@withgraphite/gti-server/src/constants";
-import {
-  observableBoxWithInitializers,
-  TEffect,
-} from "./lib/mobx-recoil/observable_box_with_init";
-import { computed } from "mobx";
-import { useCallback } from "react";
 import type {
   BranchInfo,
   BranchName,
 } from "@withgraphite/gti-cli-shared-types";
+import { DEFAULT_DAYS_OF_COMMITS_TO_LOAD } from "@withgraphite/gti-server/src/constants";
 import type { EnsureAssignedTogether } from "@withgraphite/gti-shared/EnsureAssignedTogether";
+import { computed } from "mobx";
+import { useCallback } from "react";
 import { randomId } from "@withgraphite/gti-shared/utils";
+import serverAPI from "./ClientToServerAPI";
+import { getCommitTree, walkTreePostorder } from "./getCommitTree";
+import {
+  observableBoxWithInitializers,
+  TEffect,
+} from "./lib/mobx-recoil/observable_box_with_init";
+import messageBus from "./MessageBus";
+import { initialParams } from "./urlParams";
+import { observableConfig } from "./config_observable";
 
 export const mostRecentSubscriptionIds: Record<SubscriptionKind, string> = {
   smartlogCommits: "",
@@ -48,7 +48,7 @@ const repositoryData = observableBoxWithInitializers<{
       return () => disposable.dispose();
     },
     () =>
-      serverAPI.onConnectOrReconnect(() =>
+      serverAPI.onSetup(() =>
         serverAPI.postMessage({
           type: "requestRepoInfo",
         })
@@ -86,7 +86,7 @@ export const applicationinfo = observableBoxWithInitializers<
       return () => disposable.dispose();
     },
     () =>
-      serverAPI.onConnectOrReconnect(() =>
+      serverAPI.onSetup(() =>
         serverAPI.postMessage({
           type: "requestApplicationInfo",
         })
@@ -184,6 +184,11 @@ export const commitFetchError = computed(() => {
   return latestCommitsData.get().error;
 });
 
+export const hasExperimentalFeatures = observableConfig<boolean | null>({
+  config: "gti.experimental-features",
+  default: null,
+});
+
 /**
  * Send a subscribeFoo message to the server on initialization,
  * and send an unsubscribe message on dispose.
@@ -209,7 +214,7 @@ function subscriptionEffect<K extends SubscriptionKind, T>(
       }
     );
 
-    const disposeSubscription = serverAPI.onConnectOrReconnect(() => {
+    const disposeSubscription = serverAPI.onSetup(() => {
       serverAPI.postMessage({
         type: "subscribe",
         kind,
@@ -303,6 +308,11 @@ export const commitsShownRange = observableBoxWithInitializers<
   default: DEFAULT_DAYS_OF_COMMITS_TO_LOAD,
   effects: [
     ({ setSelf }) => {
+      return serverAPI.onCwdChanged(() =>
+        setSelf(DEFAULT_DAYS_OF_COMMITS_TO_LOAD)
+      );
+    },
+    ({ setSelf }) => {
       const disposables = [
         serverAPI.onMessageOfType("commitsShownRange", (event) => {
           setSelf(event.rangeInDays);
@@ -312,29 +322,6 @@ export const commitsShownRange = observableBoxWithInitializers<
         disposables.forEach((d) => d.dispose());
       };
     },
-  ],
-});
-
-export const commitMessageTemplate = observableBoxWithInitializers<
-  Record<string, string> | undefined
->({
-  default: undefined,
-  effects: [
-    ({ setSelf }) => {
-      const disposable = serverAPI.onMessageOfType(
-        "fetchedCommitMessageTemplate",
-        (event) => {
-          setSelf(event.templates);
-        }
-      );
-      return () => disposable.dispose();
-    },
-    () =>
-      serverAPI.onConnectOrReconnect(() =>
-        serverAPI.postMessage({
-          type: "fetchCommitMessageTemplate",
-        })
-      ),
   ],
 });
 
@@ -379,6 +366,23 @@ export const latestCommitTreeMap = computed<Map<BranchName, CommitTree>>(() => {
 export const haveCommitsLoadedYet = computed<boolean>(() => {
   const commits = latestCommits.get();
   return commits.length > 0;
+});
+
+export const operationBeingPreviewed = observableBoxWithInitializers<
+  Operation | undefined
+>({
+  default: undefined,
+  effects: [
+    ({ setSelf }) => {
+      return serverAPI.onCwdChanged(() => setSelf(undefined));
+    },
+  ],
+});
+
+export const haveRemotePath = computed<boolean>(() => {
+  const info = repositoryInfo.get();
+  // codeReviewSystem.type is 'unknown' or other values if paths.default is present.
+  return info?.type === "success" && info.codeReviewSystem.type !== "none";
 });
 
 export type OperationInfo = {
@@ -434,6 +438,9 @@ function startNewOperation(
 export const operationList = observableBoxWithInitializers<OperationList>({
   default: defaultOperationList(),
   effects: [
+    ({ setSelf }) => {
+      return serverAPI.onCwdChanged(() => setSelf(defaultOperationList()));
+    },
     ({ setSelf }) => {
       const disposable = serverAPI.onMessageOfType(
         "operationProgress",
@@ -511,6 +518,9 @@ export const queuedOperations = observableBoxWithInitializers<Array<Operation>>(
     default: [],
     effects: [
       ({ setSelf }) => {
+        return serverAPI.onCwdChanged(() => setSelf([]));
+      },
+      ({ setSelf }) => {
         const disposable = serverAPI.onMessageOfType(
           "operationProgress",
           (progress) => {
@@ -554,6 +564,7 @@ function runOperationImpl(operation: Operation) {
     operation: {
       args: operation.getArgs(),
       id: operation.id,
+      stdin: operation.getStdin(),
       runner: operation.runner,
       trackEventName: operation.trackEventName,
     },

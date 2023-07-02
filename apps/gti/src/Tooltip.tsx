@@ -1,13 +1,14 @@
-import type { MouseEvent, ReactNode } from "react";
 import type { ExclusiveOr } from "@withgraphite/gti-shared/typeUtils";
+import type { MouseEvent, ReactNode } from "react";
 
-import React, { useEffect, useRef, useState } from "react";
-import ReactDOM from "react-dom";
 import {
   findParentWithClassName,
   unwrap,
 } from "@withgraphite/gti-shared/utils";
+import React, { useEffect, useRef, useState } from "react";
+import ReactDOM from "react-dom";
 
+import { useLayoutEffect } from "react";
 import "./Tooltip.scss";
 
 type Placement = "top" | "bottom" | "left" | "right";
@@ -17,20 +18,51 @@ type Placement = "top" | "bottom" | "left" | "right";
  */
 export const DOCUMENTATION_DELAY = 750;
 
+type TooltipProps = {
+  children: ReactNode;
+  placement?: Placement;
+  /**
+   * Applies delay to visual appearance of tooltip.
+   * Note element is always constructed immediately.
+   * This delay applies to all trigger methods except 'click'.
+   * The delay is only on the leading-edge; disappearing is always instant.
+   */
+  delayMs?: number;
+} & ExclusiveOr<
+  ExclusiveOr<
+    { trigger: "manual"; shouldShow: boolean },
+    { trigger?: "hover" | "disabled" }
+  > &
+    ExclusiveOr<
+      { component: (dismiss: () => void) => JSX.Element },
+      { title: string }
+    >,
+  {
+    trigger: "click";
+    component: (dismiss: () => void) => JSX.Element;
+    title?: string;
+  }
+>;
+
+type VisibleState =
+  | true /* primary content (prefers component) is visible */
+  | false
+  | "title" /* 'title', not 'component' is visible */;
+
 /**
  * Enables child elements to render a tooltip when hovered/clicked.
  * Children are always rendered, but the tooltip is not rendered until triggered.
  * Tooltip is centered on bounding box of children.
  * You can adjust the trigger method:
  *  - 'hover' (default) to appear when mouse hovers container element
- *  - 'click' to appear when mouse clicks container element
+ *  - 'click' to render `component` on click, render `title` on hover.
  *  - 'manual' to control programmatically by providing `shouldShow` prop.
  *  - 'disabled' to turn off hover/click support programmatically
  *
  * You can adjust which side the tooltip appears on.
  *   Default placement is 'top', above the element.
  *
- * Tooltip content may either be a (i18n-ized) string `title`, or a `Component` to render.
+ * Tooltip content may either be a string `title`, or a `Component` to render.
  *   `title`s will automatically wrap text,
  *   but `Component`s are expected to handle their own sizing.
  * `Component`-rendered content allows pointer events inside the tooltip,
@@ -43,35 +75,23 @@ export const DOCUMENTATION_DELAY = 750;
 export function Tooltip({
   children,
   title,
-  component: Component,
+  component,
   placement: placementProp,
   trigger: triggerProp,
   delayMs,
   shouldShow,
-}: {
-  children: ReactNode;
-  placement?: Placement;
-  /**
-   * Applies delay to visual appearance of tooltip.
-   * Note element is always constructed immediately.
-   * This delay applies to all trigger methods, even 'manual'.
-   * The delay is only on the leading-edge; disappearing is always instant.
-   */
-  delayMs?: number;
-} & ExclusiveOr<
-  { trigger: "manual"; shouldShow: boolean },
-  { trigger?: "hover" | "click" | "disabled" }
-> &
-  ExclusiveOr<
-    { component: (props: { dismiss: () => void }) => JSX.Element },
-    { title: string }
-  >) {
+}: TooltipProps) {
   const trigger = triggerProp ?? "hover";
   const placement = placementProp ?? "top";
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState<VisibleState>(false);
   const ref = useRef<HTMLDivElement>(null);
-  const content =
-    Component == null ? title : <Component dismiss={() => setVisible(false)} />;
+  const getContent = () => {
+    if (visible === "title") {
+      return title;
+    }
+    return component == null ? title : component(() => setVisible(false));
+  };
+
   useEffect(() => {
     if (typeof shouldShow === "boolean") {
       setVisible(shouldShow);
@@ -120,6 +140,33 @@ export function Tooltip({
     }
   }, [visible, setVisible]);
 
+  // Using onMouseLeave directly on the div is unreliable if the component rerenders: https://github.com/facebook/react/issues/4492
+  // Use a manually managed subscription instead.
+  useLayoutEffect(() => {
+    const needHover =
+      trigger === "hover" || (trigger === "click" && title != null);
+    if (!needHover) {
+      return;
+    }
+    // Do not change visible if 'click' shows the content.
+    const onMouseEnter = () =>
+      setVisible((vis) =>
+        trigger === "click" ? (vis === true ? vis : "title") : true
+      );
+    const onMouseLeave = () =>
+      setVisible((vis) => (trigger === "click" && vis === true ? vis : false));
+    const div = ref.current;
+    div?.addEventListener("mouseenter", onMouseEnter);
+    div?.addEventListener("mouseleave", onMouseLeave);
+    return () => {
+      div?.removeEventListener("mouseenter", onMouseEnter);
+      div?.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, [trigger, title]);
+
+  // Force delayMs to be 0 when `component` is shown by click.
+  const realDelayMs = trigger === "click" && visible === true ? 0 : delayMs;
+
   return (
     <div
       className="tooltip-creator"
@@ -127,24 +174,22 @@ export function Tooltip({
       onClick={
         trigger === "click"
           ? (event: MouseEvent) => {
-              if (!visible || !eventIsFromInsideTooltip(event)) {
-                setVisible((val) => !val);
+              if (visible !== true || !eventIsFromInsideTooltip(event)) {
+                setVisible((vis) => vis !== true);
                 // don't trigger global click listener in the same tick
                 event.stopPropagation();
               }
             }
           : undefined
       }
-      onMouseEnter={trigger === "hover" ? () => setVisible(true) : undefined}
-      onMouseLeave={trigger === "hover" ? () => setVisible(false) : undefined}
     >
       {visible && ref.current && (
         <RenderTooltipOnto
-          delayMs={delayMs}
+          delayMs={realDelayMs}
           element={ref.current}
           placement={placement}
         >
-          {content}
+          {getContent()}
         </RenderTooltipOnto>
       )}
       {children}
@@ -182,7 +227,7 @@ function RenderTooltipOnto({
   let effectivePlacement = placement;
 
   // to center the tooltip over the tooltip-creator, we need to measure its final rendered size
-  const renderedDimensions = useRenderedDimensions(tooltipRef);
+  const renderedDimensions = useRenderedDimensions(tooltipRef, children);
   const position = offsetsForPlacement(
     placement,
     sourceBoundingRect,
@@ -397,18 +442,41 @@ function getViewportAdjustedDelta(
 }
 
 function useRenderedDimensions(
-  ref: React.MutableRefObject<HTMLDivElement | null>
+  ref: React.MutableRefObject<HTMLDivElement | null>,
+  deps: unknown
 ) {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  useEffect(() => {
-    if (ref.current) {
-      setDimensions({
-        width: ref.current.offsetWidth,
-        height: ref.current.offsetHeight,
-      });
+  useLayoutEffect(() => {
+    const target = ref.current;
+    if (target == null) {
+      return;
     }
-  }, [ref]);
+
+    const updateDimensions = () => {
+      setDimensions({
+        width: target.offsetWidth,
+        height: target.offsetHeight,
+      });
+    };
+
+    updateDimensions();
+
+    const observer = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.target === target) {
+          updateDimensions();
+        }
+      });
+    });
+
+    // Children might resize without re-rendering the tooltip.
+    // Observe that and trigger re-positioning.
+    // Unlike useLayoutEffect, the ResizeObserver does not prevent
+    // rendering the old state.
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [ref, deps]);
 
   return dimensions;
 }

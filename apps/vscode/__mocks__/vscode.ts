@@ -28,7 +28,7 @@ export const scm = proxyMissingFieldsWithJestFn({
 });
 
 export class ThemeColor {
-  constructor(public id: string) {}
+  constructor(public id: string) { }
 }
 
 export class Disposable implements vscode.Disposable {

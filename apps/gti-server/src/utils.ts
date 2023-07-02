@@ -2,7 +2,10 @@ import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
 import type { SmartlogCommits } from "@withgraphite/gti/src/types";
 import type { ExecaChildProcess } from "execa";
 
+import type execa from "execa";
+
 import os from "os";
+import { truncate } from "@withgraphite/gti-shared/utils";
 
 export function sleep(timeMs: number): Promise<void> {
   return new Promise((res) => setTimeout(res, timeMs));
@@ -122,4 +125,46 @@ export function findPublicAncestor(
   }
 
   return publicCommit;
+}
+
+/**
+ * Run a command that is expected to produce JSON output.
+ * Return a JSON object. On error, the JSON object has property "error".
+ */
+export function parseExecJson<T>(
+  exec: execa.ExecaChildProcess,
+  reply: (parsed?: T, error?: string) => void
+) {
+  exec
+    .then((result) => {
+      const stdout = result.stdout;
+      try {
+        const parsed = JSON.parse(stdout);
+        if (parsed.error != null) {
+          reply(undefined, parsed.error);
+        } else {
+          reply(parsed as T);
+        }
+      } catch (err) {
+        const msg = `Cannot parse ${truncate(
+          result.escapedCommand
+        )} output. (error: ${err}, stdout: ${stdout})`;
+        reply(undefined, msg);
+      }
+    })
+    .catch((err) => {
+      // Try extracting error from stdout '{error: message}'.
+      try {
+        const parsed = JSON.parse(err.stdout);
+        if (parsed.error != null) {
+          reply(undefined, parsed.error);
+          return;
+        }
+      } catch {
+        // pass
+      }
+      // Fallback to general error.
+      const msg = `Cannot run ${truncate(err.escapedCommand)}. (error: ${err})`;
+      reply(undefined, msg);
+    });
 }

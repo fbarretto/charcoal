@@ -1,19 +1,21 @@
+import type { ReactNode } from "react";
 import type { DiffSummary } from "../types";
 import type { UICodeReviewProvider } from "./UICodeReviewProvider";
-import type { ReactNode } from "react";
 
-import { ExternalLink } from "../ExternalLink";
-import { Tooltip } from "../Tooltip";
-import platform from "../platform";
-import { diffSummary, codeReviewProvider } from "./CodeReviewInfo";
-import { openerUrlForDiffUrl } from "./github/GitHubUrlOpener";
-import { useState, Component, Suspense } from "react";
 import { useContextMenu } from "@withgraphite/gti-shared/ContextMenu";
 import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Component, Suspense, useState } from "react";
+import { ExternalLink } from "../ExternalLink";
+import platform from "../platform";
+import { Tooltip } from "../Tooltip";
+import { codeReviewProvider, diffSummary } from "./CodeReviewInfo";
+import { openerUrlForDiffUrl } from "./github/GitHubUrlOpener";
 
-import "./DiffBadge.scss";
-import { observer } from "mobx-react-lite";
+import { CircleEllipsisIcon } from "../CircleEllipsisIcon";
+
 import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
+import { observer } from "mobx-react-lite";
+import "./DiffBadge.scss";
 
 /**
  * Component that shows inline summary information about a Diff,
@@ -167,7 +169,7 @@ function DiffSignalSummary({ diff }: { diff: DiffSummary }) {
   let tooltip;
   switch (diff.signalSummary) {
     case "running":
-      icon = "ellipsis";
+      icon = <CircleEllipsisIcon />;
       tooltip = "Test Signals are still running for this Diff.";
       break;
     case "pass":
@@ -192,7 +194,7 @@ function DiffSignalSummary({ diff }: { diff: DiffSummary }) {
   return (
     <div className={`diff-signal-summary diff-signal-${diff.signalSummary}`}>
       <Tooltip title={tooltip}>
-        <Icon icon={icon} />
+        {typeof icon === "string" ? <Icon icon={icon} /> : icon}
       </Tooltip>
     </div>
   );

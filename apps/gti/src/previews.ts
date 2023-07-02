@@ -1,14 +1,25 @@
 import type { CommitTree, CommitTreeWithPreviews } from "./getCommitTree";
-import { Operation, getOpName } from "./operations/Operation";
+import type { Operation } from "./operations/Operation";
+import type { OperationInfo, OperationList } from "./serverAPIState";
+import type { MergeConflicts, UncommittedChanges } from "./types";
+
+import { getTracker } from "./analytics/globalTracker";
+import { getOpName } from "./operations/Operation";
 import {
   latestCommitsData,
   latestUncommittedChangesData,
   mergeConflicts,
-  OperationInfo,
-  OperationList,
+  operationBeingPreviewed,
 } from "./serverAPIState";
-import type { MergeConflicts, UncommittedChanges } from "./types";
 
+import type {
+  BranchInfo,
+  BranchName,
+  ChangedFile,
+} from "@withgraphite/gti-cli-shared-types";
+import { notEmpty, unwrap } from "@withgraphite/gti-shared/utils";
+import { computed } from "mobx";
+import { useEffect } from "react";
 import {
   latestCommitTree,
   latestCommitTreeMap,
@@ -17,15 +28,6 @@ import {
   operationList,
   queuedOperations,
 } from "./serverAPIState";
-import { useEffect } from "react";
-import { notEmpty, unwrap } from "@withgraphite/gti-shared/utils";
-import { computed, observable } from "mobx";
-import type {
-  BranchInfo,
-  BranchName,
-  ChangedFile,
-} from "@withgraphite/gti-cli-shared-types";
-import { tracker } from "./analytics";
 
 export enum CommitPreview {
   REBASE_ROOT = "rebase-root",
@@ -37,6 +39,8 @@ export enum CommitPreview {
   GOTO_PREVIOUS_LOCATION = "goto-previous-location",
   HIDDEN_ROOT = "hidden-root",
   HIDDEN_DESCENDANT = "hidden-descendant",
+  STACK_EDIT_ROOT = "stack-edit-root",
+  STACK_EDIT_DESCENDANT = "stack-edit-descendant",
   // Commit being rendered in some other context than the commit tree,
   // such as the commit info sidebar
   NON_ACTIONABLE_COMMIT = "non-actionable-commit",
@@ -81,10 +85,6 @@ export type ApplyUncommittedChangesPreviewsFuncType = (
 export type ApplyMergeConflictsPreviewsFuncType = (
   conflicts: MergeConflicts | undefined
 ) => MergeConflicts | undefined;
-
-export const operationBeingPreviewed = observable.box<Operation | undefined>(
-  undefined
-);
 
 function applyPreviewsToChangedFiles(
   files: Array<ChangedFile>,
@@ -500,7 +500,7 @@ export function useMarkOperationsCompleted(): void {
               uncommittedChanges.fetchStartTimestamp >
               unwrap(operation.endTime).valueOf()
             ) {
-              tracker.track("OptimisticFilesStateForceResolved", {
+              getTracker()?.track("OptimisticFilesStateForceResolved", {
                 extras: {},
               });
               files = true;
@@ -527,7 +527,7 @@ export function useMarkOperationsCompleted(): void {
               (mergeConflictsContext.conflicts?.fetchStartTimestamp ?? 0) >
               unwrap(operation.endTime).valueOf()
             ) {
-              tracker.track("OptimisticConflictsStateForceResolved", {
+              getTracker()?.track("OptimisticConflictsStateForceResolved", {
                 extras: { operation: getOpName(operation.operation) },
               });
               conflicts = true;
@@ -549,7 +549,7 @@ export function useMarkOperationsCompleted(): void {
               fetchedCommits.fetchStartTimestamp >
               unwrap(operation.endTime).valueOf()
             ) {
-              tracker.track("OptimisticCommitsStateForceResolved", {
+              getTracker()?.track("OptimisticCommitsStateForceResolved", {
                 extras: {},
               });
               commits = true;
@@ -615,3 +615,15 @@ export function useIsOperationRunningOrQueued(
   }
   return undefined;
 }
+
+export const useMostRecentPendingOperation = (): Operation | undefined => {
+  const list = operationList.get();
+  const queued = queuedOperations.get();
+  if (queued.length > 0) {
+    return queued.at(-1);
+  }
+  if (list.currentOperation?.exitCode == null) {
+    return list.currentOperation?.operation;
+  }
+  return undefined;
+};

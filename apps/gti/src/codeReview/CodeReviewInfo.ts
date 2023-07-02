@@ -56,7 +56,7 @@ export const allDiffSummaries = observableBoxWithInitializers<
       return () => disposable.dispose();
     },
     () =>
-      serverAPI.onConnectOrReconnect(() =>
+      serverAPI.onSetup(() =>
         serverAPI.postMessage({
           type: "fetchDiffSummaries",
         })

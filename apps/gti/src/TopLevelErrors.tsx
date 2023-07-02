@@ -34,7 +34,7 @@ function computeTopLevelError(
         title: (
           <>
             Unable to connect to server. Try closing this window and accessing
-            ISL with a fresh link.
+            GTI with a fresh link.
           </>
         ),
         error: new Error(

@@ -1,7 +1,7 @@
 import type { TrackErrorName, TrackEventName } from "./eventNames";
 import type { TrackData, TrackDataWithEventName, TrackResult } from "./types";
 
-import { randomId } from "@withgraphite/gti-shared/utils";
+import { isPromise, randomId } from "@withgraphite/gti-shared/utils";
 
 type SendData<T> = (data: TrackDataWithEventName, context: T) => void;
 
@@ -12,7 +12,7 @@ type SendData<T> = (data: TrackDataWithEventName, context: T) => void;
  *  - The server sends the data to finally get processed
  */
 export class Tracker<T> {
-  constructor(private sendData: SendData<T>, public context: T) {}
+  constructor(private sendData: SendData<T>, public context: T) { }
 
   /**
    * Record an analytics error event `eventName`.
@@ -121,8 +121,4 @@ export class Tracker<T> {
     };
     this.sendData(trackData, this.context);
   }
-}
-
-function isPromise<T>(o: unknown): o is Promise<T> {
-  return typeof (o as { then?: () => void })?.then === "function";
 }

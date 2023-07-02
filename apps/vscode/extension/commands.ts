@@ -17,13 +17,14 @@ export const vscodeCommands = {
 
 /** Type definitions for built-in or third-party VS Code commands we want to execute programatically. */
 type ExternalVSCodeCommands = {
-  "vscode.diff": (
-    left: vscode.Uri,
-    right: vscode.Uri,
-    title: string
-  ) => Thenable<unknown>;
-  "graphite.gti.focus": () => Thenable<void>;
+  'vscode.diff': (left: vscode.Uri, right: vscode.Uri, title: string) => Thenable<unknown>;
+  'workbench.action.closeSidebar': () => Thenable<void>;
+  'graphite.open-gti': () => Thenable<void>;
+  'graphite.close-gti': () => Thenable<void>;
+  'graphite.gti.focus': () => Thenable<void>;
 };
+
+export type VSCodeCommand = typeof vscodeCommands & ExternalVSCodeCommands;
 
 /**
  * Type-safe programmatic execution of VS Code commands (via `vscode.commands.executeCommand`).
@@ -31,15 +32,11 @@ type ExternalVSCodeCommands = {
  * Built-in or third-party commands may also be typed through this function,
  * just define them in ExternalVSCodeCommands.
  */
-export function executeVSCodeCommand<
-  K extends keyof (typeof vscodeCommands & ExternalVSCodeCommands)
->(
+export function executeVSCodeCommand<K extends keyof VSCodeCommand>(
   id: K,
-  ...args: Parameters<(typeof vscodeCommands & ExternalVSCodeCommands)[K]>
-): ReturnType<(typeof vscodeCommands & ExternalVSCodeCommands)[K]> {
-  return vscode.commands.executeCommand(id, ...args) as ReturnType<
-    (typeof vscodeCommands & ExternalVSCodeCommands)[K]
-  >;
+  ...args: Parameters<VSCodeCommand[K]>
+): ReturnType<VSCodeCommand[K]> {
+  return vscode.commands.executeCommand(id, ...args) as ReturnType<VSCodeCommand[K]>;
 }
 
 type Context = {
@@ -79,7 +76,9 @@ function openDiffView(
 ): Thenable<unknown> {
   const { fsPath } = uri;
   const left = encodeGraphiteDiffUri(uri, comparison);
-  const right = uri;
+  const right = comparison.type === ComparisonType.Committed
+    ? encodeGraphiteDiffUri(uri, { type: ComparisonType.Committed, hash: `${comparison.hash}^` })
+    : uri;
   const title = `${path.basename(fsPath)} (${labelForComparison(comparison)})`;
 
   return executeVSCodeCommand("vscode.diff", left, right, title);

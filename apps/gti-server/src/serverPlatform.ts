@@ -18,7 +18,8 @@ export interface ServerPlatform {
   handleMessageFromClient(
     repo: Repository | undefined,
     message: PlatformSpecificClientToServerMessages,
-    postMessage: (message: ServerToClientMessage) => void
+    postMessage: (message: ServerToClientMessage) => void,
+    onDispose: (disapose: () => unknown) => void,
   ): void | Promise<void>;
 }
 
@@ -75,6 +76,10 @@ export const browserServerPlatform: ServerPlatform = {
             stdio: "ignore",
             windowsHide: false,
             windowsVerbatimArguments: true,
+          });
+          // Silent error. Don't crash the server process.
+          proc.on('error', err => {
+            repo?.logger.log('failed to open', path, err);
           });
           proc.unref();
         }

@@ -1,18 +1,18 @@
 import type {
+  ExportStack,
+  ImportedStack,
+} from "@withgraphite/gti-shared/types/stack";
+import type {
   ClientToServerMessage,
   ClientToServerMessageWithPayload,
   Disposable,
   FetchedCommits,
   FetchedUncommittedChanges,
-  MergeConflicts,
-  PlatformSpecificClientToServerMessages,
-  RepositoryError,
-  Result,
-  ServerToClientMessage,
 } from "@withgraphite/gti/src/types";
 import type { ClientConnection } from ".";
 import type { ServerSideTracker } from "./analytics/serverSideTracker";
-import type { Repository } from "./Repository";
+import type { Logger } from "./logger";
+import type { RepositoryReference } from "./RepositoryCache";
 import type { ServerPlatform } from "./serverPlatform";
 
 import { revsetArgsForComparison } from "@withgraphite/gti-shared/Comparison";
@@ -21,9 +21,18 @@ import {
   deserializeFromString,
   serializeToString,
 } from "@withgraphite/gti/src/serialize";
+import type {
+  MergeConflicts,
+  PlatformSpecificClientToServerMessages,
+  RepositoryError,
+  Result,
+  ServerToClientMessage,
+} from "@withgraphite/gti/src/types";
 import fs from "fs";
-import { absolutePathForFileInRepo } from "./Repository";
-import { findPublicAncestor } from "./utils";
+import { Readable } from "stream";
+import { absolutePathForFileInRepo, Repository } from "./Repository";
+import { repositoryCache } from "./RepositoryCache";
+import { findPublicAncestor, parseExecJson } from "./utils";
 
 type IncomingMessageWithPayload = ClientToServerMessageWithPayload;
 export type IncomingMessage = ClientToServerMessage;
@@ -31,6 +40,7 @@ export type OutgoingMessage = ServerToClientMessage;
 
 type GeneralMessage = IncomingMessage &
   (
+    | { type: "changeCwd" }
     | { type: "requestRepoInfo" }
     | { type: "requestApplicationInfo" }
     | { type: "fileBugReport" }
@@ -67,6 +77,7 @@ export default class ServerToClientAPI {
   /** Disposables that must be disposed whenever the current repo is changed */
   private repoDisposables: Array<Disposable> = [];
   private subscriptions = new Map<string, Disposable>();
+  private activeRepoRef: RepositoryReference | undefined;
 
   private queuedMessages: Array<IncomingMessage> = [];
   private currentState:
@@ -79,7 +90,8 @@ export default class ServerToClientAPI {
   constructor(
     private platform: ServerPlatform,
     private connection: ClientConnection,
-    private tracker: ServerSideTracker
+    private tracker: ServerSideTracker,
+    private logger: Logger
   ) {
     // messages with binary payloads are sent as two post calls. We first get the JSON message, then the binary payload,
     // which we will reconstruct together.
@@ -136,7 +148,7 @@ export default class ServerToClientAPI {
     );
   }
 
-  setRepoError(error: RepositoryError) {
+  private setRepoError(error: RepositoryError) {
     this.disposeRepoDisposables();
 
     this.currentState = { type: "error", error };
@@ -146,7 +158,7 @@ export default class ServerToClientAPI {
     this.processQueuedMessages();
   }
 
-  setCurrentRepo(repo: Repository, cwd: string) {
+  private setCurrentRepo(repo: Repository, cwd: string) {
     this.disposeRepoDisposables();
 
     this.currentState = { type: "repo", repo, cwd };
@@ -181,14 +193,45 @@ export default class ServerToClientAPI {
     void this.connection.postMessage(serializeToString(message));
   }
 
+  /** Get a repository reference for a given cwd, and set that as the active repo. */
+  setActiveRepoForCwd(newCwd: string) {
+    if (this.activeRepoRef !== undefined) {
+      this.activeRepoRef.unref();
+    }
+    this.logger.info(`Setting active repo cwd to ${newCwd}`);
+    // Set as loading right away while we determine the new cwd's repo
+    // This ensures new messages coming in will be queued and handled only with the new repository
+    this.currentState = { type: "loading" };
+    const command = this.connection.command ?? "sl";
+    this.activeRepoRef = repositoryCache.getOrCreate(
+      command,
+      this.logger,
+      newCwd
+    );
+    void this.activeRepoRef.promise.then((repoOrError) => {
+      if (repoOrError instanceof Repository) {
+        this.setCurrentRepo(repoOrError, newCwd);
+      } else {
+        this.setRepoError(repoOrError);
+      }
+    });
+  }
+
   dispose() {
     this.incomingListener.dispose();
     this.disposeRepoDisposables();
+
+    if (this.activeRepoRef !== undefined) {
+      this.activeRepoRef.unref();
+    }
   }
 
   private disposeRepoDisposables() {
     this.repoDisposables.forEach((disposable) => disposable.dispose());
     this.repoDisposables = [];
+
+    this.subscriptions.forEach((sub) => sub.dispose());
+    this.subscriptions.clear();
   }
 
   private processQueuedMessages() {
@@ -272,7 +315,10 @@ export default class ServerToClientAPI {
           void this.platform.handleMessageFromClient(
             /*repo=*/ undefined,
             data as PlatformSpecificClientToServerMessages,
-            (message) => this.postMessage(message)
+            (message) => this.postMessage(message),
+            (dispose: () => unknown) => {
+              this.repoDisposables.push({ dispose });
+            }
           );
           this.notifyListeners(data);
         }
@@ -287,6 +333,10 @@ export default class ServerToClientAPI {
     switch (data.type) {
       case "track": {
         this.tracker.trackData(data.data);
+        break;
+      }
+      case "changeCwd": {
+        this.setActiveRepoForCwd(data.cwd);
         break;
       }
       case "requestRepoInfo": {
@@ -316,12 +366,11 @@ export default class ServerToClientAPI {
         break;
       }
       case "fileBugReport": {
-        // @nocommit Do something here?
         // Internal.fileABug?.(
         //   data.data,
         //   data.uiState,
         //   this.tracker,
-        //   this.connection.logFileLocation,
+        //   this.logger,
         //   (progress: FileABugProgress) => {
         //     this.connection.logger?.info('file a bug progress: ', JSON.stringify(progress));
         //     this.postMessage({type: 'fileBugReportProgress', ...progress});
@@ -516,7 +565,6 @@ export default class ServerToClientAPI {
             "interactive",
             "diff",
             ...revsetArgsForComparison(comparison),
-            // don't include a/ and b/ prefixes on files
           ])
           .then((o) => ({ value: o.stdout }))
           .catch((error) => {
@@ -592,6 +640,20 @@ export default class ServerToClientAPI {
           });
         break;
       }
+      case "typeahead": {
+        // Current repo's code review provider should be able to handle all
+        // TypeaheadKinds for the fields in its defined schema.
+        void repo.codeReviewProvider
+          ?.typeahead?.(data.kind, data.query)
+          ?.then((result) =>
+            this.postMessage({
+              type: "typeaheadResult",
+              id: data.id,
+              result,
+            })
+          );
+        break;
+      }
       case "fetchDiffSummaries": {
         repo.codeReviewProvider?.triggerDiffSummariesFetch(
           repo.getAllDiffIds()
@@ -608,9 +670,54 @@ export default class ServerToClientAPI {
         });
         return;
       }
+      case "exportStack": {
+        const { revs, assumeTracked } = data;
+        const assumeTrackedArgs = (assumeTracked ?? []).map(
+          (path) => `--assume-tracked=${path}`
+        );
+        // @TODO
+        const exec = repo.runCommand([
+          "debugexportstack",
+          "-r",
+          revs,
+          ...assumeTrackedArgs,
+        ]);
+        const reply = (stack?: ExportStack, error?: string) => {
+          this.postMessage({
+            type: "exportedStack",
+            assumeTracked: assumeTracked ?? [],
+            revs,
+            stack: stack ?? [],
+            error,
+          });
+        };
+        parseExecJson(exec, reply);
+        break;
+      }
+      case "importStack": {
+        const stdinStream = Readable.from(JSON.stringify(data.stack));
+        // @TODO
+        const exec = repo.runCommand(["debugimportstack"], undefined, {
+          stdin: stdinStream,
+        });
+        const reply = (imported?: ImportedStack, error?: string) => {
+          this.postMessage({
+            type: "importedStack",
+            imported: imported ?? [],
+            error,
+          });
+        };
+        parseExecJson(exec, reply);
+        break;
+      }
       default: {
-        void this.platform.handleMessageFromClient(repo, data, (message) =>
-          this.postMessage(message)
+        void this.platform.handleMessageFromClient(
+          repo,
+          data,
+          (message) => this.postMessage(message),
+          (dispose: () => unknown) => {
+            this.repoDisposables.push({ dispose });
+          }
         );
         break;
       }

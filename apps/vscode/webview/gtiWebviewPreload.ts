@@ -1,4 +1,4 @@
-// This file is loaded before the rest of the ISL webview.
+// This file is loaded before the rest of the GTI webview.
 // We define global platform data here that the rest of the app can use
 
 import type { Platform } from "@withgraphite/gti/src/platform";

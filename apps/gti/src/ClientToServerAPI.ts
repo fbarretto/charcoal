@@ -112,6 +112,9 @@ class ClientToServerAPIImpl implements ClientToServerAPI {
     messageBus.postMessage(payload);
   }
 
+  /**
+   * Call a callback when a connection is established, or reestablished after a disconnection.
+   */
   onConnectOrReconnect(callback: () => (() => unknown) | unknown): () => void {
     let reconnecting = true;
     let disposeCallback: (() => unknown) | unknown = undefined;
@@ -128,6 +131,31 @@ class ClientToServerAPIImpl implements ClientToServerAPI {
     return () => {
       disposable.dispose();
       typeof disposeCallback === "function" && disposeCallback?.();
+    };
+  }
+
+  private cwdChangeHandlers: Array<() => unknown> = [];
+  onCwdChanged(cb: () => unknown) {
+    this.cwdChangeHandlers.push(cb);
+    return () => {
+      this.cwdChangeHandlers.splice(this.cwdChangeHandlers.indexOf(cb), 1);
+    };
+  }
+  cwdChanged() {
+    this.cwdChangeHandlers.forEach((handler) => handler());
+  }
+
+  /**
+   * Call a callback when a connection is established, or reestablished after a disconnection,
+   * or the current working directory (and therefore usually repository) changes.
+   */
+  onSetup(cb: () => (() => unknown) | unknown): () => void {
+    const disposeConnectionSubscription = this.onConnectOrReconnect(cb);
+    const disposeCwdChange = this.onCwdChanged(cb);
+
+    return () => {
+      disposeConnectionSubscription();
+      disposeCwdChange();
     };
   }
 }

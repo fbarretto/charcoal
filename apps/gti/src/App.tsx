@@ -1,31 +1,35 @@
-import type { AllDrawersState } from "@withgraphite/gti-shared/Drawers";
 import type { RepositoryError } from "./types";
 
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
+import React from "react";
 import { ContextMenus } from "@withgraphite/gti-shared/ContextMenu";
 import { Drawers } from "@withgraphite/gti-shared/Drawers";
 import { useThrottledEffect } from "@withgraphite/gti-shared/hooks";
 import { Icon } from "@withgraphite/gti-shared/Icon";
-import React from "react";
+import { tracker } from "./analytics";
 import { CommandHistoryAndProgress } from "./CommandHistoryAndProgress";
-import { CommitInfoSidebar } from "./CommitInfo";
+import { CommitInfoSidebar } from "./CommitInfoView/CommitInfoView";
 import { CommitTreeList } from "./CommitTreeList";
 import { ComparisonViewModal } from "./ComparisonView/ComparisonViewModal";
 import { EmptyState } from "./EmptyState";
 import { ErrorBoundary, ErrorNotice } from "./ErrorNotice";
-import { GTICommandContext, useCommand } from "./GTIShortcuts";
+import { GettingStartedModal } from "./gettingStarted/GettingStartedModal";
+import { useCommand } from "./GTIShortcuts";
 import platform from "./platform";
+import { useMainContentWidth } from "./responsive";
 import { repositoryInfo } from "./serverAPIState";
 import { ThemeRoot } from "./theme";
 import { TopBar } from "./TopBar";
 import { TopLevelErrors } from "./TopLevelErrors";
 import { ModalContainer } from "./useModal";
 
-import { action, observable } from "mobx";
-import { observer } from "mobx-react-lite";
-import { tracker } from "./analytics";
+import { GTICommandContext } from "./GTIShortcuts";
 import "./index.scss";
-import { getWindowWidthInPixels } from "./utils";
+
+import { action } from "mobx";
+import { observer } from "mobx-react-lite";
+import "./index.scss";
+import { gtiDrawerState } from "./drawerState";
 
 export default function App() {
   return (
@@ -38,6 +42,7 @@ export default function App() {
               className="tooltip-root-container"
               data-testid="tooltip-root-container"
             />
+            <GettingStartedModal />
             <ComparisonViewModal />
             <ModalContainer />
             <ContextMenus />
@@ -48,19 +53,6 @@ export default function App() {
   );
 }
 
-export const gtiDrawerState = observable.box<AllDrawersState>(
-  {
-    right: {
-      size: 500,
-      // Collapse by default on small screens.
-      collapsed: getWindowWidthInPixels() <= 500,
-    },
-    left: { size: 200, collapsed: true },
-    top: { size: 200, collapsed: true },
-    bottom: { size: 200, collapsed: true },
-  },
-  { deep: false }
-);
 const GTIDrawers = observer(() => {
   useCommand(
     "ToggleSidebar",
@@ -94,8 +86,10 @@ const GTIDrawers = observer(() => {
 const MainContent = observer(() => {
   const repoInfo = repositoryInfo.get();
 
+  const ref = useMainContentWidth();
+
   return (
-    <div className="main-content-area">
+    <div className="main-content-area" ref={ref}>
       <TopBar />
       <TopLevelErrors />
       {repoInfo != null && repoInfo.type !== "success" ? (

@@ -219,18 +219,16 @@ const ComparisonViewHeader = observer(
             <VSCodeDropdown
               data-testid="comparison-view-picker"
               value={comparison.type}
-              onChange={(event) =>
-                runInAction(() => {
-                  const previous = currentComparisonMode.get();
-                  currentComparisonMode.set({
-                    ...previous,
-                    comparison: {
-                      type: (event as React.FormEvent<HTMLSelectElement>)
-                        .currentTarget.value as (typeof defaultComparisons)[0],
-                    },
-                  });
-                })
-              }
+              onChange={(event) => {
+                const previous = currentComparisonMode.get();
+                currentComparisonMode.set({
+                  ...previous,
+                  comparison: {
+                    type: (event as React.FormEvent<HTMLSelectElement>)
+                      .currentTarget.value as (typeof defaultComparisons)[0],
+                  },
+                });
+              }}
             >
               {defaultComparisons.map((comparison) => (
                 <VSCodeOption value={comparison} key={comparison}>

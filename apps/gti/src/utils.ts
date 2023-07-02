@@ -1,3 +1,5 @@
+import type { Hash } from "./types";
+
 /**
  * Given a multi-line string, return the first line excluding '\n'.
  * If no newlines in the string, return the whole string.
@@ -10,7 +12,15 @@ export function firstOfIterable<T>(it: IterableIterator<T>): T | undefined {
   return it.next().value;
 }
 
-export function assert(shouldBeTrue: boolean, error: string): void {
+/** Get the short 12-character hash from a full hash. */
+export function short(hash: Hash): string {
+  return hash.slice(0, 12);
+}
+
+export function assert(
+  shouldBeTrue: boolean,
+  error: string
+): asserts shouldBeTrue {
   if (!shouldBeTrue) {
     throw new Error(error);
   }

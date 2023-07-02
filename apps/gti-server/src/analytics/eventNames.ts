@@ -19,9 +19,11 @@ export type TrackEventName =
   | "CreateEmptyInitialCommit"
   | "DiscardOperation"
   | "ForgetOperation"
+  | 'GettingStartedInteraction'
   | "GhStackSubmitOperation"
   | "GotoOperation"
   | "HideOperation"
+  | 'ImportStackOperation'
   | "PrSubmitOperation"
   | "PullOperation"
   | "PurgeOperation"
@@ -29,6 +31,8 @@ export type TrackEventName =
   | "ResolveOperation"
   | "RevertOperation"
   | "SetConfigOperation"
+  | 'ShowBugButtonNux'
+  | 'StackEditMetrics'
   | "UncommitOperation"
   | "OptimisticFilesStateForceResolved"
   | "OptimisticCommitsStateForceResolved"

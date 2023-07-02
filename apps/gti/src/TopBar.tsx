@@ -7,6 +7,7 @@ import { DOCUMENTATION_DELAY, Tooltip } from "./Tooltip";
 import { tracker } from "./analytics";
 import {
   haveCommitsLoadedYet,
+  haveRemotePath,
   isFetchingCommits,
   useClearAllOptimisticState,
 } from "./serverAPIState";
@@ -18,13 +19,14 @@ import { observer } from "mobx-react-lite";
 
 export const TopBar = observer(() => {
   const loaded = haveCommitsLoadedYet.get();
+  const canPush = haveRemotePath.get();
   if (!loaded) {
     return null;
   }
   return (
     <div className="top-bar">
       <span className="button-group">
-        <PullButton />
+        {canPush && <PullButton />}
         <CwdSelector />
         <FetchingDataIndicator />
       </span>

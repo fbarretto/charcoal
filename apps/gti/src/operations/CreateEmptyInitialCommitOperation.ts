@@ -8,12 +8,6 @@ export class CreateEmptyInitialCommitOperation extends Operation {
   }
 
   getArgs() {
-    return [
-      "commit",
-      "--config",
-      "ui.allowemptycommit=true",
-      "--message",
-      "Initial Commit",
-    ];
+    return ["interactive", "init"];
   }
 }

@@ -1,36 +1,41 @@
 import type { SuccessorInfo } from "./types";
+import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
 
-import { gtiDrawerState } from "./App";
-import { BranchIndicator } from "./CommitTreeList";
+import { BranchIndicator } from "./BranchIndicator";
+import { hasUnsavedEditedCommitMessage } from "./CommitInfoView/CommitInfoState";
+import { currentComparisonMode } from "./ComparisonView/atoms";
+import { highlightedCommits } from "./HighlightedCommits";
+import { InlineBadge } from "./InlineBadge";
 import { Tooltip } from "./Tooltip";
 import { UncommitButton } from "./UncommitButton";
 import { UncommittedChanges } from "./UncommittedChanges";
 import { DiffInfo } from "./codeReview/DiffBadge";
+import { gtiDrawerState } from "./drawerState";
 import { isDescendant } from "./getCommitTree";
 import { GotoOperation } from "./operations/GotoOperation";
 import { HideOperation } from "./operations/HideOperation";
 import { RebaseOperation } from "./operations/RebaseOperation";
 import platform from "./platform";
-import { CommitPreview, operationBeingPreviewed } from "./previews";
+import { CommitPreview } from "./previews";
 import { RelativeDate } from "./relativeDate";
+import { isNarrowCommitTree } from "./responsive";
 import { useCommitSelection } from "./selection";
 import {
   isFetchingUncommittedChanges,
   latestCommitTreeMap,
   latestUncommittedChanges,
+  operationBeingPreviewed,
   useRunOperation,
   useRunPreviewedOperation,
 } from "./serverAPIState";
-import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
+import { short } from "./utils";
+import { VSCodeButton, VSCodeTag } from "@vscode/webview-ui-toolkit/react";
 import React, { memo, useCallback } from "react";
+import { ComparisonType } from "@withgraphite/gti-shared/Comparison";
 import { useContextMenu } from "@withgraphite/gti-shared/ContextMenu";
 import { Icon } from "@withgraphite/gti-shared/Icon";
-import { runInAction } from "mobx";
-import { observer } from "mobx-react-lite";
-import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
-import { highlightedCommits } from "./HighlightedCommits";
 import { notEmpty } from "@withgraphite/gti-shared/utils";
-import { hasUnsavedEditedCommitMessage } from "./CommitInfoState";
+import { observer } from "mobx-react-lite";
 
 function isDraggablePreview(previewType?: CommitPreview): boolean {
   switch (previewType) {
@@ -38,22 +43,21 @@ function isDraggablePreview(previewType?: CommitPreview): boolean {
     // you probably meant to drag the root.
     case CommitPreview.REBASE_DESCENDANT:
     // old commits are already being dragged
-    // eslint-disable-next-line no-fallthrough
+    // eslint-disable-next-line
     case CommitPreview.REBASE_OLD:
     case CommitPreview.HIDDEN_ROOT:
     case CommitPreview.HIDDEN_DESCENDANT:
-    case CommitPreview.NON_ACTIONABLE_COMMIT:
       return false;
 
     // you CAN let go of the preview and drag it again
     case CommitPreview.REBASE_ROOT:
     // optimistic rebase commits act like normal, they can be dragged just fine
-    // eslint-disable-next-line no-fallthrough
+    // eslint-disable-next-line
     case CommitPreview.REBASE_OPTIMISTIC_DESCENDANT:
     case CommitPreview.REBASE_OPTIMISTIC_ROOT:
     case undefined:
     // other unrelated previews are draggable
-    // eslint-disable-next-line no-fallthrough
+    // eslint-disable-next-line
     default:
       return true;
   }
@@ -71,6 +75,7 @@ function previewPreventsActions(preview?: CommitPreview): boolean {
     case CommitPreview.REBASE_ROOT:
     case CommitPreview.HIDDEN_ROOT:
     case CommitPreview.HIDDEN_DESCENDANT:
+    case CommitPreview.NON_ACTIONABLE_COMMIT:
       return true;
   }
   return false;
@@ -96,6 +101,8 @@ export const Commit = memo(
       const { isSelected, onClickToSelect } = useCommitSelection(commit.branch);
       const actionsPrevented = previewPreventsActions(previewType);
 
+      const isNarrow = isNarrowCommitTree.get();
+
       const isNonActionable =
         previewType === CommitPreview.NON_ACTIONABLE_COMMIT;
 
@@ -105,51 +112,122 @@ export const Commit = memo(
           onClickToSelect(e);
         }
         // Show the drawer.
-        runInAction(() => {
-          const state = gtiDrawerState.get();
-          gtiDrawerState.set({
-            ...state,
-            right: {
-              ...state.right,
-              collapsed: false,
-            },
-          });
+        const state = gtiDrawerState.get();
+        gtiDrawerState.set({
+          ...state,
+          right: {
+            ...state.right,
+            collapsed: false,
+          },
         });
       }
 
+      const viewChangesCallback = useCallback(() => {
+        currentComparisonMode.set({
+          comparison: { type: ComparisonType.Committed, hash: commit.branch },
+          visible: true,
+        });
+      }, [commit, currentComparisonMode]);
+
       const contextMenu = useContextMenu(() => {
-        return [
+        const items = [
           {
-            label: <>Copy branch name "{commit?.branch}"</>,
+            label: <>Copy Commit Hash "{short(commit?.branch)}"</>,
             onClick: () => platform.clipboardCopy(commit.branch),
           },
-          {
-            label: <>Untrack branch and descendants</>,
+        ];
+        if (!isPublic) {
+          items.push({
+            label: <>View Changes in Commit</>,
+            onClick: viewChangesCallback,
+          });
+        }
+        if (!isPublic && !actionsPrevented) {
+          items.push({
+            label: <>Hide Commit and Descendents</>,
             onClick: () =>
               operationBeingPreviewed.set(new HideOperation(commit.branch)),
-          },
-        ];
+          });
+        }
+        return items;
       });
+
+      const commitActions = [];
+
+      if (previewType === CommitPreview.REBASE_ROOT) {
+        commitActions.push(
+          <React.Fragment key="rebase">
+            <VSCodeButton
+              appearance="secondary"
+              onClick={() => handlePreviewedOperation(/* cancel */ true)}
+            >
+              <>Cancel</>
+            </VSCodeButton>
+            <VSCodeButton
+              appearance="primary"
+              onClick={() => handlePreviewedOperation(/* cancel */ false)}
+            >
+              <>Run Rebase</>
+            </VSCodeButton>
+          </React.Fragment>
+        );
+      } else if (previewType === CommitPreview.HIDDEN_ROOT) {
+        commitActions.push(
+          <React.Fragment key="hide">
+            <VSCodeButton
+              appearance="secondary"
+              onClick={() => handlePreviewedOperation(/* cancel */ true)}
+            >
+              <>Cancel</>
+            </VSCodeButton>
+            <VSCodeButton
+              appearance="primary"
+              onClick={() => handlePreviewedOperation(/* cancel */ false)}
+            >
+              <>Hide</>
+            </VSCodeButton>
+          </React.Fragment>
+        );
+      }
+      if (!actionsPrevented && !commit.isHead) {
+        commitActions.push(
+          <span className="goto-button" key="goto-button">
+            <VSCodeButton
+              appearance="secondary"
+              onClick={(event) => {
+                runOperation(new GotoOperation(commit.branch));
+                event.stopPropagation(); // don't select commit
+              }}
+            >
+              <>Goto</> <Icon icon="arrow-right" />
+            </VSCodeButton>
+          </span>
+        );
+      }
+      if (!isPublic && !actionsPrevented && commit.isHead) {
+        commitActions.push(<UncommitButton key="uncommit" />);
+      }
 
       return (
         <div
           className={
             "commit" +
             (commit.isHead ? " head-commit" : "") +
-            (isHighlighted ? " highlighted" : "")
+            (isHighlighted ? " highlighted" : "") +
+            (isPublic || hasChildren ? "" : " topmost")
           }
           data-testid={`commit-${commit.branch}`}
         >
           {!isNonActionable &&
           (commit.isHead ||
             previewType === CommitPreview.GOTO_PREVIOUS_LOCATION) ? (
-            <HeadCommitInfo
+            <HeadBranchInfo
               commit={commit}
               previewType={previewType}
               hasChildren={hasChildren}
             />
           ) : null}
-          <div className="commit-rows">
+          <div className={"commit-rows" + (isNarrow ? " narrow" : "")}>
             {isSelected ? (
               <div
                 className="selected-commit-background"
@@ -168,70 +246,28 @@ export const Commit = memo(
               onDoubleClick={onDoubleClickToShowDrawer}
             >
               <div className="commit-avatar" />
-              <span className="commit-title">
-                <span>{commit.title || commit.branch}</span>
-                <CommitDate rawDate={commit.date} />
-              </span>
+              {isPublic ? null : (
+                <span className="commit-title">
+                  <span>{commit.title}</span>
+                  <CommitDate date={new Date(commit.date)} />
+                </span>
+              )}
               <UnsavedEditedMessageIndicator commit={commit} />
+              <VSCodeTag key={commit.branch}>{commit.branch}</VSCodeTag>
+              {isPublic ? <CommitDate date={new Date(commit.date)} /> : null}
               {previewType === CommitPreview.REBASE_OPTIMISTIC_ROOT ? (
                 <span className="commit-inline-operation-progress">
                   <Icon icon="loading" /> <>rebasing...</>
                 </span>
               ) : null}
-              {previewType === CommitPreview.REBASE_ROOT ? (
-                <>
-                  <VSCodeButton
-                    appearance="secondary"
-                    onClick={() => handlePreviewedOperation(/* cancel */ true)}
-                  >
-                    <>Cancel</>
-                  </VSCodeButton>
-                  <VSCodeButton
-                    appearance="primary"
-                    onClick={() => handlePreviewedOperation(/* cancel */ false)}
-                  >
-                    <>Run Rebase</>
-                  </VSCodeButton>
-                </>
-              ) : null}
-              {previewType === CommitPreview.HIDDEN_ROOT ? (
-                <>
-                  <VSCodeButton
-                    appearance="secondary"
-                    onClick={() => handlePreviewedOperation(/* cancel */ true)}
-                  >
-                    <>Cancel</>
-                  </VSCodeButton>
-                  <VSCodeButton
-                    appearance="primary"
-                    onClick={() => handlePreviewedOperation(/* cancel */ false)}
-                  >
-                    <>Hide</>
-                  </VSCodeButton>
-                </>
-              ) : null}
-              {actionsPrevented || commit.isHead ? null : (
-                <span className="goto-button">
-                  <VSCodeButton
-                    appearance="secondary"
-                    onClick={(event) => {
-                      runOperation(new GotoOperation(commit.branch));
-                      event.stopPropagation(); // don't select commit
-                    }}
-                  >
-                    <>Goto</> <Icon icon="arrow-right" />
-                  </VSCodeButton>
-                </span>
-              )}
-              {!isPublic && !actionsPrevented && commit.isHead ? (
-                <UncommitButton />
-              ) : null}
+              {isNarrow ? commitActions : null}
             </DraggableCommit>
             <DivIfChildren className="commit-second-row">
-              {commit.pr && !isPublic ? (
+              {commit.pr?.number && !isPublic ? (
                 <DiffInfo diffId={commit.pr.number} />
               ) : null}
             </DivIfChildren>
+            {!isNarrow ? commitActions : null}
           </div>
         </div>
       );
@@ -239,9 +275,7 @@ export const Commit = memo(
   )
 );
 
-function CommitDate({ rawDate }: { rawDate: string }) {
-  const date = new Date(rawDate);
-
+function CommitDate({ date }: { date: Date }) {
   return (
     <span className="commit-date">
       <RelativeDate date={date} useShortVariant />
@@ -249,23 +283,21 @@ function CommitDate({ rawDate }: { rawDate: string }) {
   );
 }
 
-const DivIfChildren = observer(
-  ({
-    children,
-    ...props
-  }: React.DetailedHTMLProps<
-    React.HTMLAttributes<HTMLDivElement>,
-    HTMLDivElement
-  >) => {
-    if (
-      !children ||
-      (Array.isArray(children) && children.filter(notEmpty).length === 0)
-    ) {
-      return null;
-    }
-    return <div {...props}>{children}</div>;
+function DivIfChildren({
+  children,
+  ...props
+}: React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+>) {
+  if (
+    !children ||
+    (Array.isArray(children) && children.filter(notEmpty).length === 0)
+  ) {
+    return null;
   }
-);
+  return <div {...props}>{children}</div>;
+}
 
 const UnsavedEditedMessageIndicator = observer(
   ({ commit }: { commit: BranchInfo }) => {
@@ -286,7 +318,7 @@ const UnsavedEditedMessageIndicator = observer(
   }
 );
 
-const HeadCommitInfo = observer(
+const HeadBranchInfo = observer(
   ({
     commit,
     previewType,
@@ -345,7 +377,6 @@ export const YouAreHere = observer(
         break;
       case CommitPreview.GOTO_PREVIOUS_LOCATION:
         text = <>You were here...</>;
-        spinner = true;
         break;
       default:
         text = <>You are here</>;
@@ -353,11 +384,15 @@ export const YouAreHere = observer(
     }
     return (
       <div className="you-are-here-container">
-        <span className="you-are-here">
+        <InlineBadge kind="primary">
           {spinner ? <Icon icon="loading" /> : null}
           {text}
-        </span>
-        {isFetching ? <Icon icon="loading" /> : null}
+        </InlineBadge>
+        {isFetching &&
+        // don't show fetch spinner on previous location
+        previewType !== CommitPreview.GOTO_PREVIOUS_LOCATION ? (
+          <Icon icon="loading" />
+        ) : null}
       </div>
     );
   }
@@ -378,98 +413,94 @@ function handleDragEnd(event: Event) {
   document.removeEventListener("dragover", preventDefault);
 }
 
-const DraggableCommit = observer(
-  ({
-    commit,
-    children,
-    className,
-    draggable,
-    onClick,
-    onDoubleClick,
-    onContextMenu,
-  }: {
-    commit: BranchInfo;
-    children: React.ReactNode;
-    className: string;
-    draggable: boolean;
-    onClick?: (
-      e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>
-    ) => unknown;
-    onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => unknown;
-    onContextMenu?: React.MouseEventHandler<HTMLDivElement>;
-  }) => {
-    const handleDragEnter = useCallback(() => {
-      const treeMap = latestCommitTreeMap.get();
+function DraggableCommit({
+  commit,
+  children,
+  className,
+  draggable,
+  onClick,
+  onDoubleClick,
+  onContextMenu,
+}: {
+  commit: BranchInfo;
+  children: React.ReactNode;
+  className: string;
+  draggable: boolean;
+  onClick?: (
+    e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>
+  ) => unknown;
+  onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => unknown;
+  onContextMenu?: React.MouseEventHandler<HTMLDivElement>;
+}) {
+  const handleDragEnter = useCallback(() => {
+    const treeMap = latestCommitTreeMap.get();
 
-      if (
-        commitBeingDragged != null &&
-        commit.branch !== commitBeingDragged.branch
-      ) {
-        const draggedTree = treeMap.get(commitBeingDragged.branch);
-        if (draggedTree) {
-          if (
-            // can't rebase a commit onto its descendants
-            !isDescendant(commit.branch, draggedTree) &&
-            // can't rebase a commit onto its parent... it's already there!
-            !(commitBeingDragged.parents as Array<string>).includes(
-              commit.branch
-            )
-          ) {
-            // if the dest commit has a remote bookmark, use that instead of the hash.
-            // this is easier to understand in the command history and works better with optimistic state
-            const destination = commit.branch;
-            operationBeingPreviewed.set(
-              new RebaseOperation(commitBeingDragged.branch, destination)
-            );
-          }
+    if (
+      commitBeingDragged != null &&
+      commit.branch !== commitBeingDragged.branch
+    ) {
+      const draggedTree = treeMap.get(commitBeingDragged.branch);
+      if (draggedTree) {
+        if (
+          // can't rebase a commit onto its descendants
+          !isDescendant(commit.branch, draggedTree) &&
+          // can't rebase a commit onto its parent... it's already there!
+          !(commitBeingDragged.parents as Array<string>).includes(commit.branch)
+        ) {
+          // if the dest commit has a remote bookmark, use that instead of the hash.
+          // this is easier to understand in the command history and works better with optimistic state
+          const destination = commit.branch;
+          operationBeingPreviewed.set(
+            new RebaseOperation(commitBeingDragged.branch, destination)
+          );
         }
       }
-    }, [commit]);
+    }
+  }, [commit]);
 
-    const handleDragStart = useCallback(
-      (event: React.DragEvent<HTMLDivElement>) => {
-        // can't rebase with uncommitted changes
-        const loadable = latestUncommittedChanges.get();
-        const hasUncommittedChanges = loadable.length > 0;
+  const handleDragStart = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      // can't rebase with uncommitted changes
+      const loadable = latestUncommittedChanges.get();
+      const hasUncommittedChanges = loadable.length > 0;
 
-        if (hasUncommittedChanges) {
-          event.preventDefault();
+      if (hasUncommittedChanges) {
+        event.preventDefault();
+      }
+
+      commitBeingDragged = commit;
+      event.dataTransfer.dropEffect = "none";
+
+      const draggedDOMNode = event.target;
+      // prevent animation of commit returning to drag start location on drop
+      draggedDOMNode.addEventListener("dragend", handleDragEnd);
+      document.addEventListener("drop", preventDefault);
+      document.addEventListener("dragover", preventDefault);
+    },
+    [commit]
+  );
+
+  return (
+    <div
+      className={className}
+      onDragStart={handleDragStart}
+      onDragEnter={handleDragEnter}
+      draggable={draggable}
+      onClick={onClick}
+      onDoubleClick={onDoubleClick}
+      onKeyPress={(event) => {
+        if (event.key === "Enter") {
+          onClick?.(event);
         }
-
-        commitBeingDragged = commit;
-        event.dataTransfer.dropEffect = "none";
-
-        const draggedDOMNode = event.target;
-        // prevent animation of commit returning to drag start location on drop
-        draggedDOMNode.addEventListener("dragend", handleDragEnd);
-        document.addEventListener("drop", preventDefault);
-        document.addEventListener("dragover", preventDefault);
-      },
-      [commit]
-    );
-
-    return (
-      <div
-        className={className}
-        onDragStart={handleDragStart}
-        onDragEnter={handleDragEnter}
-        draggable={draggable}
-        onClick={onClick}
-        onDoubleClick={onDoubleClick}
-        onKeyPress={(event) => {
-          if (event.key === "Enter") {
-            onClick?.(event);
-          }
-        }}
-        onContextMenu={onContextMenu}
-        tabIndex={0}
-        data-testid={"draggable-commit"}
-      >
-        {children}
-      </div>
-    );
-  }
-);
+      }}
+      onContextMenu={onContextMenu}
+      tabIndex={0}
+      data-testid={"draggable-commit"}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function SuccessorInfoToDisplay({
   successorInfo,
@@ -481,16 +512,16 @@ export function SuccessorInfoToDisplay({
     case "pushrebase":
       return <>Landed as a newer commit</>;
     case "amend":
-      return <>Amended as a newer commit'</>;
+      return <>Amended as a newer commit</>;
     case "rebase":
-      return <>Rebased as a newer commit'</>;
+      return <>Rebased as a newer commit</>;
     case "split":
-      return <>Split as a newer commit'</>;
+      return <>Split as a newer commit</>;
     case "fold":
-      return <>Folded as a newer commit'</>;
+      return <>Folded as a newer commit</>;
     case "histedit":
-      return <>Histedited as a newer commit'</>;
+      return <>Histedited as a newer commit</>;
     default:
-      return <>Rewritten as a newer commit'</>;
+      return <>Rewritten as a newer commi'</>;
   }
 }

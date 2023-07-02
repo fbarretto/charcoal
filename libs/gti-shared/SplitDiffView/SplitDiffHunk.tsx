@@ -133,7 +133,7 @@ export const SplitDiffTable = React.memo(
             }}
           >
             <UnfoldIcon size={16} />
-            <Text paddingX={4}>{t("Show deleted file")}</Text>
+            <Text paddingX={4}>{"Show deleted file"}</Text>
             <UnfoldIcon size={16} />
           </Box>
         </SeparatorRow>
@@ -310,7 +310,6 @@ function createIntralineDiff(
 function HunkSeparator({
   numLines,
   onExpand,
-  t,
 }: {
   numLines: number;
   onExpand: () => unknown;
@@ -322,8 +321,7 @@ function HunkSeparator({
   // TODO: Ensure numLines is never below a certain threshold: it takes up more
   // space to display the separator than it does to display the text (though
   // admittedly fetching the collapsed text is an async operation).
-  const label =
-    numLines === 1 ? t("Expand 1 line") : t(`Expand ${numLines} lines`);
+  const label = numLines === 1 ? "Expand 1 line" : `Expand ${numLines} lines`;
   return (
     <SeparatorRow>
       <Box
@@ -363,7 +361,6 @@ const ExpandingSeparator = observer(
     range,
     beforeLineStart,
     afterLineStart,
-    t,
   }: ExpandingSeparatorProps<string | number>): React.ReactElement => {
     const loadable = ctx.atoms.lineRange(range).get();
     switch (loadable.state) {
@@ -393,7 +390,7 @@ const ExpandingSeparator = observer(
             >
               <Box display="flex" alignItems="center">
                 <Spinner size="small" />
-                <Text marginLeft={2}>{t("Loading...")}</Text>
+                <Text marginLeft={2}>{"Loading..."}</Text>
               </Box>
             </Box>
           </SeparatorRow>
@@ -411,7 +408,7 @@ const ExpandingSeparator = observer(
             >
               <Box display="flex" alignItems="center">
                 <Text>
-                  {t("Error:")} {(loadable.value as Error).message}
+                  {"Error:"} {(loadable.value as Error).message}
                 </Text>
               </Box>
             </Box>

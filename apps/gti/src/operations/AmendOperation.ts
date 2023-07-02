@@ -1,5 +1,4 @@
 import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
-import type { EditedMessage } from "../CommitInfo";
 import type {
   ApplyPreviewsFuncType,
   ApplyUncommittedChangesPreviewsFuncType,
@@ -20,7 +19,7 @@ export class AmendOperation extends Operation {
      * unused
      */
     private filePathsToAmend?: Array<RepoRelativePath>,
-    private message?: EditedMessage
+    private message?: string
   ) {
     super("AmendOperation");
   }
@@ -66,10 +65,9 @@ export class AmendOperation extends Operation {
     if (this.message == null) {
       return undefined;
     }
-    if (
-      head?.title === this.message.title &&
-      head?.description === this.message.description
-    ) {
+    const [title] = this.message.split(/\n+/, 1);
+    const description = this.message.slice(title.length);
+    if (head?.title === title && head?.description === description) {
       // amend succeeded when the message is what we asked for
       return undefined;
     }
@@ -87,8 +85,8 @@ export class AmendOperation extends Operation {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           info: {
             ...tree.info,
-            title: this.message.title,
-            description: this.message.description,
+            title,
+            description: description ?? "",
           },
           children: tree.children,
         };

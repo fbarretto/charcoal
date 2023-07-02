@@ -1,52 +1,52 @@
-import type { CodeReviewProvider } from "./CodeReviewProvider";
-import type { Logger } from "./logger";
 import type {
-  Disposable,
-  CommandArg,
-  SmartlogCommits,
-  SuccessorInfo,
-  RepoInfo,
-  OperationCommandProgressReporter,
   AbsolutePath,
-  RunnableOperation,
-  OperationProgress,
-  PageVisibility,
-  MergeConflicts,
-  ValidatedRepoInfo,
   CodeReviewSystem,
+  CommandArg,
+  Disposable,
   FetchedCommits,
   FetchedUncommittedChanges,
+  MergeConflicts,
+  OperationCommandProgressReporter,
+  OperationProgress,
+  PageVisibility,
+  RepoInfo,
+  RunnableOperation,
+  SmartlogCommits,
+  SuccessorInfo,
+  ValidatedRepoInfo,
 } from "@withgraphite/gti/src/types";
+import type { CodeReviewProvider } from "./CodeReviewProvider";
+import type { Logger } from "./logger";
 
-import { OperationQueue } from "./OperationQueue";
-import { PageFocusTracker } from "./PageFocusTracker";
-import { WatchForChanges } from "./WatchForChanges";
-import {
-  DEFAULT_DAYS_OF_COMMITS_TO_LOAD,
-  ErrorShortMessages,
-} from "./constants";
-import { GitHubCodeReviewProvider } from "./github/githubCodeReviewProvider";
-import { handleAbortSignalOnProcess, serializeAsyncCall } from "./utils";
-import execa from "execa";
-import { CommandRunner } from "@withgraphite/gti/src/types";
-import os from "os";
-import path, { relative } from "path";
-import { RateLimiter } from "@withgraphite/gti-shared/RateLimiter";
-import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
-import { exists } from "@withgraphite/gti-shared/fs";
-import { removeLeadingPathSep } from "@withgraphite/gti-shared/pathUtils";
-import { notEmpty, unwrap } from "@withgraphite/gti-shared/utils";
 import type {
   BranchInfo,
   PRNumber,
   RepoRelativePath,
   Status,
 } from "@withgraphite/gti-cli-shared-types";
-import type { ServerSideTracker } from "./analytics/serverSideTracker";
 import {
   Comparison,
   ComparisonType,
 } from "@withgraphite/gti-shared/Comparison";
+import { exists } from "@withgraphite/gti-shared/fs";
+import { removeLeadingPathSep } from "@withgraphite/gti-shared/pathUtils";
+import { RateLimiter } from "@withgraphite/gti-shared/RateLimiter";
+import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
+import { notEmpty, unwrap } from "@withgraphite/gti-shared/utils";
+import { CommandRunner } from "@withgraphite/gti/src/types";
+import execa from "execa";
+import os from "os";
+import path from "path";
+import type { ServerSideTracker } from "./analytics/serverSideTracker";
+import {
+  DEFAULT_DAYS_OF_COMMITS_TO_LOAD,
+  ErrorShortMessages,
+} from "./constants";
+import { GitHubCodeReviewProvider } from "./github/githubCodeReviewProvider";
+import { OperationQueue } from "./OperationQueue";
+import { PageFocusTracker } from "./PageFocusTracker";
+import { handleAbortSignalOnProcess, serializeAsyncCall } from "./utils";
+import { WatchForChanges } from "./WatchForChanges";
 
 export const COMMIT_END_MARK = "<<COMMIT_END_MARK>>";
 export const NULL_CHAR = "\0";
@@ -318,46 +318,23 @@ export class Repository {
       this.mergeConflictsEmitter.emit("change", this.mergeConflicts);
       return;
     }
-    const previousConflicts = this.mergeConflicts;
 
-    if (!output.conflicts) {
-      this.logger.info(`repo IS NOT in merge conflicts`);
-      this.mergeConflicts = undefined;
-      this.mergeConflictsEmitter.emit("change", this.mergeConflicts);
-    } else {
-      const newConflicts = output.files.filter((file) => file.status === "U");
-      const conflicts: MergeConflicts = {
-        state: "loaded",
-        files: [],
-        fetchStartTimestamp,
-        fetchCompletedTimestamp: Date.now(),
-      };
-      if (
-        previousConflicts?.files != null &&
-        previousConflicts.files.length > 0
-      ) {
-        // we saw conflicts before, some of which might now be resolved. Preserve previous ordering.
-        const newConflictSet = new Set(
-          newConflicts.map((conflict) => conflict.path)
-        );
-        conflicts.files = previousConflicts.files.map((conflict) =>
-          newConflictSet.has(conflict.path)
-            ? { path: conflict.path, status: "U" }
-            : // 'R' is overloaded to mean "removed" for `gt status` but 'Resolved' for `gt resolve --list`
-              // let's re-write this to make the UI layer simpler.
-              { path: conflict.path, status: "Resolved" }
-        );
-      } else {
-        conflicts.files = newConflicts.map((conflict) => ({
-          path: conflict.path,
-          status: "U",
-        }));
-      }
-      this.mergeConflicts = conflicts;
-    }
+    this.mergeConflicts = computeNewConflicts(
+      this.mergeConflicts,
+      output,
+      fetchStartTimestamp
+    );
     this.logger.info(
       `repo ${this.mergeConflicts ? "IS" : "IS NOT"} in merge conflicts`
     );
+    if (this.mergeConflicts) {
+      const maxConflictsToLog = 20;
+      const remainingConflicts = (this.mergeConflicts.files ?? [])
+        .filter((conflict) => conflict.status === "U")
+        .map((conflict) => conflict.path)
+        .slice(0, maxConflictsToLog);
+      this.logger.info("remaining files with conflicts: ", remainingConflicts);
+    }
     this.mergeConflictsEmitter.emit("change", this.mergeConflicts);
   });
 
@@ -495,17 +472,19 @@ export class Repository {
     operation: {
       id: string;
       args: Array<CommandArg>;
+      stdin?: string;
     },
     onProgress: OperationCommandProgressReporter,
     cwd: string,
     signal: AbortSignal
   ): Promise<void> {
     const cwdRelativeArgs = this.normalizeOperationArgs(cwd, operation.args);
-
+    const { stdin } = operation;
     const { command, args, options } = getExecParams(
       this.info.command,
       cwdRelativeArgs,
-      cwd
+      cwd,
+      stdin ? { input: stdin } : undefined
     );
 
     this.logger.log("run operation: ", command, cwdRelativeArgs.join(" "));
@@ -934,6 +913,7 @@ export function parseSuccessorData(
  * in various formats:
  * https://github.com/owner/repo
  * https://github.com/owner/repo.git
+ * github.com/owner/repo.git
  * git@github.com:owner/repo.git
  * ssh:git@github.com:owner/repo.git
  * ssh://git@github.com/owner/repo.git
@@ -946,7 +926,7 @@ export function extractRepoInfoFromUrl(
   url: string
 ): { repo: string; owner: string; hostname: string } | null {
   const match =
-    /(?:https:\/\/(.*)\/|(?:git\+ssh:\/\/|ssh:\/\/)?git@([^:/]*)[:/])([^/]+)\/(.+?)(?:\.git)?$/.exec(
+    /(?:https:\/\/(.*)\/|(?:git\+ssh:\/\/|ssh:\/\/)?(?:git@)?([^:/]*)[:/])([^/]+)\/(.+?)(?:\.git)?$/.exec(
       url
     );
 
@@ -1010,4 +990,45 @@ async function isGithubEnterprise(hostname: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+function computeNewConflicts(
+  previousConflicts: MergeConflicts,
+  commandOutput: Status,
+  fetchStartTimestamp: number
+): MergeConflicts | undefined {
+  const newConflictData = commandOutput;
+  if (!newConflictData?.conflicts) {
+    return undefined;
+  }
+
+  const newConflicts = newConflictData.files.filter(
+    (file) => file.status === "U"
+  );
+  const conflicts: MergeConflicts = {
+    state: "loaded",
+    files: [],
+    fetchStartTimestamp,
+    fetchCompletedTimestamp: Date.now(),
+  };
+  if (previousConflicts?.files != null && previousConflicts.files.length > 0) {
+    // we saw conflicts before, some of which might now be resolved. Preserve previous ordering.
+    const newConflictSet = new Set(
+      newConflicts.map((conflict) => conflict.path)
+    );
+    conflicts.files = previousConflicts.files.map((conflict) =>
+      newConflictSet.has(conflict.path)
+        ? { path: conflict.path, status: "U" }
+        : // 'R' is overloaded to mean "removed" for `gt status` but 'Resolved' for `gt resolve --list`
+          // let's re-write this to make the UI layer simpler.
+          { path: conflict.path, status: "Resolved" }
+    );
+  } else {
+    conflicts.files = newConflicts.map((conflict) => ({
+      path: conflict.path,
+      status: "U",
+    }));
+  }
+
+  return conflicts;
 }

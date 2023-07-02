@@ -1,9 +1,11 @@
 import type { Comparison } from "@withgraphite/gti-shared/Comparison";
 
-import { currentComparisonMode } from "./atoms";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { ComparisonType } from "@withgraphite/gti-shared/Comparison";
 import { Icon } from "@withgraphite/gti-shared/Icon";
+import { currentComparisonMode } from "./atoms";
+
+import { short } from "../utils";
 
 export function OpenComparisonViewButton({
   comparison,
@@ -33,6 +35,6 @@ function buttonLabelForComparison(comparison: Comparison): string {
     case ComparisonType.StackChanges:
       return "View Stack Changes";
     case ComparisonType.Committed:
-      return `View Changes in ${comparison.hash}`;
+      return `View Changes in ${short(comparison.hash)}`;
   }
 }

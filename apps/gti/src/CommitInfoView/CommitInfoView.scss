@@ -61,7 +61,7 @@
   margin: calc(-1 * var(--halfpad));
 }
 
-.commit-info-rendered-description {
+.commit-info-rendered-field {
   cursor: pointer;
   white-space: pre-wrap;
   margin: calc(-1 * var(--pad));
@@ -71,7 +71,21 @@
   padding: var(--pad);
 }
 
-.commit-info-rendered-description:hover {
+.commit-info-rendered-textarea {
+  cursor: pointer;
+  white-space: pre-wrap;
+  transition: background-color 0.1s;
+  border-radius: var(--pad);
+  padding: var(--pad);
+}
+
+.commit-info-section .see-more-container {
+  margin: calc(-1 * var(--pad));
+  margin-bottom: var(--pad);
+}
+
+.commit-info-rendered-textarea:hover,
+.commit-info-rendered-field:hover {
   background: var(--tooltip-background);
 }
 
@@ -129,9 +143,11 @@
   display: flex;
 }
 .commit-info-rendered-title:focus-within .hover-edit-button,
-.commit-info-rendered-description:focus-within .hover-edit-button,
+.commit-info-rendered-field:focus-within .hover-edit-button,
+.commit-info-rendered-textarea:focus-within .hover-edit-button,
 .commit-info-rendered-title:hover .hover-edit-button,
-.commit-info-rendered-description:hover .hover-edit-button {
+.commit-info-rendered-field:hover .hover-edit-button,
+.commit-info-rendered-textarea:hover .hover-edit-button {
   opacity: 1;
 }
 
@@ -225,6 +241,103 @@
 }
 .text-area-toolbar .choose-file {
   display: none;
+}
+
+.commit-info-tokenized-field {
+  position: relative;
+  display: flex;
+  gap: var(--halfpad);
+  align-items: center;
+  flex-wrap: wrap;
+  padding: var(--halfpad) 0;
+  --token-height: 26px;
+}
+.commit-info-tokenized-field vscode-text-field {
+  margin: 0;
+}
+
+.commit-info-field-with-typeahead {
+  flex-grow: 1;
+  min-width: 30px;
+  position: relative;
+  height: var(--token-height);
+}
+
+.commit-info-tokenized-field .token {
+  padding: 0;
+  background-color: var(--tooltip-background);
+  padding-left: var(--pad);
+  padding-right: 1px;
+  border: 1px solid var(--tooltip-border);
+  display: flex;
+  align-items: center;
+  gap: var(--halfpad);
+  min-height: calc(var(--token-height) - 2px);
+}
+
+.commit-info-tokenized-field .typeahead-suggestions {
+  position: absolute;
+  top: calc(100% + var(--halfpad));
+  max-width: 250px;
+  min-width: 250px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pad);
+}
+
+.commit-info-tokenized-field:not(:focus-within) .typeahead-suggestions {
+  display: none;
+}
+
+.commit-info-tokenized-field .typeahead-suggestions .suggestion {
+  --typeahead-img-size: 30px;
+  display: flex;
+  flex-direction: row;
+  gap: var(--pad);
+  align-items: center;
+  border-radius: var(--halfpad);
+  padding: var(--halfpad);
+  margin: calc(-1 * var(--halfpad));
+  cursor: pointer;
+}
+
+.commit-info-tokenized-field .typeahead-suggestions .suggestion:hover,
+.commit-info-tokenized-field .typeahead-suggestions .selected-suggestion {
+  background-color: var(--hover-darken);
+}
+.commit-info-tokenized-field .typeahead-suggestions .suggestion-label {
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: break-word;
+  max-width: calc(100% - var(--typeahead-img-size));
+}
+
+.commit-info-tokenized-field .typeahead-suggestions img {
+  width: var(--typeahead-img-size);
+  height: var(--typeahead-img-size);
+  min-width: var(--typeahead-img-size);
+  border-radius: 100%;
+  position: relative;
+  background: linear-gradient(45deg, var(--background), var(--foreground));
+}
+
+.commit-info-tokenized-field .typeahead-suggestions img::before {
+  /* fallback if the image URL doesn't load */
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  line-height: var(--typeahead-img-size);
+  background: linear-gradient(45deg, var(--background), var(--foreground));
+  text-align: center;
+  border-radius: 100%;
+  display: block;
+  width: var(--typeahead-img-size);
+  height: var(--typeahead-img-size);
+  overflow: hidden;
 }
 
 .upload-status {

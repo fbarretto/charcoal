@@ -1,43 +1,68 @@
 import type { Operation } from "./operations/Operation";
 import type { ValidatedRepoInfo } from "./types";
 
+import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
+import { Icon } from "@withgraphite/gti-shared/Icon";
+import { truncate } from "@withgraphite/gti-shared/utils";
+import { observer } from "mobx-react-lite";
+import "./CommandHistoryAndProgress.scss";
 import { Delayed } from "./Delayed";
-import { Tooltip } from "./Tooltip";
 import {
   operationList,
   queuedOperations,
   repositoryInfo,
   useAbortRunningOperation,
 } from "./serverAPIState";
+import { Tooltip } from "./Tooltip";
 import { CommandRunner } from "./types";
-import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import "./CommandHistoryAndProgress.scss";
-import { observer } from "mobx-react-lite";
+import { short } from "./utils";
 
-function displayOperationArgs(info: ValidatedRepoInfo, operation: Operation) {
+function OperationDescription(props: {
+  info: ValidatedRepoInfo;
+  operation: Operation;
+  className?: string;
+  long?: boolean;
+}): React.ReactElement {
+  const { info, operation, className } = props;
+  const desc = operation.getDescriptionForDisplay();
+
+  if (desc?.description) {
+    return <span className={className}>{desc.description}</span>;
+  }
+
   const commandName =
     operation.runner === CommandRunner.Graphite
       ? /[^\\/]+$/.exec(info.command)?.[0] ?? "gt"
       : // TODO: we currently don't know the command name when it's not graphite
         "";
   return (
-    commandName +
-    " " +
-    operation
-      .getArgs()
-      .map((arg) => {
-        if (typeof arg === "object") {
-          switch (arg.type) {
-            case "repo-relative-file":
-              return arg.path;
-            case "succeedable-revset":
-              return arg.revset;
-          }
-        }
-        return arg;
-      })
-      .join(" ")
+    <code className={className}>
+      {commandName +
+        " " +
+        operation
+          .getArgs()
+          .map((arg) => {
+            if (typeof arg === "object") {
+              switch (arg.type) {
+                case "repo-relative-file":
+                  return arg.path;
+                case "succeedable-revset":
+                  return props.long
+                    ? arg.revset
+                    : // truncate full commit hashes to short representation visually
+                    // revset could also be a remote bookmark, so only do this if it looks like a hash
+                    /[a-z0-9]{40}/.test(arg.revset)
+                    ? short(arg.revset)
+                    : arg.revset;
+              }
+            }
+            if (/\s/.test(arg)) {
+              return `"${props.long ? arg : truncate(arg, 30)}"`;
+            }
+            return arg;
+          })
+          .join(" ")}
+    </code>
   );
 }
 
@@ -56,9 +81,13 @@ export const CommandHistoryAndProgress = observer(() => {
     return null;
   }
 
-  const commandForDisplay = displayOperationArgs(info, progress.operation);
+  const desc = progress.operation.getDescriptionForDisplay();
   const command = (
-    <code className="progress-container-command">{commandForDisplay}</code>
+    <OperationDescription
+      info={info}
+      operation={progress.operation}
+      className="progress-container-command"
+    />
   );
 
   let label;
@@ -66,9 +95,9 @@ export const CommandHistoryAndProgress = observer(() => {
   let abort = null;
   let showLastLineOfOutput = false;
   if (progress.exitCode == null) {
-    label = <>Running {command}</>;
+    label = desc?.description ? command : <>Running {command}</>;
     icon = <Icon icon="loading" />;
-    showLastLineOfOutput = true;
+    showLastLineOfOutput = desc?.tooltip == null;
     // Only show "Abort" for slow commands, since "Abort" might leave modified
     // files or pending commits around.
     const slowThreshold = 10000;
@@ -111,14 +140,22 @@ export const CommandHistoryAndProgress = observer(() => {
       <Tooltip
         component={() => (
           <div className="progress-command-tooltip">
-            <div className="progress-command-tooltip-command">
-              <strong>Command: </strong>
-              {commandForDisplay}
-            </div>
-            <br />
-            <b>Command output:</b>
-            <br />
-            <pre>{progress.commandOutput?.join("") || "No output"}</pre>
+            {desc?.tooltip || (
+              <>
+                <div className="progress-command-tooltip-command">
+                  <strong>Command: </strong>
+                  <OperationDescription
+                    info={info}
+                    operation={progress.operation}
+                    long
+                  />
+                </div>
+                <br />
+                <b>Command output:</b>
+                <br />
+                <pre>{progress.commandOutput?.join("") || "No output"}</pre>
+              </>
+            )}
           </div>
         )}
       >
@@ -130,7 +167,7 @@ export const CommandHistoryAndProgress = observer(() => {
             <strong>Next to run</strong>
             {queued.map((op) => (
               <div key={op.id} id={op.id} className="queued-operation">
-                <code>{displayOperationArgs(info, op)}</code>
+                <OperationDescription info={info} operation={op} />
               </div>
             ))}
           </div>

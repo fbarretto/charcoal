@@ -1,12 +1,11 @@
 import type { BranchName } from "@withgraphite/gti-cli-shared-types";
-import type { EditedMessage } from "../CommitInfo";
 import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
 import type { CommandArg } from "../types";
 
 import { Operation } from "./Operation";
 
 export class AmendMessageOperation extends Operation {
-  constructor(private branch: BranchName, private message: EditedMessage) {
+  constructor(private branch: BranchName, private message: string) {
     super("AmendMessageOperation");
   }
 
@@ -18,9 +17,7 @@ export class AmendMessageOperation extends Operation {
       "metaedit",
       this.branch,
       "--title",
-      this.message.title,
-      "--body",
-      this.message.description,
+      this.message,
     ];
     return args;
   }
@@ -35,14 +32,17 @@ export class AmendMessageOperation extends Operation {
       return undefined;
     }
 
+    const [title] = this.message.split(/\n+/, 1);
+    const description = this.message.slice(title.length);
+
     const func: ApplyPreviewsFuncType = (tree, _previewType) => {
       if (tree.info.branch === this.branch) {
         // use fake title/description on the changed commit
         return {
           info: {
             ...tree.info,
-            title: this.message.title,
-            description: this.message.description,
+            title,
+            description: description ?? "",
           },
           children: tree.children,
         };

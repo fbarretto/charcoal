@@ -98,3 +98,45 @@ export function mapObject<
     (Object.entries(o) as Array<[K1, V1]>).map(func)
   ) as Record<K2, V2>;
 }
+
+/**
+ * Test if a generator yields the given value.
+ * `value` can be either a value to test equality, or a function to customize the equality test.
+ */
+export function generatorContains<V>(
+  gen: IterableIterator<V>,
+  value: V | ((v: V) => boolean),
+): boolean {
+  const test = typeof value === 'function' ? (value as (v: V) => boolean) : (v: V) => v === value;
+  for (const v of gen) {
+    if (test(v)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Zip 2 iterators.
+ */
+export function* zip<T, U>(iter1: Iterable<T>, iter2: Iterable<U>): IterableIterator<[T, U]> {
+  const iterator1 = iter1[Symbol.iterator]();
+  const iterator2 = iter2[Symbol.iterator]();
+  while (true) {
+    const result1 = iterator1.next();
+    const result2 = iterator2.next();
+    if (result1.done || result2.done) {
+      break;
+    }
+    yield [result1.value, result2.value];
+  }
+}
+
+/** Truncate a long string. */
+export function truncate(text: string, maxLength = 100): string {
+  return text.length > maxLength ? text.substring(0, Math.max(0, maxLength - 1)) + '…' : text;
+}
+
+export function isPromise<T>(o: unknown): o is Promise<T> {
+  return typeof (o as {then?: () => void})?.then === 'function';
+}

@@ -1,8 +1,4 @@
-import type {
-  BranchName,
-  RepoRelativePath,
-} from "@withgraphite/gti-cli-shared-types";
-import type { EditedMessage } from "../CommitInfo";
+import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 import type { CommitTree } from "../getCommitTree";
 import type {
   ApplyPreviewsFuncType,
@@ -10,7 +6,7 @@ import type {
   PreviewContext,
   UncommittedChangesPreviewContext,
 } from "../previews";
-import type { CommandArg, UncommittedChanges } from "../types";
+import type { CommandArg } from "../types";
 
 import { Operation } from "./Operation";
 
@@ -24,12 +20,8 @@ export class CommitOperation extends Operation {
     /**
      * description is currently ignored
      */
-    private message: EditedMessage,
-    private originalHeadHash: BranchName,
-    /**
-     * currently ignored
-     */
-    private filesPathsToCommit?: Array<RepoRelativePath>
+    private message: string,
+    private originalHeadHash: BranchName
   ) {
     super("CommitOperation");
   }
@@ -41,7 +33,7 @@ export class CommitOperation extends Operation {
       "branch",
       "create",
       "--message",
-      `${this.message.title}`,
+      `${this.message}`,
     ];
     return args;
   }
@@ -56,12 +48,15 @@ export class CommitOperation extends Operation {
       return undefined;
     }
 
+    const [title] = this.message.split(/\n+/, 1);
+    const description = this.message.slice(title.length);
+
     const optimisticCommit: CommitTree = {
       children: [],
       info: {
         author: head?.author ?? "",
-        description: this.message.description,
-        title: this.message.title,
+        description: description,
+        title: title,
         // TODO: we should include the files that will be in the commit.
         // These files are visible in the commit info view during optimistic state.
         filesSample: [],
@@ -90,26 +85,13 @@ export class CommitOperation extends Operation {
   makeOptimisticUncommittedChangesApplier?(
     context: UncommittedChangesPreviewContext
   ): ApplyUncommittedChangesPreviewsFuncType | undefined {
-    const filesToCommit = new Set(this.filesPathsToCommit);
     // optimistic state is over when there's no uncommitted changes that we wanted to commit left
-    if (
-      context.uncommittedChanges.length === 0 ||
-      (filesToCommit.size > 0 &&
-        context.uncommittedChanges.every(
-          (change) => !filesToCommit.has(change.path)
-        ))
-    ) {
+    if (context.uncommittedChanges.length === 0) {
       return undefined;
     }
 
-    const func: ApplyUncommittedChangesPreviewsFuncType = (
-      changes: UncommittedChanges
-    ) => {
-      if (this.filesPathsToCommit != null) {
-        return changes.filter((change) => !filesToCommit.has(change.path));
-      } else {
-        return [];
-      }
+    const func: ApplyUncommittedChangesPreviewsFuncType = () => {
+      return [];
     };
     return func;
   }

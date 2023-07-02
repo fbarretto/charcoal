@@ -1,19 +1,20 @@
-import clientToServerAPI from "./ClientToServerAPI";
-import { InlineErrorBadge } from "./ErrorNotice";
-import { getInnerTextareaForVSCodeTextArea } from "./TextArea";
-import { Tooltip } from "./Tooltip";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import {
-  type MutableRefObject,
-  useState,
-  type ReactNode,
-  useId,
-  useCallback,
-} from "react";
 import { Icon } from "@withgraphite/gti-shared/Icon";
 import { randomId } from "@withgraphite/gti-shared/utils";
 import { computed, observable } from "mobx";
 import { observer } from "mobx-react-lite";
+import {
+  useCallback,
+  useId,
+  useState,
+  type MutableRefObject,
+  type ReactNode,
+} from "react";
+import clientToServerAPI from "./ClientToServerAPI";
+import { InlineErrorBadge } from "./ErrorNotice";
+import { Tooltip } from "./Tooltip";
+
+import { getInnerTextareaForVSCodeTextArea } from "./CommitInfoView/utils";
 
 export type ImageUploadStatus = { id: number } & (
   | { status: "pending" }

@@ -1,26 +1,93 @@
-import { Copyable } from "./Copyable";
-import { DropdownFields } from "./DropdownFields";
-import { Tooltip } from "./Tooltip";
-import platform from "./platform";
-import { applicationinfo } from "./serverAPIState";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Copyable } from "./Copyable";
+import { DropdownFields } from "./DropdownFields";
+import platform from "./platform";
+import { applicationinfo } from "./serverAPIState";
+import { Tooltip } from "./Tooltip";
+import { observable, autorun } from "mobx";
 
-import "./BugButton.scss";
+import { VSCodeDivider } from "@vscode/webview-ui-toolkit/react";
+import { Suspense, useEffect } from "react";
+import { tracker } from "./analytics";
+import { ErrorBoundary } from "./ErrorNotice";
+
 import { observer } from "mobx-react-lite";
+import "./BugButton.scss";
 
 export function BugButton() {
   return (
-    <Tooltip trigger="click" component={BugDropdown} placement="bottom">
-      <VSCodeButton appearance="icon" data-testid="bug-button">
-        <Icon icon="bug" />
-      </VSCodeButton>
+    <MaybeBugButtonNux>
+      <Tooltip
+        trigger="click"
+        component={(dismiss) => <BugDropdown dismiss={dismiss} />}
+        placement="bottom"
+      >
+        <VSCodeButton appearance="icon" data-testid="bug-button">
+          <Icon icon="bug" />
+        </VSCodeButton>
+      </Tooltip>
+    </MaybeBugButtonNux>
+  );
+}
+
+export const bugButtonNux = observable.box<string | null>(null);
+
+let start: number | undefined;
+let nux: string | null = null;
+autorun(() => {
+  if (bugButtonNux.get() != null) {
+    // starting to show nux
+    start = Date.now();
+    nux = bugButtonNux.get();
+  } else {
+    // stopped showing nux by clearing value
+    tracker.track("ShowBugButtonNux", {
+      extras: {
+        nux: nux,
+      },
+      duration: start == null ? undefined : Date.now() - start,
+    });
+  }
+});
+
+/**
+ * Allow other actions to show a new-user ("nux") tooltip on the bug icon.
+ * This is useful to explain how to file a bug or opt out.
+ */
+function MaybeBugButtonNux({ children }: { children: JSX.Element }) {
+  const nux = bugButtonNux.get();
+  if (nux == null) {
+    return children;
+  }
+
+  function Nux() {
+    return (
+      <div className="bug-button-nux">
+        {nux}
+        <VSCodeButton appearance="icon" onClick={() => bugButtonNux.set(null)}>
+          <Icon icon="x" />
+        </VSCodeButton>
+      </div>
+    );
+  }
+  return (
+    <Tooltip trigger="manual" shouldShow component={Nux} placement="bottom">
+      {children}
     </Tooltip>
   );
 }
 
 const BugDropdown = observer(({ dismiss }: { dismiss: () => void }) => {
   const info = applicationinfo.get();
+
+  useEffect(() => {
+    // unset nux if you open the bug menu
+    bugButtonNux.set(null);
+  }, [bugButtonNux]);
+
+  const AdditionalDebugContent = platform.AdditionalDebugContent;
+
   return (
     <DropdownFields
       title={<>Help</>}
@@ -48,6 +115,16 @@ const BugDropdown = observer(({ dismiss }: { dismiss: () => void }) => {
           <>View Documentation</>
         </VSCodeButton>
         <FileABug dismissBugDropdown={dismiss} />
+        {AdditionalDebugContent && (
+          <div className="additional-debug-content">
+            <VSCodeDivider />
+            <ErrorBoundary>
+              <Suspense>
+                <AdditionalDebugContent />
+              </Suspense>
+            </ErrorBoundary>
+          </div>
+        )}
       </div>
       {/*
       // TODO: enable these debug actions

@@ -18,4 +18,9 @@ export type ChangedFileType =
 export type ChangedFile = {
   path: RepoRelativePath;
   status: ChangedFileType;
+  /**
+   * If this file is copied from another, this is the path of the original file
+   * If this file is renamed from another, this is the path of the original file, and another change of type 'R' will exist.
+   * */
+  copy?: RepoRelativePath;
 };

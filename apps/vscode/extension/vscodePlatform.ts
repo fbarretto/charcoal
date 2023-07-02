@@ -1,5 +1,6 @@
 import type { Repository } from "@withgraphite/gti-server/src/Repository";
 import type { ServerPlatform } from "@withgraphite/gti-server/src/serverPlatform";
+import type { Json } from "@withgraphite/gti-shared/typeUtils";
 import type {
   AbsolutePath,
   PlatformSpecificClientToServerMessages,
@@ -12,10 +13,12 @@ import { executeVSCodeCommand } from "./commands";
 
 export const VSCodePlatform: ServerPlatform = {
   platformName: "vscode",
+  // eslint-disable-next-line
   handleMessageFromClient: async (
     repo: Repository | undefined,
     message: PlatformSpecificClientToServerMessages,
-    postMessage: (message: ServerToClientMessage) => void
+    postMessage: (message: ServerToClientMessage) => void,
+    onDispose: (cb: () => unknown) => void
   ) => {
     try {
       switch (message.type) {
@@ -77,6 +80,55 @@ export const VSCodePlatform: ServerPlatform = {
             type: "platform/confirmResult",
             result: result === OKButton,
           });
+          break;
+        }
+        case "platform/subscribeToAvailableCwds": {
+          const postAllAvailableCwds = () =>
+            postMessage({
+              type: "platform/availableCwds",
+              options: (vscode.workspace.workspaceFolders ?? []).map(
+                (folder) => folder.uri.fsPath
+              ),
+            });
+
+          postAllAvailableCwds();
+          const dispose =
+            vscode.workspace.onDidChangeWorkspaceFolders(postAllAvailableCwds);
+          onDispose(() => dispose.dispose());
+          break;
+        }
+        case "platform/setVSCodeConfig": {
+          void vscode.workspace
+            .getConfiguration()
+            .update(
+              message.config,
+              message.value,
+              message.scope === "global"
+                ? vscode.ConfigurationTarget.Global
+                : vscode.ConfigurationTarget.Workspace
+            );
+          break;
+        }
+        case "platform/subscribeToVSCodeConfig": {
+          const sendLatestValue = () =>
+            postMessage({
+              type: "platform/vscodeConfigChanged",
+              config: message.config,
+              value: vscode.workspace
+                .getConfiguration()
+                .get<Json>(message.config),
+            });
+          const dispose = vscode.workspace.onDidChangeConfiguration((e) => {
+            if (e.affectsConfiguration(message.config)) {
+              sendLatestValue();
+            }
+          });
+          sendLatestValue();
+          onDispose(() => dispose.dispose());
+          break;
+        }
+        case "platform/executeVSCodeCommand": {
+          void vscode.commands.executeCommand(message.command, ...message.args);
           break;
         }
       }

@@ -10,7 +10,7 @@ import { Operation } from "./Operation";
 export class RevertOperation extends Operation {
   static opName = "Revert";
 
-  constructor(private files: Array<RepoRelativePath>) {
+  constructor(private file: RepoRelativePath) {
     super("RevertOperation");
   }
 
@@ -18,13 +18,10 @@ export class RevertOperation extends Operation {
     const args = [
       "interactive",
       "restore",
-      ...this.files.map((file) =>
-        // tag file arguments specialy so the remote repo can convert them to the proper cwd-relative format.
-        ({
-          type: "repo-relative-file" as const,
-          path: file,
-        })
-      ),
+      {
+        type: "repo-relative-file" as const,
+        path: this.file,
+      },
     ];
     return args;
   }
@@ -32,7 +29,7 @@ export class RevertOperation extends Operation {
   makeOptimisticUncommittedChangesApplier?(
     context: UncommittedChangesPreviewContext
   ): ApplyUncommittedChangesPreviewsFuncType | undefined {
-    const filesToHide = new Set(this.files);
+    const filesToHide = new Set(this.file);
     if (
       context.uncommittedChanges.every(
         (change) => !filesToHide.has(change.path)

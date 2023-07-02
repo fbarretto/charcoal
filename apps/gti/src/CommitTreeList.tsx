@@ -1,36 +1,51 @@
 import type { CommitTreeWithPreviews } from "./getCommitTree";
 
-import { Commit } from "./Commit";
-import { ErrorNotice } from "./ErrorNotice";
-import { treeWithPreviews, useMarkOperationsCompleted } from "./previews";
-import {
-  commitFetchError,
-  commitsShownRange,
-  isFetchingAdditionalCommits,
-  useRunOperation,
-} from "./serverAPIState";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import serverAPI from "./ClientToServerAPI";
+import type { ContextMenuItem } from "@withgraphite/gti-shared/ContextMenu";
+import type { Hash } from "./types";
 
-import "./CommitTreeList.scss";
-import { observer } from "mobx-react-lite";
-import type { BranchName } from "@withgraphite/gti-cli-shared-types";
-import { useArrowKeysToChangeSelection } from "./selection";
-import { FlexRow, LargeSpinner } from "./ComponentUtils";
-import { notEmpty } from "@withgraphite/gti-shared/utils";
-import { ErrorShortMessages } from "@withgraphite/gti-server/src/constants";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { CreateEmptyInitialCommitOperation } from "./operations/CreateEmptyInitialCommitOperation";
-import { DOCUMENTATION_DELAY, Tooltip } from "./Tooltip";
-import { HighlightCommitsWhileHovering } from "./HighlightedCommits";
-import {
-  ContextMenuItem,
-  useContextMenu,
-} from "@withgraphite/gti-shared/ContextMenu";
+import { ErrorShortMessages } from "@withgraphite/gti-server/src/constants";
+import { useContextMenu } from "@withgraphite/gti-shared/ContextMenu";
+import { Icon } from "@withgraphite/gti-shared/Icon";
+import { generatorContains, notEmpty } from "@withgraphite/gti-shared/utils";
+import { BranchIndicator } from "./BranchIndicator";
+import serverAPI from "./ClientToServerAPI";
 import {
   allDiffSummaries,
   codeReviewProvider,
 } from "./codeReview/CodeReviewInfo";
+import { Commit } from "./Commit";
+import { Center, FlexRow, LargeSpinner } from "./ComponentUtils";
+import { ErrorNotice } from "./ErrorNotice";
+import { isTreeLinear, walkTreePostorder } from "./getCommitTree";
+import { HighlightCommitsWhileHovering } from "./HighlightedCommits";
+import { CreateEmptyInitialCommitOperation } from "./operations/CreateEmptyInitialCommitOperation";
+import { ImportStackOperation } from "./operations/ImportStackOperation";
+import { treeWithPreviews, useMarkOperationsCompleted } from "./previews";
+import { useArrowKeysToChangeSelection } from "./selection";
+import {
+  commitFetchError,
+  commitsShownRange,
+  isFetchingAdditionalCommits,
+  latestHeadCommit,
+  latestUncommittedChangesData,
+  useRunOperation,
+} from "./serverAPIState";
+import { StackEditIcon } from "./StackEditIcon";
+import {
+  bumpStackEditMetric,
+  editingStackHashes,
+  loadingStackState,
+  sendStackEditMetrics,
+  setEditingStackHashes,
+  useStackEditState,
+} from "./stackEditState";
+import { StackEditSubTree, UndoDescription } from "./StackEditSubTree";
+import { DOCUMENTATION_DELAY, Tooltip } from "./Tooltip";
+
+import type { BranchName } from "@withgraphite/gti-cli-shared-types";
+import { observer } from "mobx-react-lite";
+import "./CommitTreeList.scss";
 
 export const CommitTreeList = observer(() => {
   useMarkOperationsCompleted();
@@ -47,11 +62,13 @@ export const CommitTreeList = observer(() => {
     <>
       {fetchError ? <CommitFetchError error={fetchError} /> : null}
       <div
-        className="commit-tree-root commit-group"
+        className="commit-tree-root commit-group with-vertical-line"
         data-testid="commit-tree-root"
       >
         <MainLineEllipsis />
-        {trees.map((tree) => createSubtree(tree, /* depth */ 0))}
+        {trees.map((tree) => (
+          <SubTree key={tree.info.branch} tree={tree} depth={0} />
+        ))}
         <MainLineEllipsis>
           <FetchingAdditionalCommitsButton />
           <FetchingAdditionalCommitsIndicator />
@@ -87,15 +104,41 @@ const CommitFetchError = observer(({ error }: { error: Error }) => {
   return <ErrorNotice title={"Failed to fetch commits"} error={error} />;
 });
 
-function createSubtree(
-  tree: CommitTreeWithPreviews,
-  depth: number
-): Array<React.ReactElement> {
+function SubTree({
+  tree,
+  depth,
+}: {
+  tree: CommitTreeWithPreviews;
+  depth: number;
+}): React.ReactElement {
   const { info, children, previewType } = tree;
   const isPublic = info.partOfTrunk;
 
+  const stackHashes = editingStackHashes.get();
+  const loadingState = loadingStackState.get();
+  const isStackEditing =
+    depth > 0 &&
+    stackHashes.has(info.branch) &&
+    loadingState.state === "hasValue";
+
+  const stackActions =
+    !isPublic && depth === 1 ? (
+      <StackActions key="stack-actions" tree={tree} />
+    ) : null;
+
+  if (isStackEditing) {
+    return (
+      <>
+        <StackEditSubTree />
+        {stackActions}
+      </>
+    );
+  }
+
   const renderedChildren = (children ?? [])
-    .map((tree) => createSubtree(tree, depth + 1))
+    .map((tree) => (
+      <SubTree key={`tree-${tree.info.branch}`} tree={tree} depth={depth + 1} />
+    ))
     .map((components, i) => {
       if (!isPublic && i === 0) {
         // first child can be rendered without branching, so single-child lineages render in the same branch
@@ -110,7 +153,7 @@ function createSubtree(
     })
     .flat();
 
-  return [
+  const rendered = [
     ...renderedChildren,
     <Commit
       commit={info}
@@ -118,57 +161,31 @@ function createSubtree(
       previewType={previewType}
       hasChildren={renderedChildren.length > 0}
     />,
-    depth === 1 ? <StackActions key="stack-actions" tree={tree} /> : null,
+    stackActions,
   ].filter(notEmpty);
-}
 
-function Center({ children }: { children: React.ReactNode }) {
-  return <div className="center-container">{children}</div>;
+  return <>{rendered}</>;
 }
 
 function Branch({
   children,
   descendsFrom,
+  className,
 }: {
-  children: Array<React.ReactElement>;
+  children: React.ReactElement;
   descendsFrom: BranchName;
+  className?: string;
 }) {
   return (
-    <div className="commit-group" data-testid={`branch-from-${descendsFrom}`}>
+    <div
+      className={`commit-group ${className ?? "with-vertical-line"}`}
+      data-testid={`branch-from-${descendsFrom}`}
+    >
       {children}
       <BranchIndicator />
     </div>
   );
 }
-
-const COMPONENT_PADDING = 10;
-export const BranchIndicator = () => {
-  const width = COMPONENT_PADDING * 2;
-  const height = COMPONENT_PADDING * 3;
-  // Compensate for line width
-  const startX = width + 1;
-  const startY = 0;
-  const endX = 0;
-  const endY = height;
-  const verticalLead = height * 0.75;
-  const path =
-    // start point
-    `M${startX} ${startY}` +
-    // cubic bezier curve to end point
-    `C ${startX} ${startY + verticalLead}, ${endX} ${
-      endY - verticalLead
-    }, ${endX} ${endY}`;
-  return (
-    <svg
-      className="branch-indicator"
-      width={width + 2 /* avoid border clipping */}
-      height={height}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d={path} strokeWidth="2px" fill="transparent" />
-    </svg>
-  );
-};
 
 /**
  * Vertical ellipsis to be rendered on top of the branch line.
@@ -223,6 +240,8 @@ const StackActions = observer(
   ({ tree }: { tree: CommitTreeWithPreviews }): React.ReactElement | null => {
     const reviewProvider = codeReviewProvider.get();
     const diffMap = allDiffSummaries.get();
+    const stackHashes = editingStackHashes.get();
+    const loadingState = loadingStackState.get();
     const runOperation = useRunOperation();
 
     // buttons at the bottom of the stack
@@ -231,90 +250,103 @@ const StackActions = observer(
     // Non-empty only when actions is non-empty.
     const moreActions: Array<ContextMenuItem> = [];
 
-    const reviewActions =
-      diffMap.value == null
-        ? {}
-        : reviewProvider?.getSupportedStackActions(tree, diffMap.value);
-    const resubmittableStack = reviewActions?.resubmittableStack;
-    const submittableStack = reviewActions?.submittableStack;
-    const MIN_STACK_SIZE_TO_SUGGEST_SUBMIT = 2; // don't show "submit stack" on single commits... they're not really "stacks".
+    const isStackEditingActivated =
+      stackHashes.size > 0 &&
+      loadingState.state === "hasValue" &&
+      generatorContains(walkTreePostorder([tree]), (v) =>
+        stackHashes.has(v.info.branch)
+      );
 
     const contextMenu = useContextMenu(() => moreActions);
-    if (reviewProvider == null) {
-      return null;
-    }
-    // any existing diffs -> show resubmit stack,
-    if (
-      resubmittableStack != null &&
-      resubmittableStack.length >= MIN_STACK_SIZE_TO_SUGGEST_SUBMIT
-    ) {
-      actions.push(
-        <HighlightCommitsWhileHovering
-          key="resubmit-stack"
-          toHighlight={resubmittableStack}
-        >
-          <VSCodeButton
-            appearance="icon"
-            onClick={() => {
-              runOperation(reviewProvider.submitOperation(resubmittableStack));
-            }}
-          >
-            <Icon icon="cloud-upload" slot="start" />
-            Resubmit stack
-          </VSCodeButton>
-        </HighlightCommitsWhileHovering>
-      );
-      //     any non-submitted diffs -> "submit all commits this stack" in hidden group
+    if (reviewProvider !== null && !isStackEditingActivated) {
+      const reviewActions =
+        diffMap.value == null
+          ? {}
+          : reviewProvider?.getSupportedStackActions(tree, diffMap.value);
+      const resubmittableStack = reviewActions?.resubmittableStack;
+      const submittableStack = reviewActions?.submittableStack;
+      const MIN_STACK_SIZE_TO_SUGGEST_SUBMIT = 2; // don't show "submit stack" on single commits... they're not really "stacks".
+
+      // any existing diffs -> show resubmit stack,
       if (
-        submittableStack != null &&
-        submittableStack.length > 0 &&
-        submittableStack.length > resubmittableStack.length
+        resubmittableStack != null &&
+        resubmittableStack.length >= MIN_STACK_SIZE_TO_SUGGEST_SUBMIT
       ) {
-        moreActions.push({
-          label: (
-            <HighlightCommitsWhileHovering
-              key="submit-entire-stack"
-              toHighlight={submittableStack}
-            >
-              <FlexRow>
-                <Icon icon="cloud-upload" slot="start" />
-                Submit entire stack
-              </FlexRow>
-            </HighlightCommitsWhileHovering>
-          ),
-          onClick: () => {
-            runOperation(
-              reviewProvider.submitOperation([
-                ...resubmittableStack,
-                ...submittableStack,
-              ])
-            );
-          },
-        });
-      }
-      //     NO non-submitted diffs -> nothing in hidden group
-    } else if (
-      submittableStack != null &&
-      submittableStack.length >= MIN_STACK_SIZE_TO_SUGGEST_SUBMIT
-    ) {
-      // NO existing diffs -> show submit stack ()
-      actions.push(
-        <HighlightCommitsWhileHovering
-          key="submit-stack"
-          toHighlight={submittableStack}
-        >
-          <VSCodeButton
-            appearance="icon"
-            onClick={() => {
-              runOperation(reviewProvider.submitOperation(submittableStack));
-            }}
+        actions.push(
+          <HighlightCommitsWhileHovering
+            key="resubmit-stack"
+            toHighlight={resubmittableStack}
           >
-            <Icon icon="cloud-upload" slot="start" />
-            Submit stack
-          </VSCodeButton>
-        </HighlightCommitsWhileHovering>
-      );
+            <VSCodeButton
+              appearance="icon"
+              onClick={() => {
+                runOperation(
+                  reviewProvider.submitOperation(resubmittableStack)
+                );
+              }}
+            >
+              <Icon icon="cloud-upload" slot="start" />
+              <>Resubmit stack</>
+            </VSCodeButton>
+          </HighlightCommitsWhileHovering>
+        );
+        //     any non-submitted diffs -> "submit all commits this stack" in hidden group
+        if (
+          submittableStack != null &&
+          submittableStack.length > 0 &&
+          submittableStack.length > resubmittableStack.length
+        ) {
+          moreActions.push({
+            label: (
+              <HighlightCommitsWhileHovering
+                key="submit-entire-stack"
+                toHighlight={submittableStack}
+              >
+                <FlexRow>
+                  <Icon icon="cloud-upload" slot="start" />
+                  <>Submit entire stack</>
+                </FlexRow>
+              </HighlightCommitsWhileHovering>
+            ),
+            onClick: () => {
+              runOperation(
+                reviewProvider.submitOperation([
+                  ...resubmittableStack,
+                  ...submittableStack,
+                ])
+              );
+            },
+          });
+        }
+        //     NO non-submitted diffs -> nothing in hidden group
+      } else if (
+        submittableStack != null &&
+        submittableStack.length >= MIN_STACK_SIZE_TO_SUGGEST_SUBMIT
+      ) {
+        // NO existing diffs -> show submit stack ()
+        actions.push(
+          <HighlightCommitsWhileHovering
+            key="submit-stack"
+            toHighlight={submittableStack}
+          >
+            <VSCodeButton
+              appearance="icon"
+              onClick={() => {
+                runOperation(reviewProvider.submitOperation(submittableStack));
+              }}
+            >
+              <Icon icon="cloud-upload" slot="start" />
+              <>Submit stack</>
+            </VSCodeButton>
+          </HighlightCommitsWhileHovering>
+        );
+      }
     }
+
+    if (tree.children.length > 0) {
+      actions.push(<StackEditButton key="edit-stack" tree={tree} />);
+    }
+
     if (actions.length === 0) {
       return null;
     }
@@ -333,6 +365,184 @@ const StackActions = observer(
         {actions}
         {moreActionsButton}
       </div>
+    );
+  }
+);
+
+const StackEditConfirmButtons = observer((): React.ReactElement => {
+  const originalHead = latestHeadCommit.get();
+  const runOperation = useRunOperation();
+  const stackEdit = useStackEditState();
+
+  const canUndo = stackEdit.canUndo();
+  const canRedo = stackEdit.canRedo();
+
+  const handleUndo = () => {
+    stackEdit.undo();
+    bumpStackEditMetric("undo");
+  };
+
+  const handleRedo = () => {
+    stackEdit.redo();
+    bumpStackEditMetric("redo");
+  };
+
+  const handleSaveChanges = () => {
+    const importStack = stackEdit.commitStack.calculateImportStack({
+      goto: originalHead?.branch,
+      rewriteDate: Date.now() / 1000,
+    });
+    const op = new ImportStackOperation(importStack);
+    runOperation(op);
+    sendStackEditMetrics(true);
+    // Exit stack editing.
+    setEditingStackHashes(new Set());
+  };
+
+  const handleCancel = () => {
+    sendStackEditMetrics(false);
+    setEditingStackHashes(new Set<Hash>());
+  };
+
+  // Show [Cancel] [Save changes] [Undo] [Redo].
+  return (
+    <>
+      <Tooltip
+        title={"Discard stack editing changes"}
+        delayMs={DOCUMENTATION_DELAY}
+        placement="bottom"
+      >
+        <VSCodeButton
+          className="cancel-edit-stack-button"
+          appearance="secondary"
+          onClick={handleCancel}
+        >
+          <>Cancel</>
+        </VSCodeButton>
+      </Tooltip>
+      <Tooltip
+        title={"Save stack editing changes"}
+        delayMs={DOCUMENTATION_DELAY}
+        placement="bottom"
+      >
+        <VSCodeButton
+          className="confirm-edit-stack-button"
+          appearance="primary"
+          onClick={handleSaveChanges}
+        >
+          <>Save changes</>
+        </VSCodeButton>
+      </Tooltip>
+      <Tooltip
+        component={() =>
+          canUndo ? (
+            <>
+              Undo <UndoDescription op={stackEdit.undoOperationDescription()} />
+            </>
+          ) : (
+            <>No operations to undo</>
+          )
+        }
+        placement="bottom"
+      >
+        <VSCodeButton
+          appearance="icon"
+          disabled={!canUndo}
+          onClick={handleUndo}
+        >
+          <Icon icon="discard" />
+        </VSCodeButton>
+      </Tooltip>
+      <Tooltip
+        component={() =>
+          canRedo ? (
+            <>
+              Redo <UndoDescription op={stackEdit.redoOperationDescription()} />
+            </>
+          ) : (
+            <>No operations to redo</>
+          )
+        }
+        placement="bottom"
+      >
+        <VSCodeButton
+          appearance="icon"
+          disabled={!canRedo}
+          onClick={handleRedo}
+        >
+          <Icon icon="redo" />
+        </VSCodeButton>
+      </Tooltip>
+    </>
+  );
+});
+
+const StackEditButton = observer(
+  ({ tree }: { tree: CommitTreeWithPreviews }): React.ReactElement | null => {
+    const uncommitted = latestUncommittedChangesData.get();
+    const stackHashes = editingStackHashes.get();
+    const loadingState = loadingStackState.get();
+
+    const stackCommits = [...walkTreePostorder([tree])].map((t) => t.info);
+    const isEditing =
+      stackHashes.size > 0 &&
+      stackCommits.some((c) => stackHashes.has(c.branch));
+    const isLoaded = isEditing && loadingState.state === "hasValue";
+    if (isLoaded) {
+      return <StackEditConfirmButtons />;
+    }
+
+    const isPreview = tree.previewType != null;
+    const isLoading = isEditing && loadingState.state === "loading";
+    const isError = isEditing && loadingState.state === "hasError";
+    const isLinear = isTreeLinear(tree);
+    const isDirty =
+      stackCommits.some((c) => c.isHead) && uncommitted.files.length > 0;
+    const hasPublic = stackCommits.some((c) => c.partOfTrunk);
+    const disabled =
+      isDirty || !isLinear || isLoading || isError || isPreview || hasPublic;
+    const title = isError
+      ? `Failed to load stack: ${loadingState.error}`
+      : isLoading
+      ? loadingState.exportedStack === undefined
+        ? "Reading stack content"
+        : "Analyzing stack content"
+      : isDirty
+      ? "Cannot edit stack when there are uncommitted changes.\nCommit or amend your changes first."
+      : isPreview
+      ? "Cannot edit pending changes"
+      : hasPublic
+      ? "Cannot edit public commits"
+      : isLinear
+      ? "Reorder, fold, or drop commits"
+      : "Cannot edit non-linear stack";
+    const highlight = disabled ? [] : stackCommits;
+    const tooltipDelay =
+      disabled && !isLoading ? undefined : DOCUMENTATION_DELAY;
+    const icon = isLoading ? (
+      <Icon icon="loading" slot="start" />
+    ) : (
+      <StackEditIcon slot="start" />
+    );
+
+    return (
+      <HighlightCommitsWhileHovering key="submit-stack" toHighlight={highlight}>
+        <Tooltip title={title} delayMs={tooltipDelay} placement="bottom">
+          <VSCodeButton
+            className={`edit-stack-button ${disabled && "disabled"}`}
+            disabled={disabled}
+            appearance="icon"
+            onClick={() => {
+              setEditingStackHashes(
+                new Set<Hash>(stackCommits.map((c) => c.branch))
+              );
+            }}
+          >
+            {icon}
+            <>Edit stack</>
+          </VSCodeButton>
+        </Tooltip>
+      </HighlightCommitsWhileHovering>
     );
   }
 );
