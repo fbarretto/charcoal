@@ -6,10 +6,10 @@ import "./themeLight.scss";
 import "./themeDark.scss";
 import { observableBoxWithInitializers } from "./lib/mobx-recoil/observable_box_with_init";
 import { observer } from "mobx-react-lite";
+import type { ThemeColor } from "@withgraphite/gti-shared";
 
 const THEME_LOCAL_STORAGE_KEY = "gti-color-theme";
 
-export type ThemeColor = "dark" | "light";
 export const themeState = observableBoxWithInitializers<ThemeColor>({
   default:
     platform.theme?.getTheme() ??

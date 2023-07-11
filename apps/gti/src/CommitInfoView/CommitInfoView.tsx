@@ -5,7 +5,10 @@ import type {
   EditedMessage,
   EditedMessageUnlessOptimistic,
 } from "./CommitInfoState";
-import type { CommitMessageFields, FieldsBeingEdited } from "./types";
+import type {
+  CommitMessageFields,
+  FieldsBeingEdited,
+} from "@withgraphite/gti-shared";
 
 import {
   VSCodeBadge,

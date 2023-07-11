@@ -11,7 +11,7 @@ config.experiments = {
   // though it is not completely clear.
   asyncWebAssembly: true,
 };
-config.output.library = 'EdenSmartlog';
+config.output.library = 'GraphiteInteractive';
 config.output.libraryTarget = 'umd';
 
 injectAdditionalPlatforms(config);

@@ -1,7 +1,7 @@
 import type { ChildProcessResponse } from "./child";
 import type { StartServerArgs, StartServerResult } from "./server";
 import type { IOType } from "child_process";
-import type { PlatformName } from "@withgraphite/gti/src/types";
+import type { PlatformName } from "@withgraphite/gti-shared";
 
 import {
   ensureExistingServerFolder,

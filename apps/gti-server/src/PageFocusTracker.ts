@@ -1,4 +1,4 @@
-import type { PageVisibility } from "@withgraphite/gti/src/types";
+import type { PageVisibility } from "@withgraphite/gti-shared";
 
 /**
  * Aggregates if any GTI page has focus or visibility.

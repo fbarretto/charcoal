@@ -8,7 +8,7 @@ import type {
   SubscriptionKind,
   SubscriptionResultsData,
   UncommittedChanges,
-} from "./types";
+} from "@withgraphite/gti-shared";
 
 import type {
   BranchInfo,

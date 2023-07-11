@@ -14,7 +14,7 @@ import type {
   SmartlogCommits,
   SuccessorInfo,
   ValidatedRepoInfo,
-} from "@withgraphite/gti/src/types";
+} from "@withgraphite/gti-shared";
 import type { CodeReviewProvider } from "./CodeReviewProvider";
 import type { Logger } from "./logger";
 
@@ -33,7 +33,7 @@ import { removeLeadingPathSep } from "@withgraphite/gti-shared/pathUtils";
 import { RateLimiter } from "@withgraphite/gti-shared/RateLimiter";
 import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
 import { notEmpty, unwrap } from "@withgraphite/gti-shared/utils";
-import { CommandRunner } from "@withgraphite/gti/src/types";
+import { CommandRunner } from "@withgraphite/gti-shared";
 import execa from "execa";
 import os from "os";
 import path from "path";

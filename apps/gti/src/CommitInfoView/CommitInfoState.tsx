@@ -3,7 +3,10 @@ import { computed, observable } from "mobx";
 import { family } from "../lib/mobx-recoil/family";
 import { latestCommitTreeMap } from "../serverAPIState";
 
-import type { CommitMessageFields, FieldsBeingEdited } from "./types";
+import type {
+  CommitMessageFields,
+  FieldsBeingEdited,
+} from "@withgraphite/gti-shared";
 
 import serverAPI from "../ClientToServerAPI";
 import { observableBoxWithInitializers } from "../lib/mobx-recoil/observable_box_with_init";

@@ -2,7 +2,7 @@ import type {
   CommitMessageFields,
   FieldConfig,
   FieldsBeingEdited,
-} from "./types";
+} from "@withgraphite/gti-shared";
 
 import serverAPI from "../ClientToServerAPI";
 import { observable } from "mobx";

@@ -3,7 +3,7 @@ import type {
   CommitMessageFields,
   FieldConfig,
   FieldsBeingEdited,
-} from "./types";
+} from "@withgraphite/gti-shared";
 import type { ReactNode } from "react";
 
 import { YouAreHere } from "../Commit";

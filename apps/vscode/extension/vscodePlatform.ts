@@ -5,7 +5,7 @@ import type {
   AbsolutePath,
   PlatformSpecificClientToServerMessages,
   ServerToClientMessage,
-} from "@withgraphite/gti/src/types";
+} from "@withgraphite/gti-shared";
 
 import * as pathModule from "path";
 import * as vscode from "vscode";

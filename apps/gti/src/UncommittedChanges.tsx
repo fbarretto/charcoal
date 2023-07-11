@@ -11,7 +11,7 @@ import type {
   ChangedFileType,
   RepoRelativePath,
 } from "@withgraphite/gti-cli-shared-types";
-import type { MergeConflicts } from "./types";
+import type { MergeConflicts } from "@withgraphite/gti-shared";
 import type { MutableRefObject } from "react";
 import type { Comparison } from "@withgraphite/gti-shared/Comparison";
 import type { EnsureAssignedTogether } from "@withgraphite/gti-shared/EnsureAssignedTogether";

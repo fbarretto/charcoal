@@ -1,4 +1,4 @@
-import type { TypeaheadKind, TypeaheadResult } from "./types";
+import type { TypeaheadKind, TypeaheadResult } from "@withgraphite/gti-shared";
 
 import serverApi from "../ClientToServerAPI";
 import { Subtle } from "../Subtle";

@@ -1,5 +1,5 @@
 import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
-import type { SmartlogCommits } from "@withgraphite/gti/src/types";
+import type { SmartlogCommits } from "@withgraphite/gti-shared";
 import type { ExecaChildProcess } from "execa";
 
 import type execa from "execa";

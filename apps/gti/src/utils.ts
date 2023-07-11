@@ -1,4 +1,4 @@
-import type { Hash } from "./types";
+import type { Hash } from "@withgraphite/gti-shared";
 
 /**
  * Given a multi-line string, return the first line excluding '\n'.

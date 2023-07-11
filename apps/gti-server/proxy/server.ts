@@ -1,5 +1,5 @@
 import type { ServerPlatform } from "../src/serverPlatform";
-import type { PlatformName } from "@withgraphite/gti/src/types";
+import type { PlatformName } from "@withgraphite/gti-shared";
 import type { AddressInfo } from "net";
 
 import { repositoryCache } from "../src/RepositoryCache";

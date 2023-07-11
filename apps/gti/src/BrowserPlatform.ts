@@ -2,7 +2,7 @@ import type { Platform } from "./platform";
 
 import serverAPI from "./ClientToServerAPI";
 import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
-import type { OneIndexedLineNumber } from "./types";
+import type { OneIndexedLineNumber } from "@withgraphite/gti-shared";
 
 export const browserPlatform: Platform = {
   platformName: "browser",

@@ -1,5 +1,9 @@
-import type { ThemeColor } from "./theme";
-import type { Disposable, OneIndexedLineNumber, PlatformName } from "./types";
+import type { ThemeColor } from "@withgraphite/gti-shared";
+import type {
+  Disposable,
+  OneIndexedLineNumber,
+  PlatformName,
+} from "@withgraphite/gti-shared";
 
 import type { LazyExoticComponent } from "react";
 import type { Comparison } from "@withgraphite/gti-shared/Comparison";

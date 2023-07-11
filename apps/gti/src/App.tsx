@@ -1,4 +1,4 @@
-import type { RepositoryError } from "./types";
+import type { RepositoryError } from "@withgraphite/gti-shared";
 
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import React from "react";

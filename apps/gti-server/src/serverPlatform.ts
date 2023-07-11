@@ -3,7 +3,7 @@ import type {
   AbsolutePath,
   PlatformSpecificClientToServerMessages,
   ServerToClientMessage,
-} from "@withgraphite/gti/src/types";
+} from "@withgraphite/gti-shared";
 
 import { spawn } from "child_process";
 import pathModule from "path";
@@ -19,7 +19,7 @@ export interface ServerPlatform {
     repo: Repository | undefined,
     message: PlatformSpecificClientToServerMessages,
     postMessage: (message: ServerToClientMessage) => void,
-    onDispose: (disapose: () => unknown) => void,
+    onDispose: (disapose: () => unknown) => void
   ): void | Promise<void>;
 }
 
@@ -78,8 +78,8 @@ export const browserServerPlatform: ServerPlatform = {
             windowsVerbatimArguments: true,
           });
           // Silent error. Don't crash the server process.
-          proc.on('error', err => {
-            repo?.logger.log('failed to open', path, err);
+          proc.on("error", (err) => {
+            repo?.logger.log("failed to open", path, err);
           });
           proc.unref();
         }

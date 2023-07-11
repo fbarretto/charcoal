@@ -10,7 +10,7 @@ defaults.__set__('configFactory', env => {
   config.experiments = {
     asyncWebAssembly: true,
   };
-  config.output.library = 'EdenSmartlog';
+  config.output.library = 'GraphiteInteractive';
 
   // don't open broser when running `yarn start`,
   // since we need to use `yarn serve --dev` from gti-server

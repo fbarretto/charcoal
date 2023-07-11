@@ -1,7 +1,10 @@
 import type { CommitTree, CommitTreeWithPreviews } from "./getCommitTree";
 import type { Operation } from "./operations/Operation";
 import type { OperationInfo, OperationList } from "./serverAPIState";
-import type { MergeConflicts, UncommittedChanges } from "./types";
+import type {
+  MergeConflicts,
+  UncommittedChanges,
+} from "@withgraphite/gti-shared";
 
 import { getTracker } from "./analytics/globalTracker";
 import { getOpName } from "./operations/Operation";

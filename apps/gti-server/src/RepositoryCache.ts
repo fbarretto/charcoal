@@ -3,7 +3,7 @@ import type {
   AbsolutePath,
   RepositoryError,
   ValidatedRepoInfo,
-} from "@withgraphite/gti/src/types";
+} from "@withgraphite/gti-shared";
 
 import { Repository } from "./Repository";
 import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";

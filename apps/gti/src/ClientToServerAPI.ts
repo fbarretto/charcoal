@@ -3,10 +3,13 @@ import type {
   ClientToServerMessage,
   Disposable,
   ClientToServerMessageWithPayload,
-} from "./types";
+} from "@withgraphite/gti-shared";
 
 import messageBus from "./MessageBus";
-import { deserializeFromString, serializeToString } from "./serialize";
+import {
+  deserializeFromString,
+  serializeToString,
+} from "@withgraphite/gti-shared";
 import { defer } from "@withgraphite/gti-shared/utils";
 
 export type IncomingMessage = ServerToClientMessage;

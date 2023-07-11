@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ThemeColor } from "./theme";
+import type { ThemeColor } from "@withgraphite/gti-shared";
 
 import {
   VSCodeButton,

@@ -1,14 +1,10 @@
 import type {
-  ExportStack,
-  ImportedStack,
-} from "@withgraphite/gti-shared/types/stack";
-import type {
   ClientToServerMessage,
   ClientToServerMessageWithPayload,
   Disposable,
   FetchedCommits,
   FetchedUncommittedChanges,
-} from "@withgraphite/gti/src/types";
+} from "@withgraphite/gti-shared";
 import type { ClientConnection } from ".";
 import type { ServerSideTracker } from "./analytics/serverSideTracker";
 import type { Logger } from "./logger";
@@ -20,19 +16,18 @@ import { randomId, unwrap } from "@withgraphite/gti-shared/utils";
 import {
   deserializeFromString,
   serializeToString,
-} from "@withgraphite/gti/src/serialize";
+} from "@withgraphite/gti-shared";
 import type {
   MergeConflicts,
   PlatformSpecificClientToServerMessages,
   RepositoryError,
   Result,
   ServerToClientMessage,
-} from "@withgraphite/gti/src/types";
+} from "@withgraphite/gti-shared";
 import fs from "fs";
-import { Readable } from "stream";
 import { absolutePathForFileInRepo, Repository } from "./Repository";
 import { repositoryCache } from "./RepositoryCache";
-import { findPublicAncestor, parseExecJson } from "./utils";
+import { findPublicAncestor } from "./utils";
 
 type IncomingMessageWithPayload = ClientToServerMessageWithPayload;
 export type IncomingMessage = ClientToServerMessage;

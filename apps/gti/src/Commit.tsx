@@ -1,4 +1,4 @@
-import type { SuccessorInfo } from "./types";
+import type { SuccessorInfo } from "@withgraphite/gti-shared";
 import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
 
 import { BranchIndicator } from "./BranchIndicator";

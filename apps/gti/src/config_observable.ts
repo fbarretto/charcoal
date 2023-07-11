@@ -1,4 +1,4 @@
-import type { ConfigName } from "./types";
+import type { ConfigName } from "@withgraphite/gti-shared";
 import type { Json } from "@withgraphite/gti-shared/typeUtils";
 
 import serverAPI from "./ClientToServerAPI";

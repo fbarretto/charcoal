@@ -1,5 +1,5 @@
 import type { Operation } from "./operations/Operation";
-import type { ValidatedRepoInfo } from "./types";
+import type { ValidatedRepoInfo } from "@withgraphite/gti-shared";
 
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { Icon } from "@withgraphite/gti-shared/Icon";
@@ -14,7 +14,7 @@ import {
   useAbortRunningOperation,
 } from "./serverAPIState";
 import { Tooltip } from "./Tooltip";
-import { CommandRunner } from "./types";
+import { CommandRunner } from "@withgraphite/gti-shared";
 import { short } from "./utils";
 
 function OperationDescription(props: {

@@ -1,4 +1,4 @@
-import type { FieldConfig } from "./types";
+import type { FieldConfig } from "@withgraphite/gti-shared";
 import type { ReactNode } from "react";
 
 import { SeeMoreContainer } from "./SeeMoreContainer";

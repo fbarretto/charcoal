@@ -1,8 +1,6 @@
-
-
 import type { Repository } from "@withgraphite/gti-server/src/Repository";
 import type { Logger } from "@withgraphite/gti-server/src/logger";
-import type { Disposable } from "@withgraphite/gti/src/types";
+import type { Disposable } from "@withgraphite/gti-shared";
 import type { Comparison } from "@withgraphite/gti-shared/Comparison";
 
 import { repositoryCache } from "@withgraphite/gti-server/src/RepositoryCache";

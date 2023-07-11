@@ -4,7 +4,7 @@ import type {
   OperationCommandProgressReporter,
   OperationProgress,
   RunnableOperation,
-} from "@withgraphite/gti/src/types";
+} from "@withgraphite/gti-shared";
 
 import { newAbortController } from "@withgraphite/gti-shared/compat";
 
