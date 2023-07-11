@@ -365,8 +365,6 @@ export type ClientToServerMessage =
   | { type: "loadMoreCommits" }
   | { type: "subscribe"; kind: SubscriptionKind; subscriptionID: string }
   | { type: "unsubscribe"; kind: SubscriptionKind; subscriptionID: string }
-  | { type: "exportStack"; revs: string; assumeTracked?: Array<string> }
-  | { type: "importStack"; stack: ImportStack }
   | PlatformSpecificClientToServerMessages;
 
 export type SubscriptionResultsData = {

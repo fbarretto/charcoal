@@ -670,46 +670,6 @@ export default class ServerToClientAPI {
         });
         return;
       }
-      case "exportStack": {
-        const { revs, assumeTracked } = data;
-        const assumeTrackedArgs = (assumeTracked ?? []).map(
-          (path) => `--assume-tracked=${path}`
-        );
-        // @TODO
-        const exec = repo.runCommand([
-          "debugexportstack",
-          "-r",
-          revs,
-          ...assumeTrackedArgs,
-        ]);
-        const reply = (stack?: ExportStack, error?: string) => {
-          this.postMessage({
-            type: "exportedStack",
-            assumeTracked: assumeTracked ?? [],
-            revs,
-            stack: stack ?? [],
-            error,
-          });
-        };
-        parseExecJson(exec, reply);
-        break;
-      }
-      case "importStack": {
-        const stdinStream = Readable.from(JSON.stringify(data.stack));
-        // @TODO
-        const exec = repo.runCommand(["debugimportstack"], undefined, {
-          stdin: stdinStream,
-        });
-        const reply = (imported?: ImportedStack, error?: string) => {
-          this.postMessage({
-            type: "importedStack",
-            imported: imported ?? [],
-            error,
-          });
-        };
-        parseExecJson(exec, reply);
-        break;
-      }
       default: {
         void this.platform.handleMessageFromClient(
           repo,
