@@ -4,7 +4,7 @@ import type { VSCodeAPI } from "./vscodeSingleton";
 import { logger } from "./logger";
 import { initialParams } from "./urlParams";
 import vscode from "./vscodeSingleton";
-import { CLOSED_AND_SHOULD_NOT_RECONNECT_CODE } from "@withgraphite/gti-server/src/constants";
+import { CLOSED_AND_SHOULD_NOT_RECONNECT_CODE } from "@withgraphite/gti-shared";
 
 export type MessageBusStatus =
   | { type: "initializing" }

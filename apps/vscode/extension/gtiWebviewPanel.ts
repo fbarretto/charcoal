@@ -1,5 +1,4 @@
-import type { Logger } from "@withgraphite/gti-server/src/logger";
-
+import type { Logger } from "@withgraphite/gti-shared";
 import * as packageJson from "../package.json";
 import { getCLICommand } from "./config";
 import { VSCodePlatform } from "./vscodePlatform";

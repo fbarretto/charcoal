@@ -16,7 +16,7 @@ import type {
   ValidatedRepoInfo,
 } from "@withgraphite/gti-shared";
 import type { CodeReviewProvider } from "./CodeReviewProvider";
-import type { Logger } from "./logger";
+import type { Logger } from "@withgraphite/gti-shared";
 
 import type {
   BranchInfo,
@@ -41,7 +41,7 @@ import type { ServerSideTracker } from "./analytics/serverSideTracker";
 import {
   DEFAULT_DAYS_OF_COMMITS_TO_LOAD,
   ErrorShortMessages,
-} from "./constants";
+} from "@withgraphite/gti-shared";
 import { GitHubCodeReviewProvider } from "./github/githubCodeReviewProvider";
 import { OperationQueue } from "./OperationQueue";
 import { PageFocusTracker } from "./PageFocusTracker";

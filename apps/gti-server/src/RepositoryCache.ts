@@ -1,4 +1,4 @@
-import type { Logger } from "./logger";
+import type { Logger } from "@withgraphite/gti-shared";
 import type {
   AbsolutePath,
   RepositoryError,

@@ -1,25 +1,14 @@
 import type { CodeReviewProvider } from "../CodeReviewProvider";
-import type { Logger } from "../logger";
+import type { Logger } from "@withgraphite/gti-shared";
 import type {
   CodeReviewSystem,
-  DiffSignalSummary,
   Disposable,
   Result,
-} from "@withgraphite/gti/src/types";
+  GitHubDiffSummary,
+} from "@withgraphite/gti-shared";
 
 import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
 import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
-
-export type GitHubDiffSummary = {
-  type: "github";
-  title: string;
-  state: "Open" | "Merged" | "Closed" | "Draft";
-  number: PRNumber;
-  url: string;
-  commentCount: number;
-  anyUnresolvedComments: false;
-  signalSummary?: DiffSignalSummary;
-};
 
 type GitHubCodeReviewSystem = CodeReviewSystem & { type: "github" };
 export class GitHubCodeReviewProvider implements CodeReviewProvider {

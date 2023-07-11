@@ -1,8 +1,8 @@
 import type { PageFocusTracker } from "./PageFocusTracker";
-import type { Logger } from "./logger";
+import type { Logger } from "@withgraphite/gti-shared";
 import type { PageVisibility, RepoInfo } from "@withgraphite/gti-shared";
 
-import { ONE_MINUTE_MS } from "./constants";
+import { ONE_MINUTE_MS } from "@withgraphite/gti-shared";
 import { Watchman } from "./watchman";
 import path from "path";
 import { debounce } from "@withgraphite/gti-shared/debounce";

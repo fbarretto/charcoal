@@ -1,4 +1,4 @@
-import type { Tracker } from "@withgraphite/gti-server/src/analytics/tracker";
+import type { Tracker } from "@withgraphite/gti-shared";
 
 declare global {
   interface Window {

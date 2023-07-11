@@ -7,7 +7,7 @@ import { observer } from "mobx-react-lite";
 import { useThrottledEffect } from "@withgraphite/gti-shared/hooks";
 import { tracker } from "./analytics";
 import type { ReactNode } from "react";
-import type { TrackErrorName } from "@withgraphite/gti-server/src/analytics/eventNames";
+import type { TrackErrorName } from "@withgraphite/gti-shared";
 import type { RepoInfo } from "@withgraphite/gti-shared";
 import type { MessageBusStatus } from "./MessageBus";
 

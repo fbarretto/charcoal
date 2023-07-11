@@ -14,7 +14,7 @@ import type {
   BranchInfo,
   BranchName,
 } from "@withgraphite/gti-cli-shared-types";
-import { DEFAULT_DAYS_OF_COMMITS_TO_LOAD } from "@withgraphite/gti-server/src/constants";
+import { DEFAULT_DAYS_OF_COMMITS_TO_LOAD } from "@withgraphite/gti-shared";
 import type { EnsureAssignedTogether } from "@withgraphite/gti-shared/EnsureAssignedTogether";
 import { computed } from "mobx";
 import { useCallback } from "react";

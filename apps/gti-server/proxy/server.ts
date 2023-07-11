@@ -3,7 +3,7 @@ import type { PlatformName } from "@withgraphite/gti-shared";
 import type { AddressInfo } from "net";
 
 import { repositoryCache } from "../src/RepositoryCache";
-import { CLOSED_AND_SHOULD_NOT_RECONNECT_CODE } from "../src/constants";
+import { CLOSED_AND_SHOULD_NOT_RECONNECT_CODE } from "@withgraphite/gti-shared";
 import { onClientConnection } from "../src/index";
 import { areTokensEqual } from "./proxyUtils";
 import fs from "fs";

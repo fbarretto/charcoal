@@ -1,4 +1,4 @@
-import type { Logger } from "./logger";
+import type { Logger } from "@withgraphite/gti-shared";
 import type { ServerPlatform } from "./serverPlatform";
 
 import { makeServerSideTracker } from "./analytics/serverSideTracker";

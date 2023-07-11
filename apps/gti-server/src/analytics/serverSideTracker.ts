@@ -1,14 +1,14 @@
 import type { Repository } from "../Repository";
-import type { Logger } from "../logger";
+import type { Logger } from "@withgraphite/gti-shared";
 import type { ServerPlatform } from "../serverPlatform";
 import type {
   ApplicationInfo,
   FullTrackData,
   TrackDataWithEventName,
-} from "./types";
+} from "@withgraphite/gti-shared";
 
 import { generateAnalyticsInfo } from "./environment";
-import { Tracker } from "./tracker";
+import { Tracker } from "@withgraphite/gti-shared";
 
 export type ServerSideTracker = Tracker<ServerSideContext>;
 

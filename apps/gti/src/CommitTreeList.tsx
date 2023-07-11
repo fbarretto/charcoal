@@ -3,7 +3,7 @@ import type { CommitTreeWithPreviews } from "./getCommitTree";
 import type { ContextMenuItem } from "@withgraphite/gti-shared/ContextMenu";
 
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { ErrorShortMessages } from "@withgraphite/gti-server/src/constants";
+import { ErrorShortMessages } from "@withgraphite/gti-shared";
 import { useContextMenu } from "@withgraphite/gti-shared/ContextMenu";
 import { Icon } from "@withgraphite/gti-shared/Icon";
 import { notEmpty } from "@withgraphite/gti-shared/utils";

@@ -1,4 +1,4 @@
-import type { Logger } from "./logger";
+import type { Logger } from "@withgraphite/gti-shared";
 
 import { firstOfIterable, serializeAsyncCall, sleep } from "./utils";
 import { EventEmitter } from "events";

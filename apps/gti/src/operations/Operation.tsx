@@ -10,7 +10,7 @@ import type { CommandArg } from "../types";
 
 import { CommandRunner } from "../types";
 import { randomId } from "@withgraphite/gti-shared/utils";
-import type { TrackEventName } from "@withgraphite/gti-server/src/analytics/eventNames";
+import type { TrackEventName } from "@withgraphite/gti-shared";
 
 /**
  * Operations represent commands that mutate the repository, such as rebasing, committing, etc.

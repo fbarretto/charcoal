@@ -1,4 +1,4 @@
-import type { Logger } from "@withgraphite/gti-server/src/logger";
+import type { Logger } from "@withgraphite/gti-shared";
 import type { RepositoryReference } from "@withgraphite/gti-server/src/RepositoryCache";
 
 import { repositoryCache } from "@withgraphite/gti-server/src/RepositoryCache";

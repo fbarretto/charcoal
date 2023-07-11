@@ -7,7 +7,7 @@ import type {
 } from "@withgraphite/gti-shared";
 import type { ClientConnection } from ".";
 import type { ServerSideTracker } from "./analytics/serverSideTracker";
-import type { Logger } from "./logger";
+import type { Logger } from "@withgraphite/gti-shared";
 import type { RepositoryReference } from "./RepositoryCache";
 import type { ServerPlatform } from "./serverPlatform";
 

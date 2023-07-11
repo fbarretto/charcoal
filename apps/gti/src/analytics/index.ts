@@ -1,6 +1,6 @@
-import type { TrackDataWithEventName } from "@withgraphite/gti-server/src/analytics/types";
+import type { TrackDataWithEventName } from "@withgraphite/gti-shared";
 
-import { Tracker } from "@withgraphite/gti-server/src/analytics/tracker";
+import { Tracker } from "@withgraphite/gti-shared";
 import clientToServerAPI from "../ClientToServerAPI";
 
 /** Client-side global analytics tracker */

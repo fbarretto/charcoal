@@ -4,9 +4,9 @@ import type {
   PRNumber,
   RepoRelativePath,
 } from "@withgraphite/gti-cli-shared-types";
-import type { TrackEventName } from "@withgraphite/gti-server/src/analytics/eventNames";
-import type { TrackDataWithEventName } from "@withgraphite/gti-server/src/analytics/types";
-import type { GitHubDiffSummary } from "@withgraphite/gti-server/src/github/githubCodeReviewProvider";
+import type { TrackEventName } from "@withgraphite/gti-shared";
+import type { TrackDataWithEventName } from "@withgraphite/gti-shared";
+import type { GitHubDiffSummary } from "@withgraphite/gti-shared";
 import type { Comparison } from "@withgraphite/gti-shared/Comparison";
 import type { AllUndefined, Json } from "@withgraphite/gti-shared/typeUtils";
 

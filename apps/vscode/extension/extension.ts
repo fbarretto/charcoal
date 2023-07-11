@@ -1,5 +1,4 @@
-import type { Logger } from "@withgraphite/gti-server/src/logger";
-
+import type { Logger } from "@withgraphite/gti-shared";
 import { makeServerSideTracker } from "@withgraphite/gti-server/src/analytics/serverSideTracker";
 import * as util from "util";
 import * as vscode from "vscode";

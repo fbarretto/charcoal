@@ -4,9 +4,6 @@ import type {
   PRNumber,
   RepoRelativePath,
 } from "@withgraphite/gti-cli-shared-types";
-import type { TrackEventName } from "@withgraphite/gti-server/src/analytics/eventNames";
-import type { TrackDataWithEventName } from "@withgraphite/gti-server/src/analytics/types";
-import type { GitHubDiffSummary } from "@withgraphite/gti-server/src/github/githubCodeReviewProvider";
 import type { AllUndefined, Json } from "@withgraphite/gti-shared/typeUtils";
 
 import type { Hash } from "@withgraphite/gti-shared/types/common";
@@ -20,6 +17,9 @@ import type { ThemeColor } from "../theme";
 
 import type { LazyExoticComponent } from "react";
 import type { Comparison } from "@withgraphite/gti-shared/Comparison";
+import type { TrackEventName } from "../analytics/eventNames";
+import type { GitHubDiffSummary } from "./githubCodeReviewProvider";
+import type { TrackDataWithEventName } from "../analytics/types";
 export type Result<T> =
   | { value: T; error?: undefined }
   | { value?: undefined; error: Error };
