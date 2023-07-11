@@ -6,7 +6,7 @@ import { CommitInfoTextArea } from "./TextArea";
 import { CommitInfoTextField } from "./TextField";
 import { Section, SmallCapsTitle } from "./utils";
 import { Fragment } from "react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "../Icon";
 
 export function CommitInfoField({
   field,

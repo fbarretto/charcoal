@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import type { DiffSummary } from "../types";
 import type { UICodeReviewProvider } from "./UICodeReviewProvider";
 
-import { useContextMenu } from "@withgraphite/gti-shared/ContextMenu";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { useContextMenu } from "../ContextMenu";
+import { Icon } from "../Icon";
 import { Component, Suspense, useState } from "react";
 import { ExternalLink } from "../ExternalLink";
 import platform from "../platform";

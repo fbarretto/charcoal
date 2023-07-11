@@ -1,6 +1,6 @@
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import { randomId } from "@withgraphite/gti-shared/utils";
+import { Icon } from "./Icon";
+import { randomId } from "@withgraphite/gti-shared";
 import { computed, observable } from "mobx";
 import { observer } from "mobx-react-lite";
 import {

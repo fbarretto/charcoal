@@ -1,4 +1,4 @@
-import type { RepoPath } from "@withgraphite/gti-shared/types/common";
+import type { RepoPath } from "@withgraphite/gti-shared";
 
 export type PathTree<T> = Map<string, PathTree<T> | T>;
 /**

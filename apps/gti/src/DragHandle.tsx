@@ -1,6 +1,6 @@
 import type { PointerEventHandler, ReactElement } from "react";
 
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "./Icon";
 
 export type DragHandler = (x: number, y: number, isDragging: boolean) => void;
 

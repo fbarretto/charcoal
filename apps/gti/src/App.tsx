@@ -2,10 +2,10 @@ import type { RepositoryError } from "@withgraphite/gti-shared";
 
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import React from "react";
-import { ContextMenus } from "@withgraphite/gti-shared/ContextMenu";
-import { Drawers } from "@withgraphite/gti-shared/Drawers";
-import { useThrottledEffect } from "@withgraphite/gti-shared/hooks";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { ContextMenus } from "./ContextMenu";
+import { Drawers } from "./Drawers";
+import { useThrottledEffect } from "./hooks";
+import { Icon } from "./Icon";
 import { tracker } from "./analytics";
 import { CommandHistoryAndProgress } from "./CommandHistoryAndProgress";
 import { CommitInfoSidebar } from "./CommitInfoView/CommitInfoView";

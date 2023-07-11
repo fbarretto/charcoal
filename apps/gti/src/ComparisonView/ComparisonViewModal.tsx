@@ -1,12 +1,12 @@
-import type { Comparison } from "@withgraphite/gti-shared/Comparison";
+import type { Comparison } from "@withgraphite/gti-shared";
 
 import { useCommand } from "../GTIShortcuts";
 import { Modal } from "../Modal";
 import { currentComparisonMode } from "./atoms";
 import { lazy, Suspense } from "react";
 import "./ComparisonView.scss";
-import { ComparisonType } from "@withgraphite/gti-shared/Comparison";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { ComparisonType } from "@withgraphite/gti-shared";
+import { Icon } from "../Icon";
 import { observer } from "mobx-react-lite";
 import { runInAction } from "mobx";
 

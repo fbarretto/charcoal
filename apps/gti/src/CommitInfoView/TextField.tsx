@@ -8,8 +8,8 @@ import {
   VSCodeTextField,
 } from "@vscode/webview-ui-toolkit/react";
 import { useRef, useEffect, useState } from "react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import { randomId } from "@withgraphite/gti-shared/utils";
+import { Icon } from "../Icon";
+import { randomId } from "@withgraphite/gti-shared";
 
 /** Extract comma-separated tokens into an array, plus any remaining non-tokenized text */
 function extractTokens(raw: string): [Array<string>, string] {

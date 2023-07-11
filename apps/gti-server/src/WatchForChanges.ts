@@ -5,7 +5,7 @@ import type { PageVisibility, RepoInfo } from "@withgraphite/gti-shared";
 import { ONE_MINUTE_MS } from "@withgraphite/gti-shared";
 import { Watchman } from "./watchman";
 import path from "path";
-import { debounce } from "@withgraphite/gti-shared/debounce";
+import { debounce } from "@withgraphite/gti-shared";
 
 const DEFAULT_POLL_INTERVAL = 5 * ONE_MINUTE_MS;
 const VISIBLE_POLL_INTERVAL = 1 * ONE_MINUTE_MS;

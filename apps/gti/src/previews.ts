@@ -20,7 +20,7 @@ import type {
   BranchName,
   ChangedFile,
 } from "@withgraphite/gti-cli-shared-types";
-import { notEmpty, unwrap } from "@withgraphite/gti-shared/utils";
+import { notEmpty, unwrap } from "@withgraphite/gti-shared";
 import { computed } from "mobx";
 import { useEffect } from "react";
 import {

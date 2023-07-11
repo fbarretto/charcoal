@@ -7,7 +7,7 @@ import {
   VSCodeOption,
   VSCodeLink,
 } from "@vscode/webview-ui-toolkit/react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "./Icon";
 import { DropdownField, DropdownFields } from "./DropdownFields";
 import platform from "./platform";
 import { repositoryInfo, useRunOperation } from "./serverAPIState";
@@ -17,7 +17,7 @@ import { Tooltip } from "./Tooltip";
 import { observer } from "mobx-react-lite";
 import "./SettingsTooltip.scss";
 import { SetConfigOperation } from "./operations/SetConfigOperation";
-import { unwrap } from "@withgraphite/gti-shared/utils";
+import { unwrap } from "@withgraphite/gti-shared";
 
 export function SettingsGearButton() {
   return (

@@ -1,11 +1,11 @@
-import type { Deferred } from "@withgraphite/gti-shared/utils";
+import type { Deferred } from "@withgraphite/gti-shared";
 
 import { useCommand } from "./GTIShortcuts";
 import { Modal } from "./Modal";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { useEffect, useRef } from "react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import { defer } from "@withgraphite/gti-shared/utils";
+import { Icon } from "./Icon";
+import { defer } from "@withgraphite/gti-shared";
 
 import "./useModal.scss";
 import { observable } from "mobx";

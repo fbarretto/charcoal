@@ -1,8 +1,4 @@
-import {
-  makeCommandDispatcher,
-  KeyCode,
-  Modifier,
-} from "@withgraphite/gti-shared/KeyboardShortcuts";
+import { makeCommandDispatcher, KeyCode, Modifier } from "./KeyboardShortcuts";
 
 /* eslint-disable no-bitwise */
 export const [GTICommandContext, useCommand, dispatchCommand] =

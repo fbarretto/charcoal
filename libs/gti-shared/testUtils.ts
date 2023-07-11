@@ -1,4 +1,4 @@
-import type { Logger } from "@withgraphite/gti-shared";
+import type { Logger } from "./analytics/logger";
 import type { Json } from "./typeUtils";
 
 export const mockLogger: Logger = {

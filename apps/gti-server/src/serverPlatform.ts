@@ -7,7 +7,7 @@ import type {
 
 import { spawn } from "child_process";
 import pathModule from "path";
-import { unwrap } from "@withgraphite/gti-shared/utils";
+import { unwrap } from "@withgraphite/gti-shared";
 
 /**
  * Platform-specific server-side API for each target: vscode extension host, electron standalone, browser, ...

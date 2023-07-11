@@ -1,5 +1,5 @@
 import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
-import type { Comparison } from "@withgraphite/gti-shared/Comparison";
+import type { Comparison } from "@withgraphite/gti-shared";
 import type { Platform } from "@withgraphite/gti-shared";
 import type { ThemeColor } from "@withgraphite/gti-shared";
 

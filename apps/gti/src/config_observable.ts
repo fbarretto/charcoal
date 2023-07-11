@@ -1,5 +1,5 @@
 import type { ConfigName } from "@withgraphite/gti-shared";
-import type { Json } from "@withgraphite/gti-shared/typeUtils";
+import type { Json } from "@withgraphite/gti-shared";
 
 import serverAPI from "./ClientToServerAPI";
 import { observableBoxWithInitializers } from "./lib/mobx-recoil/observable_box_with_init";

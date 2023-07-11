@@ -1,4 +1,4 @@
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "./Icon";
 
 import "./ComponentUtils.scss";
 

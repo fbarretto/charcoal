@@ -1,10 +1,6 @@
 import type { Result } from "../types";
-import {
-  Comparison,
-  comparisonIsAgainstHead,
-} from "@withgraphite/gti-shared/Comparison";
-import type { LineRangeParams } from "@withgraphite/gti-shared/SplitDiffView/types";
-import type { ParsedDiff } from "@withgraphite/gti-shared/patch/parse";
+import { Comparison, comparisonIsAgainstHead } from "@withgraphite/gti-shared";
+import type { ParsedDiff } from "@withgraphite/gti-shared";
 
 import serverAPI from "../ClientToServerAPI";
 import { EmptyState } from "../EmptyState";
@@ -21,14 +17,11 @@ import {
   VSCodeOption,
 } from "@vscode/webview-ui-toolkit/react";
 import { useCallback, useEffect } from "react";
-import {
-  labelForComparison,
-  ComparisonType,
-} from "@withgraphite/gti-shared/Comparison";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import { SplitDiffView } from "@withgraphite/gti-shared/SplitDiffView";
-import SplitDiffViewPrimerStyles from "@withgraphite/gti-shared/SplitDiffView/PrimerStyles";
-import { parsePatch } from "@withgraphite/gti-shared/patch/parse";
+import { labelForComparison, ComparisonType } from "@withgraphite/gti-shared";
+import { Icon } from "../Icon";
+import { SplitDiffView } from "../SplitDiffView";
+import { parsePatch } from "@withgraphite/gti-shared";
+import SplitDiffViewPrimerStyles from "../SplitDiffView/PrimerStyles";
 
 import "./ComparisonView.scss";
 import { family } from "../lib/mobx-recoil/family";
@@ -37,6 +30,7 @@ import { computed, runInAction } from "mobx";
 import stringify from "fast-json-stable-stringify";
 import { observer } from "mobx-react-lite";
 import { fromPromise } from "mobx-utils";
+import type { LineRangeParams } from "../SplitDiffView/types";
 
 /**
  * Transform Result<T> to Result<U> by applying `fn` on result.value.

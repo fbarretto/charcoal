@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 import { Tooltip } from "../../Tooltip";
 import { PrSubmitOperation } from "../../operations/PrSubmitOperation";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "../../Icon";
 
 import "./GitHubPRBadge.scss";
 import type { PRNumber } from "@withgraphite/gti-cli-shared-types";

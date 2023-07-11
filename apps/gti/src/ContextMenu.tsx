@@ -1,4 +1,4 @@
-import { findParentWithClassName } from "./utils";
+import { findParentWithClassName } from "@withgraphite/gti-shared";
 import { useEffect, useRef, useState } from "react";
 
 import "./ContextMenu.scss";

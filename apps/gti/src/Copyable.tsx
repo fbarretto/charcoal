@@ -1,7 +1,7 @@
 import { Tooltip } from "./Tooltip";
 import platform from "./platform";
 import { useEffect, useState } from "react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "./Icon";
 
 import "./Copyable.scss";
 

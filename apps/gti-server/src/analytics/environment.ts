@@ -1,7 +1,7 @@
 import type { ApplicationInfo } from "@withgraphite/gti-shared";
 
 import os from "os";
-import { randomId, unwrap } from "@withgraphite/gti-shared/utils";
+import { randomId, unwrap } from "@withgraphite/gti-shared";
 
 export function getUsername(): string {
   try {

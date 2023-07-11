@@ -1,8 +1,8 @@
-import type { Comparison } from "@withgraphite/gti-shared/Comparison";
+import type { Comparison } from "@withgraphite/gti-shared";
 
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { ComparisonType } from "@withgraphite/gti-shared/Comparison";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { ComparisonType } from "@withgraphite/gti-shared";
+import { Icon } from "../Icon";
 import { currentComparisonMode } from "./atoms";
 
 import { short } from "../utils";

@@ -2,7 +2,7 @@ import rmtree from "./rmtree";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { unwrap } from "@withgraphite/gti-shared/utils";
+import { unwrap } from "@withgraphite/gti-shared";
 
 export type ExistingServerInfo = {
   sensitiveToken: string;

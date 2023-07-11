@@ -3,7 +3,7 @@ import { useCommand } from "../GTIShortcuts";
 import { Modal } from "../Modal";
 import platform from "../platform";
 import { Suspense, useEffect, useState } from "react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "../Icon";
 import { observableConfig } from "../config_observable";
 
 export const hasShownGettingStarted = observableConfig<boolean | null>({

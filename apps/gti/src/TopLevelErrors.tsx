@@ -4,7 +4,7 @@ import platform from "./platform";
 import { reconnectingStatus, repositoryInfo } from "./serverAPIState";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { observer } from "mobx-react-lite";
-import { useThrottledEffect } from "@withgraphite/gti-shared/hooks";
+import { useThrottledEffect } from "./hooks";
 import { tracker } from "./analytics";
 import type { ReactNode } from "react";
 import type { TrackErrorName } from "@withgraphite/gti-shared";

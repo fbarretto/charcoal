@@ -6,8 +6,8 @@ import type {
 } from "@withgraphite/gti-shared";
 
 import { Repository } from "./Repository";
-import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
-import { ensureTrailingPathSep } from "@withgraphite/gti-shared/pathUtils";
+import { TypedEventEmitter } from "@withgraphite/gti-shared";
+import { ensureTrailingPathSep } from "@withgraphite/gti-shared";
 
 /**
  * Reference-counting access to a {@link Repository}, via a Promise.

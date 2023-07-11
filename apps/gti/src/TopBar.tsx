@@ -12,7 +12,7 @@ import {
   useClearAllOptimisticState,
 } from "./serverAPIState";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "./Icon";
 
 import "./TopBar.scss";
 import { observer } from "mobx-react-lite";

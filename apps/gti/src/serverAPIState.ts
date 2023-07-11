@@ -15,10 +15,10 @@ import type {
   BranchName,
 } from "@withgraphite/gti-cli-shared-types";
 import { DEFAULT_DAYS_OF_COMMITS_TO_LOAD } from "@withgraphite/gti-shared";
-import type { EnsureAssignedTogether } from "@withgraphite/gti-shared/EnsureAssignedTogether";
+import type { EnsureAssignedTogether } from "@withgraphite/gti-shared";
 import { computed } from "mobx";
 import { useCallback } from "react";
-import { randomId } from "@withgraphite/gti-shared/utils";
+import { randomId } from "@withgraphite/gti-shared";
 import serverAPI from "./ClientToServerAPI";
 import { getCommitTree, walkTreePostorder } from "./getCommitTree";
 import {

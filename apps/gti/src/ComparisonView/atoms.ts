@@ -1,6 +1,6 @@
-import type { Comparison } from "@withgraphite/gti-shared/Comparison";
+import type { Comparison } from "@withgraphite/gti-shared";
 
-import { ComparisonType } from "@withgraphite/gti-shared/Comparison";
+import { ComparisonType } from "@withgraphite/gti-shared";
 import { observable } from "mobx";
 
 export type ComparisonMode = { comparison: Comparison; visible: boolean };

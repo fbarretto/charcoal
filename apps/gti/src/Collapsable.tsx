@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "./Icon";
 import "./Collapsable.scss";
 
 export function Collapsable({

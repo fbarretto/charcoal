@@ -1,12 +1,12 @@
 import type { CommitTreeWithPreviews } from "./getCommitTree";
 
-import type { ContextMenuItem } from "@withgraphite/gti-shared/ContextMenu";
+import type { ContextMenuItem } from "./ContextMenu";
 
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { ErrorShortMessages } from "@withgraphite/gti-shared";
-import { useContextMenu } from "@withgraphite/gti-shared/ContextMenu";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import { notEmpty } from "@withgraphite/gti-shared/utils";
+import { useContextMenu } from "./ContextMenu";
+import { Icon } from "./Icon";
+import { notEmpty } from "@withgraphite/gti-shared";
 import { BranchIndicator } from "./BranchIndicator";
 import serverAPI from "./ClientToServerAPI";
 import {

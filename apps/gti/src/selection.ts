@@ -5,7 +5,7 @@ import { computed, observable } from "mobx";
 import { useCallback } from "react";
 import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
 import { treeWithPreviews } from "./previews";
-import { notEmpty } from "@withgraphite/gti-shared/utils";
+import { notEmpty } from "@withgraphite/gti-shared";
 import { GTICommandName, useCommand } from "./GTIShortcuts";
 
 /**

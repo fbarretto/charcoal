@@ -1,5 +1,6 @@
 import type { IComputedValue } from "mobx";
 import type { IPromiseBasedObservable } from "mobx-utils";
+import type { OneIndexedLineNumber } from "@withgraphite/gti-shared";
 
 export type LineRangeParams<Id> = {
   // 1-based line number.
@@ -26,5 +27,3 @@ export type Context<T> = {
   copy?: (s: string) => void;
   openFileToLine?: (line: OneIndexedLineNumber) => unknown;
 };
-
-export type OneIndexedLineNumber = Exclude<number, 0>;

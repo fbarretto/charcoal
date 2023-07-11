@@ -24,15 +24,12 @@ import type {
   RepoRelativePath,
   Status,
 } from "@withgraphite/gti-cli-shared-types";
-import {
-  Comparison,
-  ComparisonType,
-} from "@withgraphite/gti-shared/Comparison";
-import { exists } from "@withgraphite/gti-shared/fs";
-import { removeLeadingPathSep } from "@withgraphite/gti-shared/pathUtils";
-import { RateLimiter } from "@withgraphite/gti-shared/RateLimiter";
-import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
-import { notEmpty, unwrap } from "@withgraphite/gti-shared/utils";
+import { Comparison, ComparisonType } from "@withgraphite/gti-shared";
+import { exists } from "./fs";
+import { removeLeadingPathSep } from "@withgraphite/gti-shared";
+import { RateLimiter } from "@withgraphite/gti-shared";
+import { TypedEventEmitter } from "@withgraphite/gti-shared";
+import { notEmpty, unwrap } from "@withgraphite/gti-shared";
 import { CommandRunner } from "@withgraphite/gti-shared";
 import execa from "execa";
 import os from "os";

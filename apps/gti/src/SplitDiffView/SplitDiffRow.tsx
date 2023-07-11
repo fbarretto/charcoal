@@ -1,5 +1,5 @@
 import { Box } from "@primer/react";
-import type { OneIndexedLineNumber } from "./types";
+import type { OneIndexedLineNumber } from "../types";
 
 type Props = {
   beforeLineNumber: number | null;

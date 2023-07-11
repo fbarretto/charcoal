@@ -9,7 +9,7 @@ import type {
 import type { CommandArg } from "../types";
 
 import { CommandRunner } from "../types";
-import { randomId } from "@withgraphite/gti-shared/utils";
+import { randomId } from "@withgraphite/gti-shared";
 import type { TrackEventName } from "@withgraphite/gti-shared";
 
 /**

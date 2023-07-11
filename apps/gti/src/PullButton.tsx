@@ -3,7 +3,7 @@ import { PullOperation } from "./operations/PullOperation";
 import { relativeDate, RelativeDate } from "./relativeDate";
 import { latestCommitTree, useRunOperation } from "./serverAPIState";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "./Icon";
 
 import "./PullButton.scss";
 import { observer } from "mobx-react-lite";

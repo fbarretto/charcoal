@@ -1,6 +1,6 @@
 import { VSCodeBadge, VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import { basename } from "@withgraphite/gti-shared/utils";
+import { Icon } from "./Icon";
+import { basename } from "@withgraphite/gti-shared";
 import { observer } from "mobx-react-lite";
 import { codeReviewProvider } from "./codeReview/CodeReviewInfo";
 import { DropdownField, DropdownFields } from "./DropdownFields";
@@ -12,7 +12,7 @@ import {
   VSCodeRadio,
   VSCodeRadioGroup,
 } from "@vscode/webview-ui-toolkit/react";
-import { minimalDisambiguousPaths } from "@withgraphite/gti-shared/minimalDisambiguousPaths";
+import { minimalDisambiguousPaths } from "@withgraphite/gti-shared";
 import serverAPI from "./ClientToServerAPI";
 import { observableBoxWithInitializers } from "./lib/mobx-recoil/observable_box_with_init";
 

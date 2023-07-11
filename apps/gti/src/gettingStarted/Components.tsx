@@ -2,7 +2,7 @@ import platform from "../platform";
 import { themeState } from "../theme";
 import { Ribbon } from "./Ribbon";
 import { VSCodeLink, VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "../Icon";
 
 export function DismissButton({ dismiss }: { dismiss: () => void }) {
   return (

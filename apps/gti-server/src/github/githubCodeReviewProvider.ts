@@ -7,7 +7,7 @@ import type {
   GitHubDiffSummary,
 } from "@withgraphite/gti-shared";
 
-import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
+import { TypedEventEmitter } from "@withgraphite/gti-shared";
 import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
 
 type GitHubCodeReviewSystem = CodeReviewSystem & { type: "github" };

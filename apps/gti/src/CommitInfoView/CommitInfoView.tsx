@@ -17,9 +17,9 @@ import {
   VSCodeRadio,
   VSCodeRadioGroup,
 } from "@vscode/webview-ui-toolkit/react";
-import { ComparisonType } from "@withgraphite/gti-shared/Comparison";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import { notEmpty, unwrap } from "@withgraphite/gti-shared/utils";
+import { ComparisonType } from "@withgraphite/gti-shared";
+import { Icon } from "../Icon";
+import { notEmpty, unwrap } from "@withgraphite/gti-shared";
 import { useEffect } from "react";
 import {
   allDiffSummaries,

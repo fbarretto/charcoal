@@ -4,7 +4,7 @@ import type { UICodeReviewProvider } from "./UICodeReviewProvider";
 import serverAPI from "../ClientToServerAPI";
 import { repositoryInfo } from "../serverAPIState";
 import { GithubUICodeReviewProvider } from "./github/github";
-import { debounce } from "@withgraphite/gti-shared/debounce";
+import { debounce } from "@withgraphite/gti-shared";
 import { observableBoxWithInitializers } from "../lib/mobx-recoil/observable_box_with_init";
 import { computed } from "mobx";
 import { family } from "../lib/mobx-recoil/family";

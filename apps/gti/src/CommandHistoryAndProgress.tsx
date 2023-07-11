@@ -2,8 +2,8 @@ import type { Operation } from "./operations/Operation";
 import type { ValidatedRepoInfo } from "@withgraphite/gti-shared";
 
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import { truncate } from "@withgraphite/gti-shared/utils";
+import { Icon } from "./Icon";
+import { truncate } from "@withgraphite/gti-shared";
 import { observer } from "mobx-react-lite";
 import "./CommandHistoryAndProgress.scss";
 import { Delayed } from "./Delayed";

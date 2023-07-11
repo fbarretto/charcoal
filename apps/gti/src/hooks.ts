@@ -1,8 +1,6 @@
-
-
-import { debounce } from './debounce';
-import deepEqual from 'fast-deep-equal';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { debounce } from "@withgraphite/gti-shared";
+import deepEqual from "fast-deep-equal";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 /**
  * Like useEffect, but throttles calls to the effect callback.
@@ -32,13 +30,15 @@ export function useThrottledEffect<A extends Array<unknown>>(
 /**
  * Like React.useMemo, but with deep equality comparison between previous/next dependencies.
  */
-export function useDeepMemo<T>(construct: () => T, dependencies: React.DependencyList) {
+export function useDeepMemo<T>(
+  construct: () => T,
+  dependencies: React.DependencyList
+) {
   const ref = useRef<React.DependencyList>([]);
   if (!deepEqual(dependencies, ref.current)) {
     ref.current = dependencies;
   }
   const deepDeps = ref.current;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(construct, deepDeps);
 }

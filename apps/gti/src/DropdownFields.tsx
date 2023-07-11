@@ -1,5 +1,5 @@
 import { VSCodeDivider } from "@vscode/webview-ui-toolkit/react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "./Icon";
 
 import "./DropdownFields.scss";
 

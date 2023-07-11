@@ -4,22 +4,19 @@ import type {
   PRNumber,
   RepoRelativePath,
 } from "@withgraphite/gti-cli-shared-types";
-import type { AllUndefined, Json } from "@withgraphite/gti-shared/typeUtils";
 
-import type { Hash } from "@withgraphite/gti-shared/types/common";
-import type {
-  ExportStack,
-  ImportedStack,
-} from "@withgraphite/gti-shared/types/stack";
 import type { TypeaheadKind, TypeaheadResult } from "./commit_info_view";
 
 import type { ThemeColor } from "../theme";
 
 import type { LazyExoticComponent } from "react";
-import type { Comparison } from "@withgraphite/gti-shared/Comparison";
 import type { TrackEventName } from "../analytics/eventNames";
 import type { GitHubDiffSummary } from "./githubCodeReviewProvider";
 import type { TrackDataWithEventName } from "../analytics/types";
+import type { Hash } from "./common";
+import type { AllUndefined, Json } from "../typeUtils";
+import type { Comparison } from "../Comparison";
+import type { ExportStack, ImportedStack } from "./stack";
 export type Result<T> =
   | { value: T; error?: undefined }
   | { value?: undefined; error: Error };

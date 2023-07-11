@@ -1,10 +1,10 @@
 import "./SplitDiffHunk.scss";
 
-import type { ParsedDiff } from "../patch/parse";
+import type { ParsedDiff } from "@withgraphite/gti-shared";
 import type { SplitDiffTableProps } from "./SplitDiffHunk";
 import type { Context } from "./types";
 
-import { DiffType } from "../patch/parse";
+import { DiffType } from "@withgraphite/gti-shared";
 import { FileHeader } from "./SplitDiffFileHeader";
 import { SplitDiffTable } from "./SplitDiffHunk";
 import { Box } from "@primer/react";

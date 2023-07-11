@@ -1,4 +1,4 @@
-import type { DiffType } from "../patch/parse";
+import type { DiffType } from "@withgraphite/gti-shared";
 import type { Context } from "./types";
 
 import { Icon } from "../Icon";

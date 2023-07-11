@@ -10,7 +10,7 @@ import {
   deserializeFromString,
   serializeToString,
 } from "@withgraphite/gti-shared";
-import { defer } from "@withgraphite/gti-shared/utils";
+import { defer } from "@withgraphite/gti-shared";
 
 export type IncomingMessage = ServerToClientMessage;
 export type OutgoingMessage =

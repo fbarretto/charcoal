@@ -1,4 +1,4 @@
-import type { AllDrawersState } from "@withgraphite/gti-shared/Drawers";
+import type { AllDrawersState } from "./Drawers";
 
 import { getWindowWidthInPixels } from "./utils";
 import { observable } from "mobx";

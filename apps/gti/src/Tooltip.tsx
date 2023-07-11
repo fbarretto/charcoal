@@ -1,10 +1,7 @@
-import type { ExclusiveOr } from "@withgraphite/gti-shared/typeUtils";
+import type { ExclusiveOr } from "@withgraphite/gti-shared";
 import type { MouseEvent, ReactNode } from "react";
 
-import {
-  findParentWithClassName,
-  unwrap,
-} from "@withgraphite/gti-shared/utils";
+import { findParentWithClassName, unwrap } from "@withgraphite/gti-shared";
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 

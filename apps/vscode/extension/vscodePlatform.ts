@@ -1,6 +1,6 @@
 import type { Repository } from "@withgraphite/gti-server/src/Repository";
 import type { ServerPlatform } from "@withgraphite/gti-server/src/serverPlatform";
-import type { Json } from "@withgraphite/gti-shared/typeUtils";
+import type { Json } from "@withgraphite/gti-shared";
 import type {
   AbsolutePath,
   PlatformSpecificClientToServerMessages,

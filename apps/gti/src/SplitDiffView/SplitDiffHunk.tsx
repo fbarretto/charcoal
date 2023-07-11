@@ -1,4 +1,5 @@
-import type { Context, LineRangeParams, OneIndexedLineNumber } from "./types";
+import type { OneIndexedLineNumber } from "../types";
+import type { Context, LineRangeParams } from "./types";
 import type { Hunk, ParsedDiff } from "diff";
 
 import SplitDiffRow from "./SplitDiffRow";
@@ -157,6 +158,7 @@ export const SplitDiffTable = React.memo(
 /**
  * Adds new rows to the supplied `rows` array.
  */
+// eslint-disable-next-line max-params
 function addRowsForHunk(
   hunk: Hunk,
   path: string,
@@ -239,6 +241,7 @@ function addRowsForHunk(
 /**
  * Adds new rows to the supplied `rows` array.
  */
+// eslint-disable-next-line max-params
 function addUnmodifiedRows(
   lines: string[],
   path: string,

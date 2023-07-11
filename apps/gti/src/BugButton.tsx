@@ -1,5 +1,5 @@
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "./Icon";
 import { Copyable } from "./Copyable";
 import { DropdownFields } from "./DropdownFields";
 import platform from "./platform";

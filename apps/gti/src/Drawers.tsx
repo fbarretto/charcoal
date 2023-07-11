@@ -1,7 +1,7 @@
-import type { EnsureAssignedTogether } from "./EnsureAssignedTogether";
+import type { EnsureAssignedTogether } from "@withgraphite/gti-shared";
 import type { ComponentClass } from "react";
 
-import { debounce } from "./debounce";
+import { debounce } from "@withgraphite/gti-shared";
 import { createElement, useCallback, useRef } from "react";
 
 import "./Drawers.scss";

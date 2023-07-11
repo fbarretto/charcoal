@@ -7,14 +7,11 @@ import type {
 import type { TrackEventName } from "@withgraphite/gti-shared";
 import type { TrackDataWithEventName } from "@withgraphite/gti-shared";
 import type { GitHubDiffSummary } from "@withgraphite/gti-shared";
-import type { Comparison } from "@withgraphite/gti-shared/Comparison";
-import type { AllUndefined, Json } from "@withgraphite/gti-shared/typeUtils";
+import type { Comparison } from "@withgraphite/gti-shared";
+import type { AllUndefined, Json } from "@withgraphite/gti-shared";
 
-import type { Hash } from "@withgraphite/gti-shared/types/common";
-import type {
-  ExportStack,
-  ImportedStack,
-} from "@withgraphite/gti-shared/types/stack";
+import type { Hash } from "@withgraphite/gti-shared";
+import type { ExportStack, ImportedStack } from "@withgraphite/gti-shared";
 import type { TypeaheadKind, TypeaheadResult } from "@withgraphite/gti-shared";
 export type Result<T> =
   | { value: T; error?: undefined }

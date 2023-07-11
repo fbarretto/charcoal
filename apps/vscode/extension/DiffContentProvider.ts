@@ -1,13 +1,13 @@
 import type { Repository } from "@withgraphite/gti-server/src/Repository";
 import type { Logger } from "@withgraphite/gti-shared";
 import type { Disposable } from "@withgraphite/gti-shared";
-import type { Comparison } from "@withgraphite/gti-shared/Comparison";
+import type { Comparison } from "@withgraphite/gti-shared";
 
 import { repositoryCache } from "@withgraphite/gti-server/src/RepositoryCache";
-import { LRU } from "@withgraphite/gti-shared/LRU";
-import { TypedEventEmitter } from "@withgraphite/gti-shared/TypedEventEmitter";
-import { ensureTrailingPathSep } from "@withgraphite/gti-shared/pathUtils";
+import { LRU } from "@withgraphite/gti-shared";
+import { TypedEventEmitter } from "@withgraphite/gti-shared";
 import * as vscode from "vscode";
+import path from "path";
 
 /**
  * VSCode's Quick Diff provider systems works by allowing you to describe the equivalent "original" URI
@@ -228,4 +228,14 @@ export function decodeGraphiteDiffUri(uri: GraphiteDiffEncodedUri): {
     comparison: data.comparison,
     originalUri: uri.with({ scheme: "file", query: "" }),
   };
+}
+
+/**
+ * Add a trailing path sep (/ or \) if one does not exist
+ */
+export function ensureTrailingPathSep(p: string): string {
+  if (p.endsWith(path.sep)) {
+    return p;
+  }
+  return p + path.sep;
 }

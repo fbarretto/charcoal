@@ -31,10 +31,10 @@ import {
 import { short } from "./utils";
 import { VSCodeButton, VSCodeTag } from "@vscode/webview-ui-toolkit/react";
 import React, { memo, useCallback } from "react";
-import { ComparisonType } from "@withgraphite/gti-shared/Comparison";
-import { useContextMenu } from "@withgraphite/gti-shared/ContextMenu";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import { notEmpty } from "@withgraphite/gti-shared/utils";
+import { ComparisonType } from "@withgraphite/gti-shared";
+import { useContextMenu } from "./ContextMenu";
+import { Icon } from "./Icon";
+import { notEmpty } from "@withgraphite/gti-shared";
 import { observer } from "mobx-react-lite";
 
 function isDraggablePreview(previewType?: CommitPreview): boolean {

@@ -1,8 +1,8 @@
 import { FlexRow } from "./ComponentUtils";
 import { Tooltip } from "./Tooltip";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
-import { useContextMenu } from "@withgraphite/gti-shared/ContextMenu";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { useContextMenu } from "./ContextMenu";
+import { Icon } from "./Icon";
 import { observableConfig } from "./config_observable";
 
 export type ChangedFilesDisplayType = "short" | "fullPaths" | "tree" | "fish";

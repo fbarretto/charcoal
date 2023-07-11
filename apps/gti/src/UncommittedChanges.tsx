@@ -13,8 +13,8 @@ import type {
 } from "@withgraphite/gti-cli-shared-types";
 import type { MergeConflicts } from "@withgraphite/gti-shared";
 import type { MutableRefObject } from "react";
-import type { Comparison } from "@withgraphite/gti-shared/Comparison";
-import type { EnsureAssignedTogether } from "@withgraphite/gti-shared/EnsureAssignedTogether";
+import type { Comparison } from "@withgraphite/gti-shared";
+import type { EnsureAssignedTogether } from "@withgraphite/gti-shared";
 
 import {
   ChangedFileDisplayTypePicker,
@@ -66,11 +66,11 @@ import {
   VSCodeTextField,
 } from "@vscode/webview-ui-toolkit/react";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ComparisonType } from "@withgraphite/gti-shared/Comparison";
-import { Icon } from "@withgraphite/gti-shared/Icon";
-import { useDeepMemo } from "@withgraphite/gti-shared/hooks";
-import { minimalDisambiguousPaths } from "@withgraphite/gti-shared/minimalDisambiguousPaths";
-import { notEmpty } from "@withgraphite/gti-shared/utils";
+import { ComparisonType } from "@withgraphite/gti-shared";
+import { Icon } from "./Icon";
+import { useDeepMemo } from "./hooks";
+import { minimalDisambiguousPaths } from "@withgraphite/gti-shared";
+import { notEmpty } from "@withgraphite/gti-shared";
 import { observable, ObservableSet, runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
 

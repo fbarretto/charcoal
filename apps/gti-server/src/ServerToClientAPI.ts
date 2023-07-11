@@ -11,8 +11,8 @@ import type { Logger } from "@withgraphite/gti-shared";
 import type { RepositoryReference } from "./RepositoryCache";
 import type { ServerPlatform } from "./serverPlatform";
 
-import { revsetArgsForComparison } from "@withgraphite/gti-shared/Comparison";
-import { randomId, unwrap } from "@withgraphite/gti-shared/utils";
+import { revsetArgsForComparison } from "@withgraphite/gti-shared";
+import { randomId, unwrap } from "@withgraphite/gti-shared";
 import {
   deserializeFromString,
   serializeToString,

@@ -6,7 +6,7 @@ import type {
 } from "@withgraphite/gti-shared";
 
 import type { LazyExoticComponent } from "react";
-import type { Comparison } from "@withgraphite/gti-shared/Comparison";
+import type { Comparison } from "@withgraphite/gti-shared";
 import { browserPlatform } from "./BrowserPlatform";
 import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
 

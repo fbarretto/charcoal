@@ -6,7 +6,7 @@ import type {
   RunnableOperation,
 } from "@withgraphite/gti-shared";
 
-import { newAbortController } from "@withgraphite/gti-shared/compat";
+import { newAbortController } from "@withgraphite/gti-shared";
 
 /**
  * Handle running & queueing all Operations so that only one Operation runs at once.

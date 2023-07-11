@@ -1,8 +1,5 @@
 import type { ServerSideTracker } from "@withgraphite/gti-server/src/analytics/serverSideTracker";
-import {
-  Comparison,
-  labelForComparison,
-} from "@withgraphite/gti-shared/Comparison";
+import { Comparison, labelForComparison } from "@withgraphite/gti-shared";
 import path from "path";
 import * as vscode from "vscode";
 import { encodeGraphiteDiffUri } from "./DiffContentProvider";
@@ -17,11 +14,15 @@ export const vscodeCommands = {
 
 /** Type definitions for built-in or third-party VS Code commands we want to execute programatically. */
 type ExternalVSCodeCommands = {
-  'vscode.diff': (left: vscode.Uri, right: vscode.Uri, title: string) => Thenable<unknown>;
-  'workbench.action.closeSidebar': () => Thenable<void>;
-  'graphite.open-gti': () => Thenable<void>;
-  'graphite.close-gti': () => Thenable<void>;
-  'graphite.gti.focus': () => Thenable<void>;
+  "vscode.diff": (
+    left: vscode.Uri,
+    right: vscode.Uri,
+    title: string
+  ) => Thenable<unknown>;
+  "workbench.action.closeSidebar": () => Thenable<void>;
+  "graphite.open-gti": () => Thenable<void>;
+  "graphite.close-gti": () => Thenable<void>;
+  "graphite.gti.focus": () => Thenable<void>;
 };
 
 export type VSCodeCommand = typeof vscodeCommands & ExternalVSCodeCommands;
@@ -36,7 +37,9 @@ export function executeVSCodeCommand<K extends keyof VSCodeCommand>(
   id: K,
   ...args: Parameters<VSCodeCommand[K]>
 ): ReturnType<VSCodeCommand[K]> {
-  return vscode.commands.executeCommand(id, ...args) as ReturnType<VSCodeCommand[K]>;
+  return vscode.commands.executeCommand(id, ...args) as ReturnType<
+    VSCodeCommand[K]
+  >;
 }
 
 type Context = {
@@ -76,9 +79,13 @@ function openDiffView(
 ): Thenable<unknown> {
   const { fsPath } = uri;
   const left = encodeGraphiteDiffUri(uri, comparison);
-  const right = comparison.type === ComparisonType.Committed
-    ? encodeGraphiteDiffUri(uri, { type: ComparisonType.Committed, hash: `${comparison.hash}^` })
-    : uri;
+  const right =
+    comparison.type === ComparisonType.Committed
+      ? encodeGraphiteDiffUri(uri, {
+          type: ComparisonType.Committed,
+          hash: `${comparison.hash}^`,
+        })
+      : uri;
   const title = `${path.basename(fsPath)} (${labelForComparison(comparison)})`;
 
   return executeVSCodeCommand("vscode.diff", left, right, title);

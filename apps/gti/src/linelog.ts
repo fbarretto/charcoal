@@ -1,13 +1,13 @@
 import type { RecordOf, ValueObject } from "immutable";
-import type { LRUWithStats } from "@withgraphite/gti-shared/LRU";
+import type { LRUWithStats } from "@withgraphite/gti-shared";
 
 import { assert } from "./utils";
 // Read D43857949 about the choice of the diff library.
 import diffSequences from "diff-sequences";
 import { hash, List, Record } from "immutable";
-import { cached, LRU } from "@withgraphite/gti-shared/LRU";
-import { SelfUpdate } from "@withgraphite/gti-shared/immutableExt";
-import { unwrap } from "@withgraphite/gti-shared/utils";
+import { cached, LRU } from "@withgraphite/gti-shared";
+import { SelfUpdate } from "@withgraphite/gti-shared";
+import { unwrap } from "@withgraphite/gti-shared";
 
 /** Operation code. */
 enum Op {

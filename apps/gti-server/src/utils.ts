@@ -5,7 +5,7 @@ import type { ExecaChildProcess } from "execa";
 import type execa from "execa";
 
 import os from "os";
-import { truncate } from "@withgraphite/gti-shared/utils";
+import { truncate } from "@withgraphite/gti-shared";
 
 export function sleep(timeMs: number): Promise<void> {
   return new Promise((res) => setTimeout(res, timeMs));

@@ -3,7 +3,7 @@ import * as packageJson from "../package.json";
 import { getCLICommand } from "./config";
 import { VSCodePlatform } from "./vscodePlatform";
 import { onClientConnection } from "@withgraphite/gti-server/src";
-import { unwrap } from "@withgraphite/gti-shared/utils";
+import { unwrap } from "@withgraphite/gti-shared";
 import * as vscode from "vscode";
 import { executeVSCodeCommand } from "./commands";
 

@@ -1,5 +1,5 @@
 import React, { useState, Component, ReactNode } from "react";
-import { Icon } from "@withgraphite/gti-shared/Icon";
+import { Icon } from "./Icon";
 
 import "./error-notice.scss";
 import { Tooltip } from "./Tooltip";
