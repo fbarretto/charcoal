@@ -43,10 +43,13 @@ import { OperationQueue } from "./OperationQueue";
 import { PageFocusTracker } from "./PageFocusTracker";
 import { handleAbortSignalOnProcess, serializeAsyncCall } from "./utils";
 import { WatchForChanges } from "./WatchForChanges";
+import semver from "semver";
 
 export const COMMIT_END_MARK = "<<COMMIT_END_MARK>>";
 export const NULL_CHAR = "\0";
 const MAX_SIMULTANEOUS_CAT_CALLS = 4;
+
+const MIN_REQUIRED_CLI_VERSION = "0.20.21";
 
 type ConflictFileData = {
   contents: string;
@@ -348,6 +351,21 @@ export class Repository {
     logger: Logger,
     cwd: string
   ): Promise<RepoInfo> {
+    const repoVersion = await findVersion(command, logger, cwd).catch(
+      (err: Error) => err
+    );
+    if (repoVersion instanceof Error) {
+      return { type: "invalidCommand", command };
+    }
+    if (semver.lt(repoVersion, MIN_REQUIRED_CLI_VERSION)) {
+      return {
+        type: "invalidVersion",
+        command,
+        versionFound: repoVersion,
+        versionRequired: MIN_REQUIRED_CLI_VERSION,
+      };
+    }
+
     const [
       profile,
       repoRoot,
@@ -357,7 +375,7 @@ export class Repository {
       preferredBranchEdit,
     ] = await Promise.all([
       findRepoProfile(command, logger, cwd),
-      findRoot(command, logger, cwd).catch((err: Error) => err),
+      findRoot(command, logger, cwd),
       findDotDir(command, logger, cwd),
       findRepoInfo(command, logger, cwd),
       getConfig(command, logger, cwd, "github.pull_request_domain"),
@@ -365,9 +383,6 @@ export class Repository {
         (value) => (value as "commit" | "amend") ?? ("amend" as const)
       ),
     ]);
-    if (repoRoot instanceof Error) {
-      return { type: "invalidCommand", command };
-    }
     if (repoRoot == null || dotdir == null) {
       return { type: "cwdNotARepository", cwd };
     }
@@ -755,6 +770,26 @@ export function runCommand({
   return execa(command, args, options);
 }
 
+async function findVersion(
+  command: string,
+  logger: Logger,
+  cwd: string
+): Promise<string> {
+  try {
+    return (
+      await runCommand({
+        command,
+        args: ["--version"],
+        logger,
+        cwd,
+      })
+    ).stdout;
+  } catch (error) {
+    logger.error(`Failed to find gt version in ${cwd}`, error);
+    throw error;
+  }
+}
+
 /**
  * Root of the repository where the .git folder lives.
  * Throws only if `command` is invalid, so this check can double as validation of the `gt` command */
@@ -779,7 +814,7 @@ async function findRoot(
         (error as { exitCode: number }).exitCode === 1)
     ) {
       logger.error(`command ${command} not found`, error);
-      throw error;
+      return undefined;
     }
   }
 }
@@ -833,7 +868,9 @@ async function findRepoProfile(
     );
   } catch (error) {
     logger.error(`Failed to find repository profile in ${cwd}`, error);
-    throw error;
+    return {
+      appUrl: "https://app.graphite.dev/",
+    };
   }
 }
 

@@ -170,6 +170,36 @@ const GTINullState = observer(
             ]}
           />
         );
+      } else if (repoError.type === "invalidVersion") {
+        content = (
+          <ErrorNotice
+            title={
+              <>
+                <code>gt</code> upgrade required
+              </>
+            }
+            error={
+              new Error(
+                `While "${repoError.command}" was found, it is installed at version ${repoError.versionFound}, and version ${repoError.versionRequired} is required.`
+              )
+            }
+            buttons={[
+              <VSCodeButton
+                key="help-button"
+                appearance="secondary"
+                onClick={(e) => {
+                  platform.openExternalLink(
+                    "https://graphite.dev/docs/installing-the-cli"
+                  );
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
+                <>See upgrade docs</>
+              </VSCodeButton>,
+            ]}
+          />
+        );
       } else {
         content = (
           <ErrorNotice

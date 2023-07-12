@@ -20,7 +20,7 @@ class ServerSideContext {
   }
 }
 
-const noOp = (_data: FullTrackData) => {
+const noOp = (_data: FullTrackData): Promise<unknown> | void => {
   /* In open source builds, analytics tracking is completely disabled/removed. */
 };
 
@@ -46,7 +46,13 @@ export function makeServerSideTracker(
         data.errorName ?? "",
         data.extras != null ? JSON.stringify(data.extras) : ""
       );
-      writeToServer({ ...data, ...context.data });
+      try {
+        Promise.resolve(writeToServer({ ...data, ...context.data })).catch(
+          (err) => void err
+        );
+      } catch {
+        // pass
+      }
     },
     new ServerSideContext(
       logger,

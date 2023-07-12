@@ -70,6 +70,12 @@ export type RepositoryError =
       type: "invalidCommand";
       command: string;
     }
+  | {
+      type: "invalidVersion";
+      versionFound: string;
+      versionRequired: string;
+      command: string;
+    }
   | { type: "cwdNotARepository"; cwd: string }
   | {
       type: "unknownError";
