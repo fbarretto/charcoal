@@ -15,6 +15,13 @@ export function runGitCommandAndSplitLines(
     .filter((l) => l.length > 0);
 }
 
+export async function runAsyncGitCommandAndSplitLines(
+  params: TRunGitCommandParameters
+): Promise<string[]> {
+  const output = await runAsyncGitCommand(params);
+  return output.split('\n').filter((l) => l.length > 0);
+}
+
 export type TRunGitCommandParameters = {
   args: string[];
   options?: Omit<SpawnSyncOptions, 'encoding' | 'maxBuffer'> & {

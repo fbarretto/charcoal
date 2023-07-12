@@ -68,8 +68,8 @@ export type TEngine = {
   getBaseRevision: (branchName: string) => string;
   getAllCommits: (branchName: string, format: TCommitFormat) => string[];
 
-  getCommitDate: (branchName: string) => Date;
-  getCommitAuthor: (branchName: string) => string;
+  getCommitDate: (branchName: string) => Promise<Date>;
+  getCommitAuthor: (branchName: string) => Promise<string>;
 
   getPrInfo: (branchName: string) => TBranchPRInfo | undefined;
   upsertPrInfo: (branchName: string, prInfo: Partial<TBranchPRInfo>) => void;

@@ -1,4 +1,9 @@
-import { runGitCommand, runGitCommandAndSplitLines } from './runner';
+import {
+  runAsyncGitCommand,
+  runAsyncGitCommandAndSplitLines,
+  runGitCommand,
+  runGitCommandAndSplitLines,
+} from './runner';
 
 const FORMAT = {
   READABLE: '%h - %s',
@@ -45,4 +50,51 @@ export function getCommitRange(
           resource: 'getCommitRangeFormatted',
         }),
       ];
+}
+
+export async function getCommitRangeAsync(
+  base: string | undefined,
+  head: string,
+  format: TCommitFormat
+): Promise<string[]> {
+  return Promise.all(
+    base // if no base is passed in, just get one commit (e.g. trunk)
+      ? (
+          await runAsyncGitCommandAndSplitLines({
+            args: [
+              `--no-pager`,
+              `log`,
+              `--pretty=format:%H`,
+              `${base}..${head}`,
+            ],
+            onError: 'throw',
+            resource: 'getCommitRangeHashes',
+          })
+        ).map((sha) =>
+          runAsyncGitCommand({
+            args: [
+              `--no-pager`,
+              `log`,
+              `-1`,
+              `--pretty=format:${FORMAT[format]}`,
+              sha,
+            ],
+            onError: 'throw',
+            resource: 'getCommitRangeFormatted',
+          })
+        )
+      : [
+          runAsyncGitCommand({
+            args: [
+              `--no-pager`,
+              `log`,
+              `-1`,
+              `--pretty=format:${FORMAT[format]}`,
+              head,
+            ],
+            onError: 'throw',
+            resource: 'getCommitRangeFormatted',
+          }),
+        ]
+  );
 }

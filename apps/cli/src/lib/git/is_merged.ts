@@ -1,7 +1,7 @@
-import { runGitCommand } from './runner';
-import { getMergeBase } from './merge_base';
 import { getCommitRange } from './commit_range';
 import { getSha } from './get_sha';
+import { getMergeBase } from './merge_base';
+import { runGitCommand } from './runner';
 
 export function isMerged({
   branchName,

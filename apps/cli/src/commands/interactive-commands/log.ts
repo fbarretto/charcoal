@@ -1,5 +1,6 @@
 import { BranchInfo } from '@withgraphite/gti-cli-shared-types';
 import yargs from 'yargs';
+import { getMergeBaseAsync } from '../../lib/git/merge_base';
 import { graphite } from '../../lib/runner';
 
 const args = {} as const;
@@ -16,14 +17,14 @@ export const handler = async (argv: argsT): Promise<void> => {
       context.engine.allBranchNames.map(async (branchName) => {
         const prInfo = context.engine.getPrInfo(branchName);
         const parent = context.engine.getParent(branchName);
+        const revision = context.engine.getRevision(branchName);
 
-        const [commitDate, commitAuthor, isMergedIntoTrunk] = await Promise.all(
-          [
+        const [commitDate, commitAuthor, mergeBaseWithTrunk] =
+          await Promise.all([
             context.engine.getCommitDate(branchName),
             context.engine.getCommitAuthor(branchName),
-            context.engine.isMergedIntoTrunk(branchName),
-          ]
-        );
+            getMergeBaseAsync(context.engine.trunk, revision),
+          ]);
 
         return {
           branch: branchName,
@@ -31,7 +32,9 @@ export const handler = async (argv: argsT): Promise<void> => {
           // Cache
           parents: parent ? [parent] : [],
           isHead: context.engine.currentBranch === branchName,
-          partOfTrunk: isMergedIntoTrunk || context.engine.isTrunk(branchName),
+          partOfTrunk:
+            mergeBaseWithTrunk === revision ||
+            context.engine.isTrunk(branchName),
 
           // Git
           author: commitAuthor,

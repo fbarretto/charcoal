@@ -1,4 +1,8 @@
-import { runGitCommand, runGitCommandAndSplitLines } from './runner';
+import {
+  runAsyncGitCommand,
+  runGitCommand,
+  runGitCommandAndSplitLines,
+} from './runner';
 
 export function getShaOrThrow(ref: string): string {
   return runGitCommand({
@@ -10,6 +14,14 @@ export function getShaOrThrow(ref: string): string {
 
 export function getSha(ref: string): string {
   return runGitCommand({
+    args: [`rev-parse`, ref],
+    onError: 'ignore',
+    resource: 'getSha',
+  });
+}
+
+export function getShaAsync(ref: string): Promise<string> {
+  return runAsyncGitCommand({
     args: [`rev-parse`, ref],
     onError: 'ignore',
     resource: 'getSha',
