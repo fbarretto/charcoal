@@ -50,11 +50,15 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  justify-items: stretch;
   background-color: var(--bg);
   padding: 0;
 }
 
 .getting-started-modal .content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   overflow-y: overlay;
   border-radius: var(--modal-border-radius) var(--modal-border-radius) 0 0;
 }
@@ -81,6 +85,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 1;
 }
 @keyframes rise-up {
   0% {
@@ -106,12 +111,6 @@
   font-size: 21pt;
   letter-spacing: 1px;
   font-weight: 900;
-}
-
-.getting-started-modal header .theme-picker {
-  position: absolute;
-  left: var(--pad);
-  bottom: var(--pad);
 }
 
 .getting-started-modal footer {
@@ -295,41 +294,12 @@
   font-size: 300%;
 }
 
-.learn-more-link {
-  display: flex;
-  gap: var(--halfpad);
-  font-size: 10pt;
-  align-items: center;
-  font-weight: 300;
-  text-decoration: none;
-  color: white;
-  opacity: 0.8;
-  position: absolute;
-  bottom: var(--pad);
-  right: var(--pad);
-  transition: border-bottom-color 0.2s;
-  animation: fade-in 2s ease-out 3s forwards;
-  opacity: 0;
-}
-
-.learn-more-link .codicon {
-  vertical-align: bottom;
-  margin-left: var(--halfpad);
-}
-.learn-more-link .codicon:before {
-  font-size: 80%;
-}
-
-.learn-more-link:part(control) {
-  display: flex;
-  gap: 10px;
-}
-
 .getting-started-modal .feature-list,
 .getting-started-modal p {
   font-family: Helvetica, Arial, sans-serif;
   font-weight: 100;
   font-size: 120%;
+  max-width: 640px;
 }
 .getting-started-modal .feature-list li {
   padding: var(--halfpad) 0;

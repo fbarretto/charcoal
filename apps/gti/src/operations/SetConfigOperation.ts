@@ -2,7 +2,7 @@ import { Operation } from "./Operation";
 
 export class SetConfigOperation extends Operation {
   constructor(
-    private scope: "user" | "local" | "global",
+    private scope: "user",
     private configName: string,
     private value: string
   ) {
@@ -12,6 +12,13 @@ export class SetConfigOperation extends Operation {
   static opName = "SetConfig";
 
   getArgs() {
-    return ["config", `--${this.scope}`, this.configName, this.value];
+    return [
+      "interactive",
+      "set-config",
+      `--level`,
+      this.scope,
+      this.configName,
+      this.value,
+    ];
   }
 }

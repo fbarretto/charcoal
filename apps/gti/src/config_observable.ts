@@ -23,8 +23,10 @@ export const observableConfig = <T extends Json>({
     effects: [
       ({ setSelf }) => {
         const disposable = serverAPI.onMessageOfType("gotConfig", (event) => {
-          if (event.value != null) {
-            setSelf(JSON.parse(event.value));
+          if (event.name === config) {
+            if (event.value != null) {
+              setSelf(JSON.parse(event.value));
+            }
           }
         });
         return () => disposable.dispose();

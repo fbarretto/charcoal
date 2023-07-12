@@ -18,8 +18,14 @@ export const builder = args;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
-    void context;
+    const configs = context.userConfig.data.gtiConfigs || [];
+    for (const config of configs) {
+      if (config.key === argv.config) {
+        context.splog.message(config.value);
+        return;
+      }
+    }
 
-    throw new Error('Unimplemented');
+    throw new Error('Config not found');
   });
 };

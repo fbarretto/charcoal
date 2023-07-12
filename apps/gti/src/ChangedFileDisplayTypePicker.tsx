@@ -4,6 +4,7 @@ import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { useContextMenu } from "./ContextMenu";
 import { Icon } from "./Icon";
 import { observableConfig } from "./config_observable";
+import { observer } from "mobx-react-lite";
 
 export type ChangedFilesDisplayType = "short" | "fullPaths" | "tree" | "fish";
 
@@ -27,7 +28,7 @@ const entries = Object.entries(ChangedFileDisplayTypeOptions) as Array<
   [ChangedFilesDisplayType, ChangedFileDisplayTypeOption]
 >;
 
-export function ChangedFileDisplayTypePicker() {
+export const ChangedFileDisplayTypePicker = observer(() => {
   const displayType = changedFilesDisplayType.get();
 
   const actions = entries.map(([type, options]) => ({
@@ -54,4 +55,4 @@ export function ChangedFileDisplayTypePicker() {
       </VSCodeButton>
     </Tooltip>
   );
-}
+});

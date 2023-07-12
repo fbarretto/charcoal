@@ -16,6 +16,14 @@ const schema = t.shape({
   pager: t.optional(t.string),
   restackCommitterDateIsAuthorDate: t.optional(t.boolean),
   submitIncludeCommitMessages: t.optional(t.boolean),
+  gtiConfigs: t.optional(
+    t.array(
+      t.shape({
+        key: t.string,
+        value: t.string,
+      })
+    )
+  ),
   alternativeProfiles: t.optional(
     t.array(
       t.shape({

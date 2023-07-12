@@ -851,7 +851,9 @@ async function getConfig(
     return undefined;
   }
 }
-type ConfigLevel = "user" | "system" | "local";
+
+// Eventually add repo
+type ConfigLevel = "user";
 async function setConfig(
   command: string,
   logger: Logger,
@@ -862,7 +864,14 @@ async function setConfig(
 ): Promise<void> {
   await runCommand({
     command,
-    args: ["interactive", "config", `--${level}`, configName, configValue],
+    args: [
+      "interactive",
+      "set-config",
+      `--level`,
+      level,
+      configName,
+      configValue,
+    ],
     logger,
     cwd,
   });

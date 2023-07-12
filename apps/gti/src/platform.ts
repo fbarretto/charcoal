@@ -32,16 +32,6 @@ export interface Platform {
    * may import any files without worrying about the platform being set up yet or not.
    */
   AdditionalDebugContent?: LazyExoticComponent<() => JSX.Element>;
-  /**
-   * Content to show in splash screen when starting GTI for the first time.
-   * Note: This should be lazy-loaded via `React.lazy()` so that implementations
-   * may import any files without worrying about the platform being set up yet or not.
-   */
-  GettingStartedContent?: LazyExoticComponent<
-    ({ dismiss }: { dismiss: () => void }) => JSX.Element
-  >;
-  /** Content to show as a tooltip on the bug button after going through the getting started experience */
-  GettingStartedBugNuxContent?: string;
 
   theme?: {
     getTheme(): ThemeColor;

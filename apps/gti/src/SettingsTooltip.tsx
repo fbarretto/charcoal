@@ -88,7 +88,7 @@ const SettingsDropdown = observer(() => {
                 .currentTarget.value as "commit" | "amend";
 
               runOperation(
-                new SetConfigOperation("local", "graphite.branch_edit", value)
+                new SetConfigOperation("user", "graphite.branch_edit", value)
               );
               const info = repositoryInfo.get();
               if (info?.type === "success") {
