@@ -41,7 +41,7 @@ export class CommitOperation extends Operation {
   makeOptimisticApplier(
     context: PreviewContext
   ): ApplyPreviewsFuncType | undefined {
-    const OPTIMISTIC_COMMIT_HASH = "OPTIMISTIC_COMMIT_HASH";
+    const optimistic_branch_name = this.message.toLocaleLowerCase();
     const head = context.headCommit;
     if (head?.branch !== this.originalHeadHash) {
       // commit succeeded when we no longer see the original head hash
@@ -62,7 +62,7 @@ export class CommitOperation extends Operation {
         title: title,
         isHead: true,
         parents: [head?.branch ?? ""],
-        branch: OPTIMISTIC_COMMIT_HASH,
+        branch: optimistic_branch_name,
         partOfTrunk: false,
         date: new Date().toISOString(),
         needsRestack: false,
