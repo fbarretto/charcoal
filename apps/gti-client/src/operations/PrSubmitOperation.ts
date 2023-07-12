@@ -8,7 +8,7 @@ export class PrSubmitOperation extends Operation {
   }
 
   getArgs() {
-    const args = ["pr", "submit", "--branch", this.branch];
+    const args = ["branch", "submit", "--branch", this.branch];
     if (this.options?.draft) {
       args.push("--draft");
     }
