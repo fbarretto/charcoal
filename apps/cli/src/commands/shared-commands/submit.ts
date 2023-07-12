@@ -94,6 +94,10 @@ export const args = {
     type: 'boolean',
     default: false,
   },
+  branch: {
+    describe: 'Which branch to run this command from (default: current branch)',
+    type: 'string',
+  },
 } as const;
 
 export const builder = args;

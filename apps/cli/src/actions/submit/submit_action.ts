@@ -26,6 +26,7 @@ export async function submitAction(
     forcePush: boolean;
     select: boolean;
     always: boolean;
+    branch: string | undefined;
   },
   context: TContext
 ): Promise<void> {

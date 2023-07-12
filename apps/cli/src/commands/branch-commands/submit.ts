@@ -33,6 +33,7 @@ export const handler = async (argv: argsT): Promise<void> => {
         forcePush: argv.force,
         select: argv.select,
         always: argv.always,
+        branch: argv.branch,
       },
       context
     );
