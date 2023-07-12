@@ -18,6 +18,7 @@ export type TrackEventName =
   | "CommitOperation"
   | "ContinueMergeOperation"
   | "CreateEmptyInitialCommit"
+  | "DeleteBranchOperation"
   | "DiscardOperation"
   | "DownstackSubmitOperation"
   | "ForgetOperation"

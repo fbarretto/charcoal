@@ -36,6 +36,7 @@ import { useContextMenu } from "./ContextMenu";
 import { Icon } from "./Icon";
 import { notEmpty } from "@withgraphite/gti-shared";
 import { observer } from "mobx-react-lite";
+import { DeleteBranchOperation } from "./operations/DeleteBranchOperation";
 
 function isDraggablePreview(previewType?: CommitPreview): boolean {
   switch (previewType) {
@@ -147,6 +148,19 @@ export const Commit = memo(
             label: <>Hide Branch and Descendents</>,
             onClick: () =>
               operationBeingPreviewed.set(new HideOperation(commit.branch)),
+          });
+        }
+        if (!isPublic && !actionsPrevented) {
+          items.push({
+            label: <>Delete branch</>,
+            onClick: () =>
+              platform
+                .confirm(
+                  `Are you sure you want to delete ${commit.branch}? Deleted branches cannot be recovered.`
+                )
+                .then(() =>
+                  runOperation(new DeleteBranchOperation(commit.branch))
+                ),
           });
         }
         return items;
