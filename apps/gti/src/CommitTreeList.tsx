@@ -10,7 +10,7 @@ import { notEmpty } from "@withgraphite/gti-shared";
 import { BranchIndicator } from "./BranchIndicator";
 import serverAPI from "./ClientToServerAPI";
 import {
-  allDiffSummaries,
+  allDiffSummariesByBranchName,
   codeReviewProvider,
 } from "./codeReview/CodeReviewInfo";
 import { Commit } from "./Commit";
@@ -212,7 +212,7 @@ const FetchingAdditionalCommitsButton = observer(() => {
 const StackActions = observer(
   ({ tree }: { tree: CommitTreeWithPreviews }): React.ReactElement | null => {
     const reviewProvider = codeReviewProvider.get();
-    const diffMap = allDiffSummaries.get();
+    const diffMap = allDiffSummariesByBranchName.get();
     const runOperation = useRunOperation();
 
     // buttons at the bottom of the stack
@@ -225,7 +225,10 @@ const StackActions = observer(
     if (reviewProvider !== null) {
       const reviewActions =
         diffMap.value == null
-          ? {}
+          ? {
+              resubmittableStack: [],
+              submittableStack: [],
+            }
           : reviewProvider?.getSupportedStackActions(tree, diffMap.value);
       const resubmittableStack = reviewActions?.resubmittableStack;
       const submittableStack = reviewActions?.submittableStack;
@@ -245,7 +248,7 @@ const StackActions = observer(
               appearance="icon"
               onClick={() => {
                 runOperation(
-                  reviewProvider.submitOperation(resubmittableStack)
+                  reviewProvider.submitOperation(resubmittableStack, {})
                 );
               }}
             >
@@ -255,16 +258,12 @@ const StackActions = observer(
           </HighlightCommitsWhileHovering>
         );
         //     any non-submitted diffs -> "submit all commits this stack" in hidden group
-        if (
-          submittableStack != null &&
-          submittableStack.length > 0 &&
-          submittableStack.length > resubmittableStack.length
-        ) {
+        if (submittableStack != null && submittableStack.length > 0) {
           moreActions.push({
             label: (
               <HighlightCommitsWhileHovering
                 key="submit-entire-stack"
-                toHighlight={submittableStack}
+                toHighlight={[...resubmittableStack, ...submittableStack]}
               >
                 <FlexRow>
                   <Icon icon="cloud-upload" slot="start" />
@@ -274,10 +273,10 @@ const StackActions = observer(
             ),
             onClick: () => {
               runOperation(
-                reviewProvider.submitOperation([
-                  ...resubmittableStack,
-                  ...submittableStack,
-                ])
+                reviewProvider.submitOperation(
+                  [...resubmittableStack, ...submittableStack],
+                  {}
+                )
               );
             },
           });
@@ -296,7 +295,9 @@ const StackActions = observer(
             <VSCodeButton
               appearance="icon"
               onClick={() => {
-                runOperation(reviewProvider.submitOperation(submittableStack));
+                runOperation(
+                  reviewProvider.submitOperation(submittableStack, {})
+                );
               }}
             >
               <Icon icon="cloud-upload" slot="start" />

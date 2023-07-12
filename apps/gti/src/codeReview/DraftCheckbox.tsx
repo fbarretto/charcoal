@@ -16,9 +16,8 @@ export const SubmitAsDraftCheckbox = observer(
     const provider = codeReviewProvider.get();
     if (
       provider == null ||
-      (provider?.supportSubmittingAsDraft === "newDiffsOnly" &&
-        // empty array => commit to submit is not yet created (this counts as a new Diff)
-        commitsToBeSubmit.length > 0 &&
+      // empty array => commit to submit is not yet created (this counts as a new Diff)
+      (commitsToBeSubmit.length > 0 &&
         // some commits don't have a diff ID => those are "new" Diffs
         commitsToBeSubmit.some((commit) => commit.pr != null))
     ) {

@@ -33,7 +33,7 @@ export function ExternalLink(
   };
   return (
     <VSCodeLink
-      href={VSCodeLink}
+      href={href}
       // Allow links to be focused
       tabIndex={0}
       onKeyUp={handleClick}

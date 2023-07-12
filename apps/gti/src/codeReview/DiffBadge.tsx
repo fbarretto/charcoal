@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import type { DiffSummary } from "@withgraphite/gti-shared";
-import type { UICodeReviewProvider } from "./UICodeReviewProvider";
 
 import { useContextMenu } from "../ContextMenu";
 import { Icon } from "../Icon";
@@ -9,13 +8,12 @@ import { ExternalLink } from "../ExternalLink";
 import platform from "../platform";
 import { Tooltip } from "../Tooltip";
 import { codeReviewProvider, diffSummary } from "./CodeReviewInfo";
-import { openerUrlForDiffUrl } from "./github/GitHubUrlOpener";
-
-import { CircleEllipsisIcon } from "../CircleEllipsisIcon";
 
 import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
 import { observer } from "mobx-react-lite";
 import "./DiffBadge.scss";
+import type { GithubUICodeReviewProvider } from "./github/github";
+import { repositoryInfo } from "../serverAPIState";
 
 /**
  * Component that shows inline summary information about a Diff,
@@ -43,12 +41,10 @@ export const DiffBadge = observer(
     provider,
   }: {
     diff?: DiffSummary;
-    children?: ReactNode;
     url?: string;
-    provider: UICodeReviewProvider;
+    children?: ReactNode;
+    provider: GithubUICodeReviewProvider;
   }) => {
-    const openerUrl = openerUrlForDiffUrl(url).get();
-
     const contextMenu = useContextMenu(() => {
       return [
         {
@@ -59,8 +55,8 @@ export const DiffBadge = observer(
     });
     return (
       <ExternalLink
-        href={openerUrl}
-        className={`diff-badge ${provider.name}-diff-badge`}
+        href={url}
+        className={`diff-badge github-diff-badge`}
         onContextMenu={contextMenu}
       >
         <provider.DiffBadgeContent diff={diff} children={children} />
@@ -74,7 +70,7 @@ function DiffSpinner({
   provider,
 }: {
   diffId: PRNumber;
-  provider: UICodeReviewProvider;
+  provider: GithubUICodeReviewProvider;
 }) {
   return (
     <span className="diff-spinner" data-testid="diff-spinner">
@@ -92,10 +88,14 @@ const DiffInfoInner = observer(
     provider,
   }: {
     diffId: PRNumber;
-    provider: UICodeReviewProvider;
+    provider: GithubUICodeReviewProvider;
   }) => {
+    const repoInfo = repositoryInfo.get();
     const diffInfoResult = diffSummary(diffId).get();
-    if (diffInfoResult.error) {
+    if (
+      diffInfoResult.error ||
+      (repoInfo != null && repoInfo?.type !== "success")
+    ) {
       return (
         <DiffLoadError
           number={provider.formatDiffNumber(diffId)}
@@ -103,17 +103,24 @@ const DiffInfoInner = observer(
         />
       );
     }
-    if (diffInfoResult?.value == null) {
+    if (diffInfoResult?.value == null || repoInfo == null) {
       return <DiffSpinner diffId={diffId} provider={provider} />;
+    }
+    if (repoInfo.codeReviewSystem.type === "none") {
+      return null;
     }
     const info = diffInfoResult.value;
     return (
       <div
-        className={`diff-info ${provider.name}-diff-info`}
-        data-testid={`${provider.name}-diff-info`}
+        className={`diff-info github-diff-info`}
+        data-testid={`github-diff-info`}
       >
         <DiffSignalSummary diff={info} />
-        <DiffBadge provider={provider} diff={info} url={info.url} />
+        <DiffBadge
+          provider={provider}
+          diff={info}
+          url={`${repoInfo.profile.appUrl}/github/pr/${repoInfo.codeReviewSystem.owner}/${repoInfo.codeReviewSystem.repo}/${info.number}`}
+        />
         <DiffComments diff={info} />
         <DiffNumber>{provider.formatDiffNumber(diffId)}</DiffNumber>
       </div>
@@ -147,64 +154,66 @@ function DiffNumber({ children }: { children: string }) {
   );
 }
 
-function DiffComments({ diff }: { diff: DiffSummary }) {
-  if (!diff.commentCount) {
-    return null;
-  }
-  return (
-    <div className="diff-comments-count">
-      {diff.commentCount}
-      <Icon
-        icon={diff.anyUnresolvedComments ? "comment-unresolved" : "comment"}
-      />
-    </div>
-  );
+function DiffComments({ diff: _diff }: { diff: DiffSummary }) {
+  return null;
+  // if (!diff.commentCount) {
+  //   return null;
+  // }
+  // return (
+  //   <div className="diff-comments-count">
+  //     {diff.commentCount}
+  //     <Icon
+  //       icon={diff.anyUnresolvedComments ? "comment-unresolved" : "comment"}
+  //     />
+  //   </div>
+  // );
 }
 
-function DiffSignalSummary({ diff }: { diff: DiffSummary }) {
-  if (!diff.signalSummary) {
-    return null;
-  }
-  let icon;
-  let tooltip;
-  switch (diff.signalSummary) {
-    case "running":
-      icon = <CircleEllipsisIcon />;
-      tooltip = "Test Signals are still running for this Diff.";
-      break;
-    case "pass":
-      icon = "check";
-      tooltip = "Test Signals completed successfully for this Diff.";
-      break;
-    case "failed":
-      icon = "error";
-      tooltip =
-        "An error was encountered during the test signals on this Diff. See Diff for more details.";
-      break;
-    case "no-signal":
-      icon = "question";
-      tooltip = "No signal from test run on this Diff.";
-      break;
-    case "warning":
-      icon = "question";
-      tooltip =
-        "Test Signals were not fully successful for this Diff. See Diff for more details.";
-      break;
-  }
-  return (
-    <div className={`diff-signal-summary diff-signal-${diff.signalSummary}`}>
-      <Tooltip title={tooltip}>
-        {typeof icon === "string" ? <Icon icon={icon} /> : icon}
-      </Tooltip>
-    </div>
-  );
+function DiffSignalSummary({ diff: _diff }: { diff: DiffSummary }) {
+  return null;
+  // if (!diff.signalSummary) {
+  //   return null;
+  // }
+  // let icon;
+  // let tooltip;
+  // switch (diff.signalSummary) {
+  //   case "running":
+  //     icon = <CircleEllipsisIcon />;
+  //     tooltip = "Test Signals are still running for this Diff.";
+  //     break;
+  //   case "pass":
+  //     icon = "check";
+  //     tooltip = "Test Signals completed successfully for this Diff.";
+  //     break;
+  //   case "failed":
+  //     icon = "error";
+  //     tooltip =
+  //       "An error was encountered during the test signals on this Diff. See Diff for more details.";
+  //     break;
+  //   case "no-signal":
+  //     icon = "question";
+  //     tooltip = "No signal from test run on this Diff.";
+  //     break;
+  //   case "warning":
+  //     icon = "question";
+  //     tooltip =
+  //       "Test Signals were not fully successful for this Diff. See Diff for more details.";
+  //     break;
+  // }
+  // return (
+  //   <div className={`diff-signal-summary diff-signal-${diff.signalSummary}`}>
+  //     <Tooltip title={tooltip}>
+  //       {typeof icon === "string" ? <Icon icon={icon} /> : icon}
+  //     </Tooltip>
+  //   </div>
+  // );
 }
 
 export class DiffErrorBoundary extends Component<
   {
     children: React.ReactNode;
     diffId: string;
-    provider: UICodeReviewProvider;
+    provider: GithubUICodeReviewProvider;
   },
   { error: Error | null }
 > {
@@ -230,13 +239,10 @@ function DiffLoadError({
   provider,
 }: {
   number: string;
-  provider: UICodeReviewProvider;
+  provider: GithubUICodeReviewProvider;
 }) {
   return (
-    <span
-      className="diff-error diff-info"
-      data-testid={`${provider.name}-error`}
-    >
+    <span className="diff-error diff-info" data-testid={`github-error`}>
       <DiffBadge provider={provider}>
         <Icon icon="error" />
       </DiffBadge>{" "}

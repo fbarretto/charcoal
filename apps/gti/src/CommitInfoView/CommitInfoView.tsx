@@ -23,7 +23,7 @@ import { Icon } from "../Icon";
 import { notEmpty, unwrap } from "@withgraphite/gti-shared";
 import { useEffect } from "react";
 import {
-  allDiffSummaries,
+  allDiffSummariesByBranchName,
   codeReviewProvider,
 } from "../codeReview/CodeReviewInfo";
 import {
@@ -130,12 +130,17 @@ export function MultiCommitInfo({
   selectedCommits: Array<BranchInfo>;
 }) {
   const provider = codeReviewProvider.get();
-  const diffSummaries = allDiffSummaries.get();
+  const repoInfo = repositoryInfo.get();
+  const diffSummaries = allDiffSummariesByBranchName.get();
   const runOperation = useRunOperation();
   const shouldSubmitAsDraft = submitAsDraft.get();
   const submittable =
-    (diffSummaries.value != null
-      ? provider?.getSubmittableDiffs(selectedCommits, diffSummaries.value)
+    (diffSummaries.value != null && repoInfo?.type === "success"
+      ? provider?.getSubmittableDiffs(
+          selectedCommits,
+          diffSummaries.value,
+          repoInfo.trunkBranch
+        )
       : undefined) ?? [];
   return (
     <div
@@ -407,7 +412,7 @@ const ActionsBar = observer(
 
     const provider = codeReviewProvider.get();
     const repoInfo = repositoryInfo.get();
-    const diffSummaries = allDiffSummaries.get();
+    const diffSummaries = allDiffSummariesByBranchName.get();
     const shouldSubmitAsDraft = submitAsDraft.get();
     const schema = commitMessageFieldsSchema.get();
 
@@ -484,7 +489,12 @@ const ActionsBar = observer(
       codeReviewProviderName !== "none" && codeReviewProviderName !== "unknown";
     const submittable =
       diffSummaries.value &&
-      provider?.getSubmittableDiffs([commit], diffSummaries.value);
+      repoInfo?.type === "success" &&
+      provider?.getSubmittableDiffs(
+        [commit],
+        diffSummaries.value,
+        repoInfo.trunkBranch
+      );
     const canSubmitIndividualDiffs = submittable && submittable.length > 0;
 
     const ongoingImageUploads = numPendingImageUploads.get();

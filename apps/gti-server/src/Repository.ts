@@ -15,7 +15,6 @@ import type {
   SuccessorInfo,
   ValidatedRepoInfo,
 } from "@withgraphite/gti-shared";
-import type { CodeReviewProvider } from "./CodeReviewProvider";
 import type { Logger } from "@withgraphite/gti-shared";
 
 import type {
@@ -23,6 +22,7 @@ import type {
   PRNumber,
   RepoRelativePath,
   Status,
+  RepoInfo as RepoInfoFromCLI,
 } from "@withgraphite/gti-cli-shared-types";
 import { Comparison, ComparisonType } from "@withgraphite/gti-shared";
 import { exists, removeLeadingPathSep } from "./fs";
@@ -130,7 +130,7 @@ export class Repository {
   private operationQueue: OperationQueue;
   private watchForChanges: WatchForChanges;
   private pageFocusTracker = new PageFocusTracker();
-  public codeReviewProvider?: CodeReviewProvider;
+  public codeReviewProvider?: GitHubCodeReviewProvider;
 
   private currentVisibleCommitRangeIndex = 0;
   private visibleCommitRanges: Array<number | undefined> = [
@@ -143,7 +143,10 @@ export class Repository {
   constructor(public info: ValidatedRepoInfo, public logger: Logger) {
     const remote = info.codeReviewSystem;
     if (remote.type === "github") {
-      this.codeReviewProvider = new GitHubCodeReviewProvider(remote, logger);
+      this.codeReviewProvider = new GitHubCodeReviewProvider(
+        remote,
+        this.runCommand.bind(this)
+      );
     }
 
     this.watchForChanges = new WatchForChanges(
@@ -366,32 +369,22 @@ export class Repository {
       };
     }
 
-    const [
-      profile,
-      repoRoot,
-      dotdir,
-      repoInfoRaw,
-      pullRequestDomain,
-      preferredBranchEdit,
-    ] = await Promise.all([
+    const [profile, repoInfoRaw, preferredBranchEdit] = await Promise.all([
       findRepoProfile(command, logger, cwd),
-      findRoot(command, logger, cwd),
-      findDotDir(command, logger, cwd),
       findRepoInfo(command, logger, cwd),
-      getConfig(command, logger, cwd, "github.pull_request_domain"),
       getConfig(command, logger, cwd, "graphite.branch_edit").then(
         (value) => (value as "commit" | "amend") ?? ("amend" as const)
       ),
     ]);
-    if (repoRoot == null || dotdir == null) {
+    if (repoInfoRaw == null) {
       return { type: "cwdNotARepository", cwd };
     }
 
     let codeReviewSystem: CodeReviewSystem;
-    if (typeof repoInfoRaw === "undefined") {
+    if (typeof repoInfoRaw.remote === "undefined") {
       codeReviewSystem = { type: "none" };
     } else {
-      const { owner, name, hostname } = repoInfoRaw;
+      const { owner, name, hostname } = repoInfoRaw.remote;
       codeReviewSystem = {
         type: "github",
         owner,
@@ -403,12 +396,12 @@ export class Repository {
     const result: RepoInfo = {
       type: "success",
       command,
-      dotdir,
-      repoRoot,
+      dotdir: repoInfoRaw.dotDir,
+      repoRoot: repoInfoRaw.rootDir,
       codeReviewSystem,
-      pullRequestDomain,
       preferredBranchEdit,
       profile,
+      trunkBranch: repoInfoRaw.trunkBranch,
     };
     logger.info("repo info: ", result);
     return result;
@@ -711,7 +704,7 @@ export class Repository {
     args: Array<string>,
     cwd?: string,
     options?: execa.Options
-  ) {
+  ): execa.ExecaChildProcess<string> {
     return runCommand({
       command: this.info.command,
       args,
@@ -790,47 +783,11 @@ async function findVersion(
   }
 }
 
-/**
- * Root of the repository where the .git folder lives.
- * Throws only if `command` is invalid, so this check can double as validation of the `gt` command */
-async function findRoot(
-  command: string,
-  logger: Logger,
-  cwd: string
-): Promise<AbsolutePath | undefined> {
-  try {
-    return (
-      await runCommand({ command, args: ["interactive", "root"], logger, cwd })
-    ).stdout;
-  } catch (error) {
-    if (
-      ["ENOENT", "EACCES"].includes((error as { code: string }).code) ||
-      // On Windows, we won't necessarily get an actual ENOENT error code in the error,
-      // because execa does not attempt to detect this.
-      // Other spawning libraries like node-cross-spawn do, which is the approach we can take.
-      // We can do this because we know how `root` uses exit codes.
-      // https://github.com/sindresorhus/execa/issues/469#issuecomment-859924543
-      (os.platform() === "win32" &&
-        (error as { exitCode: number }).exitCode === 1)
-    ) {
-      logger.error(`command ${command} not found`, error);
-      return undefined;
-    }
-  }
-}
-
 async function findRepoInfo(
   command: string,
   logger: Logger,
   cwd: string
-): Promise<
-  | {
-      hostname: string;
-      owner: string;
-      name: string;
-    }
-  | undefined
-> {
+): Promise<RepoInfoFromCLI | undefined> {
   try {
     return JSON.parse(
       (
@@ -871,26 +828,6 @@ async function findRepoProfile(
     return {
       appUrl: "https://app.graphite.dev/",
     };
-  }
-}
-
-async function findDotDir(
-  command: string,
-  logger: Logger,
-  cwd: string
-): Promise<AbsolutePath | undefined> {
-  try {
-    return (
-      await runCommand({
-        command,
-        args: ["interactive", "root", "--dotdir"],
-        logger,
-        cwd,
-      })
-    ).stdout;
-  } catch (error) {
-    logger.error(`Failed to find repository dotdir in ${cwd}`, error);
-    return undefined;
   }
 }
 

@@ -3,7 +3,6 @@ import type {
   PageVisibility,
   Result,
 } from "@withgraphite/gti-shared";
-import type { UICodeReviewProvider } from "./UICodeReviewProvider";
 
 import serverAPI from "../ClientToServerAPI";
 import { repositoryInfo } from "../serverAPIState";
@@ -14,23 +13,25 @@ import { computed } from "mobx";
 import { family } from "../lib/mobx-recoil/family";
 import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
 
-export const codeReviewProvider = computed<UICodeReviewProvider | null>(() => {
-  const repoInfo = repositoryInfo.get();
-  if (repoInfo?.type !== "success") {
+export const codeReviewProvider = computed<GithubUICodeReviewProvider | null>(
+  () => {
+    const repoInfo = repositoryInfo.get();
+    if (repoInfo?.type !== "success") {
+      return null;
+    }
+    if (repoInfo.codeReviewSystem.type === "github") {
+      return new GithubUICodeReviewProvider(repoInfo.codeReviewSystem);
+    }
+
     return null;
   }
-  if (repoInfo.codeReviewSystem.type === "github") {
-    return new GithubUICodeReviewProvider(repoInfo.codeReviewSystem);
-  }
-
-  return null;
-});
+);
 
 export const diffSummary = family({
   genKey: (diffId: PRNumber | undefined) => diffId || "__UNDEFINED__",
   genValue: (diffId: PRNumber | undefined) => {
     return computed(() => {
-      const all = allDiffSummaries.get();
+      const all = allDiffSummariesByPRNumber.get();
       if (all == null) {
         return { value: undefined };
       }
@@ -46,7 +47,7 @@ export const diffSummary = family({
 });
 
 export const allDiffSummaries = observableBoxWithInitializers<
-  Result<Map<PRNumber, DiffSummary> | null>
+  Result<DiffSummary[] | null>
 >({
   default: { value: null },
   effects: [
@@ -66,6 +67,48 @@ export const allDiffSummaries = observableBoxWithInitializers<
         })
       ),
   ],
+});
+
+export const allDiffSummariesByBranchName = computed<
+  Result<Map<PRNumber, DiffSummary> | null>
+>(() => {
+  const summaries = allDiffSummaries.get();
+  if (summaries.error) {
+    return summaries;
+  }
+
+  if (summaries.value === null) {
+    return { value: null };
+  }
+
+  return {
+    value: new Map(
+      summaries.value.map((summary) => {
+        return [summary.branchName, summary];
+      })
+    ),
+  };
+});
+
+export const allDiffSummariesByPRNumber = computed<
+  Result<Map<PRNumber, DiffSummary> | null>
+>(() => {
+  const summaries = allDiffSummaries.get();
+  if (summaries.error) {
+    return summaries;
+  }
+
+  if (summaries.value === null) {
+    return { value: null };
+  }
+
+  return {
+    value: new Map(
+      summaries.value.map((summary) => {
+        return [summary.number, summary];
+      })
+    ),
+  };
 });
 
 export const pageVisibility = observableBoxWithInitializers<PageVisibility>({

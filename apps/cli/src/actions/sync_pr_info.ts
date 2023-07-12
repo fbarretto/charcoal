@@ -5,27 +5,28 @@ import { TEngine } from '../lib/engine/engine';
 export async function syncPrInfo(
   branchNames: string[],
   context: TContext
-): Promise<void> {
+): Promise<TPRInfoToUpsert> {
   const authToken = context.userConfig.getAuthToken();
   if (authToken === undefined) {
-    return;
+    return [];
   }
 
-  upsertPrInfoForBranches(
-    await getPrInfoForBranches(
-      branchNames.map((branchName) => ({
-        branchName,
-        prNumber: context.engine.getPrInfo(branchName)?.number,
-      })),
-      {
-        authToken,
-        repoName: context.repoConfig.getRepoName(),
-        repoOwner: context.repoConfig.getRepoOwner(),
-      },
-      context.userConfig
-    ),
-    context.engine
+  const upsertInfo = await getPrInfoForBranches(
+    branchNames.map((branchName) => ({
+      branchName,
+      prNumber: context.engine.getPrInfo(branchName)?.number,
+    })),
+    {
+      authToken,
+      repoName: context.repoConfig.getRepoName(),
+      repoOwner: context.repoConfig.getRepoOwner(),
+    },
+    context.userConfig
   );
+
+  upsertPrInfoForBranches(upsertInfo, context.engine);
+
+  return upsertInfo;
 }
 
 export function upsertPrInfoForBranches(

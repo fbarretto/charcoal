@@ -1,6 +1,5 @@
 import type { Operation } from "../../operations/Operation";
 import type { CodeReviewSystem, DiffSummary } from "@withgraphite/gti-shared";
-import type { UICodeReviewProvider } from "../UICodeReviewProvider";
 import type { ReactNode } from "react";
 
 import { Tooltip } from "../../Tooltip";
@@ -8,11 +7,10 @@ import { PrSubmitOperation } from "../../operations/PrSubmitOperation";
 import { Icon } from "../../Icon";
 
 import "./GitHubPRBadge.scss";
-import type { PRNumber } from "@withgraphite/gti-cli-shared-types";
+import type { BranchInfo, PRNumber } from "@withgraphite/gti-cli-shared-types";
+import type { CommitTreeWithPreviews } from "../../getCommitTree";
 
-export class GithubUICodeReviewProvider implements UICodeReviewProvider {
-  name = "github";
-
+export class GithubUICodeReviewProvider {
   constructor(private system: CodeReviewSystem & { type: "github" }) {}
 
   DiffBadgeContent({
@@ -22,9 +20,6 @@ export class GithubUICodeReviewProvider implements UICodeReviewProvider {
     diff?: DiffSummary;
     children?: ReactNode;
   }): JSX.Element | null {
-    if (diff != null && diff?.type !== "github") {
-      return null;
-    }
     return (
       <div
         className={
@@ -32,7 +27,7 @@ export class GithubUICodeReviewProvider implements UICodeReviewProvider {
           (diff?.state ? ` github-diff-status-${diff.state}` : "")
         }
       >
-        <Tooltip title={"Click to open Pull Request in GitHub"} delayMs={500}>
+        <Tooltip title={"Click to open Pull Request in Graphite"} delayMs={500}>
           {diff && <Icon icon={iconForPRState(diff.state)} />}
           {diff?.state && <PRStateLabel state={diff.state} />}
           {children}
@@ -55,40 +50,90 @@ export class GithubUICodeReviewProvider implements UICodeReviewProvider {
   };
 
   submitOperation(
-    _commits: [],
+    _commits: Array<BranchInfo>,
     options: { draft?: boolean; updateMessage?: string }
   ): Operation {
+    // @nocommit TODO: either we need to submit a stack or do something here
     return new PrSubmitOperation(options);
   }
 
-  getSupportedStackActions() {
-    return {};
+  getSupportedStackActions(
+    tree: CommitTreeWithPreviews,
+    allDiffSummariesByBranchName: Map<string, DiffSummary>
+  ): {
+    resubmittableStack: Array<BranchInfo>;
+    submittableStack: Array<BranchInfo>;
+  } {
+    const children = tree.children.map((child) =>
+      this.getSupportedStackActions(child, allDiffSummariesByBranchName)
+    );
+
+    if (tree.info.pr) {
+      return {
+        resubmittableStack: [
+          tree.info,
+          ...children.flatMap((child) => [...child.resubmittableStack]),
+        ],
+        submittableStack: [
+          ...children.flatMap((child) => [...child.submittableStack]),
+        ],
+      };
+    } else {
+      return {
+        resubmittableStack: [],
+        submittableStack: [
+          tree.info,
+          ...children.flatMap((child) => [
+            ...child.submittableStack,
+            ...child.resubmittableStack,
+          ]),
+        ],
+      };
+    }
   }
 
-  getSubmittableDiffs() {
-    return [];
+  getSubmittableDiffs(
+    branches: Array<BranchInfo>,
+    allDiffSummariesByBranchName: Map<string, DiffSummary>,
+    mainBranch: string
+  ): Array<BranchInfo> {
+    return branches.filter((branch) => {
+      const prInfo = allDiffSummariesByBranchName.get(branch.branch);
+
+      return (
+        !branch.partOfTrunk &&
+        prInfo?.state !== "MERGED" &&
+        branch.parents.every((parentBranchName) => {
+          /**
+           * The branch needs to be on main or the parents need to be submitted
+           */
+          return (
+            parentBranchName === mainBranch ||
+            allDiffSummariesByBranchName.get(parentBranchName)
+          );
+        })
+      );
+    });
   }
 
-  isDiffClosed(diff: DiffSummary & { type: "github" }): boolean {
-    return diff.state === "Closed";
+  isDiffClosed(diff: DiffSummary): boolean {
+    return diff.state === "CLOSED";
   }
-
-  supportSubmittingAsDraft = "newDiffsOnly" as const;
 }
 
-type BadgeState = "Open" | "Merged" | "Closed" | "ERROR" | "Draft";
+type BadgeState = "OPEN" | "MERGED" | "CLOSED" | "ERROR" | "DRAFT";
 
 function iconForPRState(state?: BadgeState) {
   switch (state) {
     case "ERROR":
       return "error";
-    case "Open":
+    case "OPEN":
       return "git-pull-request";
-    case "Merged":
+    case "MERGED":
       return "git-merge";
-    case "Closed":
+    case "CLOSED":
       return "git-pull-request-closed";
-    case "Draft":
+    case "DRAFT":
       return "git-pull-request";
     default:
       return "git-pull-request";
@@ -97,15 +142,15 @@ function iconForPRState(state?: BadgeState) {
 
 function PRStateLabel({ state }: { state: BadgeState }) {
   switch (state) {
-    case "Open":
+    case "OPEN":
       return <>Open</>;
-    case "Merged":
+    case "MERGED":
       return <>Merged</>;
-    case "Closed":
+    case "CLOSED":
       return <>Closed</>;
     case "ERROR":
       return <>Error</>;
-    case "Draft":
+    case "DRAFT":
       return <>Draft</>;
     default:
       return <>{state}</>;

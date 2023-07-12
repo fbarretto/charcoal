@@ -100,7 +100,6 @@ export type ValidatedRepoInfo = {
    */
   dotdir: AbsolutePath;
   codeReviewSystem: CodeReviewSystem;
-  pullRequestDomain: string | undefined;
   preferredBranchEdit: "amend" | "commit";
   /**
    * Configuring this per repo; in the event where users have two accounts (one on a GHES instance
@@ -111,6 +110,8 @@ export type ValidatedRepoInfo = {
   profile: {
     appUrl: string;
   };
+
+  trunkBranch: string;
 };
 
 export type CodeReviewSystem =
@@ -414,7 +415,7 @@ export type ServerToClientMessage =
   | { type: "repoError"; error: RepositoryError | undefined }
   | {
       type: "fetchedDiffSummaries";
-      summaries: Result<Map<PRNumber, DiffSummary>>;
+      summaries: Result<DiffSummary[]>;
     }
   | {
       type: "fetchedRepoMessage";

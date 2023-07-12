@@ -1,5 +1,5 @@
 import { ErrorNotice } from "./ErrorNotice";
-import { allDiffSummaries } from "./codeReview/CodeReviewInfo";
+import { allDiffSummariesByPRNumber } from "./codeReview/CodeReviewInfo";
 import platform from "./platform";
 import { reconnectingStatus, repositoryInfo } from "./serverAPIState";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
@@ -102,7 +102,7 @@ function computeTopLevelError(
 export const TopLevelErrors = observer(() => {
   const reconnectStatus = reconnectingStatus.get();
   const repoInfo = repositoryInfo.get();
-  const diffFetchError = allDiffSummaries.get().error;
+  const diffFetchError = allDiffSummariesByPRNumber.get().error;
 
   const info = computeTopLevelError(repoInfo, reconnectStatus, diffFetchError);
 
