@@ -16,6 +16,7 @@ const schema = t.shape({
   pager: t.optional(t.string),
   restackCommitterDateIsAuthorDate: t.optional(t.boolean),
   submitIncludeCommitMessages: t.optional(t.boolean),
+  connectCliToLocalServer: t.optional(t.boolean),
   gtiConfigs: t.optional(
     t.array(
       t.shape({
@@ -88,6 +89,10 @@ export const userConfigFactory = spiffy({
     };
 
     const getApiServerUrl = (): TApiServerUrl => {
+      if (data.connectCliToLocalServer) {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+        return 'https://localhost:8000/v1';
+      }
       const hostPrefix = getDefaultProfile().hostPrefix;
       return hostPrefix
         ? `https://api.${hostPrefix}.graphite.dev/v1`
