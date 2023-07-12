@@ -21,7 +21,7 @@ export class AutoResolveOperation extends Operation {
     switch (this.tool) {
       case AutoResolveTool.theirs:
         return [
-          "checkout",
+          "restore",
           "--theirs",
           "--",
           {
@@ -32,7 +32,7 @@ export class AutoResolveOperation extends Operation {
         break;
       case AutoResolveTool.ours:
         return [
-          "checkout",
+          "restore",
           "--ours",
           "--",
           {

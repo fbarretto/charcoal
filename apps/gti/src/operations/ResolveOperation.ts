@@ -37,7 +37,7 @@ export class ResolveOperation extends Operation {
         break;
       case ResolveTool.unmark:
         return [
-          "checkout",
+          "restore",
           "--conflict=merge",
           "--",
           {

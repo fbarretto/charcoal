@@ -280,14 +280,14 @@ export const CommitInfoDetails = observer(
                 checked={mode === "commit"}
                 tabIndex={0}
               >
-                <>Commit</>
+                <>Create a new branch</>
               </VSCodeRadio>
               <VSCodeRadio
                 value="amend"
                 checked={mode === "amend"}
                 tabIndex={0}
               >
-                <>Amend</>
+                <>Update the existing branch</>
               </VSCodeRadio>
             </VSCodeRadioGroup>
           </div>
@@ -552,7 +552,7 @@ const ActionsBar = observer(
                 }
                 runOperation={doAmendOrCommit}
               >
-                {isCommitMode ? <>Commit</> : <>Amend</>}
+                {isCommitMode ? <>Create</> : <>Update</>}
               </OperationDisabledButton>
             </Tooltip>
           ) : (

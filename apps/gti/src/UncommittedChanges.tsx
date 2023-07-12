@@ -110,7 +110,7 @@ function processCopiesAndRenames(
       .map((file, i) => {
         const minimalName = disambiguousPaths[i];
         let fileLabel = minimalName;
-        let tooltip = file.path;
+        let tooltip = `${file.path}\n\n${descriptionFromStatus[file.status]}`;
         let copiedFrom;
         let renamedFrom;
         let visualStatus: VisualChangedFileType = file.status;
@@ -130,7 +130,7 @@ function processCopiesAndRenames(
             ].includes(file.status)
           ) {
             renamedFrom = file.copy;
-            tooltip = `${file.path}\n\nThis file was renamed from ${file.copy}`;
+            tooltip = `${tooltip}\n\nThis file was renamed from ${file.copy}`;
             visualStatus = file.status;
           } else if (
             [
@@ -140,7 +140,7 @@ function processCopiesAndRenames(
             ].includes(file.status)
           ) {
             copiedFrom = file.copy;
-            tooltip = `${file.path}\n\nThis file was copied from ${file.copy}`;
+            tooltip = `${tooltip}\n\nThis file was copied from ${file.copy}`;
             visualStatus = file.status;
           }
         }
@@ -646,7 +646,7 @@ export const UncommittedChanges = observer(function ({
                 }}
               >
                 <Icon slot="start" icon="plus" />
-                <>Commit</>
+                <>Create a new branch</>
               </VSCodeButton>
               <VSCodeTextField
                 data-testid="quick-commit-title"
@@ -662,7 +662,7 @@ export const UncommittedChanges = observer(function ({
               }}
             >
               <Icon slot="start" icon="edit" />
-              <>Commit as...</>
+              <>Create a new branch with...</>
             </VSCodeButton>
           </div>
           {headCommit?.partOfTrunk ? null : (
@@ -675,7 +675,7 @@ export const UncommittedChanges = observer(function ({
                 }}
               >
                 <Icon slot="start" icon="debug-step-into" />
-                <>Amend</>
+                <>Update the existing branch</>
               </VSCodeButton>
               <VSCodeButton
                 appearance="icon"
@@ -685,7 +685,7 @@ export const UncommittedChanges = observer(function ({
                 }}
               >
                 <Icon slot="start" icon="edit" />
-                <>Amend as...</>
+                <>Update the existing branch with...</>
               </VSCodeButton>
             </div>
           )}
@@ -913,6 +913,26 @@ function FileActions({
     </div>
   );
 }
+
+const descriptionFromStatus: Record<VisualChangedFileType, string> = {
+  TRACKED_ADD: "Added (tracked)",
+  TRACKED_MODIFY: "Modified (staged)",
+  TRACKED_REMOVE: "Removed (staged)",
+  PARTIALLY_TRACKED_ADD: "Added (partially tracked)",
+  PARTIALLY_TRACKED_MODIFY: "Modified (partially staged)",
+  PARTIALLY_TRACKED_REMOVE: "Removed (partially staged)",
+  UNTRACKED_MODIFY: "Modified (unstaged)",
+  UNTRACKED_ADD: "Added (untracked)",
+  UNTRACKED_REMOVE: "Removed (unstaged)",
+  UNRESOLVED: "Unresolved",
+  RESOLVED: "Resolved",
+  TRACKED_RENAME: "Renamed (staged)",
+  PARTIALLY_TRACKED_RENAME: "Renamed and modified (partially staged)",
+  UNTRACKED_RENAME: "Renamed (unstaged)",
+  TRACKED_COPY: "Copied (tracked)",
+  PARTIALLY_TRACKED_COPY: "Copied and modified (tracked and partially staged)",
+  UNTRACKED_COPY: "Copied (untracked)",
+};
 
 /**
  * Map for changed files statuses into classNames (for color & styles) and icon names.
