@@ -1,7 +1,6 @@
 {
   "name": "@withgraphite/gti",
   "version": "0.1.0",
-  "private": true,
   "main": "dist/src/App.js",
   "browser": "dist/src/App.js",
   "dependencies": {

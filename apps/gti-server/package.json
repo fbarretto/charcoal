@@ -4,7 +4,6 @@
   "description": "gti-server",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
-  "private": true,
   "devDependencies": {
     "@types/fb-watchman": "^2.0.1",
     "@types/node": "^16.7.13",
