@@ -22,7 +22,7 @@ export async function syncPrInfo(
         repoName: context.repoConfig.getRepoName(),
         repoOwner: context.repoConfig.getRepoOwner(),
       },
-      context.userConfig.getApiServerUrl()
+      context.userConfig
     ),
     context.engine
   );

@@ -1,7 +1,7 @@
 import { API_ROUTES } from '@withgraphite/graphite-cli-routes';
-import { request } from '@withgraphite/retyped-routes';
 import chalk from 'chalk';
 import prompts from 'prompts';
+import { requestWithArgs } from '../../lib/api/request';
 import { TContext } from '../../lib/context';
 import { TScopeSpec } from '../../lib/engine/scope_spec';
 import { ExitFailedError, KilledError } from '../../lib/errors';
@@ -152,13 +152,12 @@ export async function submitAction(
 
 export async function displayRepoMessage(context: TContext): Promise<void> {
   try {
-    const authToken = cliAuthPrecondition(context);
-    const response = await request.requestWithArgs(
-      context.userConfig.getApiServerUrl(),
+    cliAuthPrecondition(context);
+    const response = await requestWithArgs(
+      context.userConfig,
       API_ROUTES.getRepoMessage,
       {},
       {
-        authToken: authToken,
         org: context.repoConfig.getRepoOwner(),
         repo: context.repoConfig.getRepoName(),
       }

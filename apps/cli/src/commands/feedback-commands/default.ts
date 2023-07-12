@@ -1,7 +1,7 @@
 import { API_ROUTES } from '@withgraphite/graphite-cli-routes';
-import { request } from '@withgraphite/retyped-routes';
 import chalk from 'chalk';
 import yargs from 'yargs';
+import { requestWithArgs } from '../../lib/api/request';
 import { captureState } from '../../lib/debug_context';
 import { ExitFailedError } from '../../lib/errors';
 import { graphite } from '../../lib/runner';
@@ -35,8 +35,8 @@ export const handler = async (argv: argsT): Promise<void> => {
     if (!argv.message) {
       throw new ExitFailedError(`No message provided`);
     }
-    const response = await request.requestWithArgs(
-      context.userConfig.getApiServerUrl(),
+    const response = await requestWithArgs(
+      context.userConfig,
       API_ROUTES.feedback,
       {
         user: context.userEmail ?? 'NotFound',

@@ -1,5 +1,4 @@
 import { API_ROUTES } from '@withgraphite/graphite-cli-routes';
-import { request } from '@withgraphite/retyped-routes';
 import fs from 'fs-extra';
 import path from 'path';
 import tmp from 'tmp';
@@ -7,6 +6,7 @@ import { version } from '../../package.json';
 import { userConfigFactory } from '../lib/spiffy/user_config_spf';
 import { spawnDetached } from '../lib/utils/spawn';
 import { tracer } from '../lib/utils/tracer';
+import { requestWithArgs } from '../lib/api/request';
 
 function saveTracesToTmpFile(): string {
   const tmpDir = tmp.dirSync();
@@ -30,15 +30,10 @@ async function postTelemetry(): Promise<void> {
   if (tracesPath && fs.existsSync(tracesPath)) {
     // Failed to find traces file, exit
     try {
-      await request.requestWithArgs(
-        userConfig.getApiServerUrl(),
-        API_ROUTES.traces,
-        {
-          auth: userConfigFactory.loadIfExists()?.getAuthToken(),
-          jsonTraces: fs.readFileSync(tracesPath).toString(),
-          cliVersion: version,
-        }
-      );
+      await requestWithArgs(userConfig, API_ROUTES.traces, {
+        jsonTraces: fs.readFileSync(tracesPath).toString(),
+        cliVersion: version,
+      });
     } catch (err) {
       return;
     }

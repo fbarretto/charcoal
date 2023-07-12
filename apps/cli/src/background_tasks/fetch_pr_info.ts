@@ -56,7 +56,7 @@ export async function getPrInfoToUpsert({
       repoName,
       repoOwner,
     },
-    userConfig.getApiServerUrl()
+    userConfig
   );
 }
 

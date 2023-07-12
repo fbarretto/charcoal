@@ -1,6 +1,6 @@
 import { API_ROUTES } from '@withgraphite/graphite-cli-routes';
-import { request } from '@withgraphite/retyped-routes';
 import { version } from '../../package.json';
+import { requestWithArgs } from '../lib/api/request';
 import { TContextLite } from '../lib/context';
 import { composeGit } from '../lib/git/git';
 import {
@@ -36,8 +36,8 @@ async function fetchUpgradePrompt(
   }
   try {
     const user = composeGit().getUserEmail();
-    const response = await request.requestWithArgs(
-      userConfig.getApiServerUrl(),
+    const response = await requestWithArgs(
+      userConfig,
       API_ROUTES.upgradePrompt,
       {},
       {

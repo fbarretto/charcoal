@@ -1,8 +1,8 @@
 import { API_ROUTES } from '@withgraphite/graphite-cli-routes';
 import { default as t } from '@withgraphite/retype';
-import { request } from '@withgraphite/retyped-routes';
 import prompts from 'prompts';
 import { postSurveyResponse } from '../background_tasks/post_survey';
+import { requestWithArgs } from '../lib/api/request';
 import { TContext } from '../lib/context';
 import { cliAuthPrecondition } from '../lib/preconditions';
 import { TSurveyResponse } from '../lib/spiffy/survey_responses_spf';
@@ -16,12 +16,12 @@ export async function getSurvey(
   context: TContext
 ): Promise<SurveyT | undefined> {
   try {
-    const authToken = cliAuthPrecondition(context);
-    const response = await request.requestWithArgs(
-      context.userConfig.getApiServerUrl(),
+    cliAuthPrecondition(context);
+    const response = await requestWithArgs(
+      context.userConfig,
       API_ROUTES.cliSurvey,
       {},
-      { authToken: authToken }
+      {}
     );
     if (response._response.status === 200) {
       return response.survey;

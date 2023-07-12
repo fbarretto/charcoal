@@ -1,5 +1,5 @@
 import { API_ROUTES } from '@withgraphite/graphite-cli-routes';
-import { request } from '@withgraphite/retyped-routes';
+import { requestWithArgs } from '../lib/api/request';
 import { TContextLite } from '../lib/context';
 import { surveyConfigFactory } from '../lib/spiffy/survey_responses_spf';
 import { userConfigFactory } from '../lib/spiffy/user_config_spf';
@@ -26,11 +26,10 @@ export async function postSurveyResponse(): Promise<void> {
       return;
     }
 
-    const response = await request.requestWithArgs(
-      userConfig.getApiServerUrl(),
+    const response = await requestWithArgs(
+      userConfig,
       API_ROUTES.surveyResponse,
       {
-        authToken,
         responses: {
           timestamp: surveyResponse.timestamp,
           responses: surveyResponse.responses.map((qa) => {

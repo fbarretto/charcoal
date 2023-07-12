@@ -1,7 +1,7 @@
 import { API_ROUTES } from '@withgraphite/graphite-cli-routes';
 import * as t from '@withgraphite/retype';
-import { request } from '@withgraphite/retyped-routes';
 import chalk from 'chalk';
+import { requestWithArgs } from '../../lib/api/request';
 import { TContext } from '../../lib/context';
 import { ExitFailedError, PreconditionsFailedError } from '../../lib/errors';
 import { cuteString } from '../../lib/utils/cute_string';
@@ -29,13 +29,7 @@ export async function submitPullRequest(
   },
   context: TContext
 ): Promise<void> {
-  const pr = (
-    await requestServerToSubmitPRs(
-      args.cliAuthToken,
-      args.submissionInfo,
-      context
-    )
-  )[0];
+  const pr = (await requestServerToSubmitPRs(args.submissionInfo, context))[0];
 
   if (pr.response.status === 'error') {
     throw new ExitFailedError(
@@ -81,15 +75,13 @@ const UNAUTHORIZED_RESPONSE_CODE = 401;
 // This endpoint is plural for legacy reasons.
 // Leaving the function plural in case we want to revert.
 async function requestServerToSubmitPRs(
-  cliAuthToken: string,
   submissionInfo: TPRSubmissionInfo,
   context: TContext
 ): Promise<TSubmittedPR[]> {
-  const response = await request.requestWithArgs(
-    context.userConfig.getApiServerUrl(),
+  const response = await requestWithArgs(
+    context.userConfig,
     API_ROUTES.submitPullRequests,
     {
-      authToken: cliAuthToken,
       repoOwner: context.repoConfig.getRepoOwner(),
       repoName: context.repoConfig.getRepoName(),
       prs: submissionInfo,

@@ -1,20 +1,19 @@
 import { API_ROUTES } from '@withgraphite/graphite-cli-routes';
-import { request } from '@withgraphite/retyped-routes';
 import { TContext } from '../context';
 import { ExitFailedError } from '../errors';
 import { TRepoParams } from './common_params';
+import { requestWithArgs } from './request';
 
 export async function getDownstackDependencies(
   args: { branchName: string; trunkName: string },
   params: TRepoParams,
   context: TContext
 ): Promise<string[]> {
-  const response = await request.requestWithArgs(
-    context.userConfig.getApiServerUrl(),
+  const response = await requestWithArgs(
+    context.userConfig,
     API_ROUTES.downstackDependencies,
     {},
     {
-      authToken: params.authToken,
       org: params.repoOwner,
       repo: params.repoName,
       trunkName: args.trunkName,
