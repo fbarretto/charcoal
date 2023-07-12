@@ -360,7 +360,10 @@ export class Repository {
     if (repoVersion instanceof Error) {
       return { type: "invalidCommand", command };
     }
-    if (semver.lt(repoVersion, MIN_REQUIRED_CLI_VERSION)) {
+    if (
+      repoVersion !== "local" &&
+      semver.lt(repoVersion, MIN_REQUIRED_CLI_VERSION)
+    ) {
       return {
         type: "invalidVersion",
         command,
