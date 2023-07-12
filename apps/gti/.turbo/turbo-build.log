@@ -1,13 +1,24 @@
 Creating an optimized production build...
-Failed to compile.
+Compiled successfully.
 
-TS2339: Property 'requiredVersion' does not exist on type '{ type: "invalidVersion"; versionFound: string; versionRequired: string; command: string; }'.
-    181 |             error={
-    182 |               new Error(
-  > 183 |                 `While "${repoError.command}" was found, it is installed at version ${repoError.versionFound}, and version ${repoError.requiredVersion} is required.`
-        |                                                                                                                                        ^^^^^^^^^^^^^^^
-    184 |               )
-    185 |             }
-    186 |             buttons={[
+File sizes after gzip:
 
+  178.63 kB  build/static/js/main.js
+  38.72 kB   build/static/js/232.0b9a24e6.chunk.js
+  10.94 kB   build/static/css/main.cda39ef8.css
+  5.21 kB    build/static/js/413.1d0aa67e.chunk.js
+  293 B      build/static/css/413.f05a414d.chunk.css
+
+The project was built assuming it is hosted at /.
+You can control this with the homepage field in your package.json.
+
+The build folder is ready to be deployed.
+You may serve it with a static server:
+
+  npm install -g serve
+  serve -s build
+
+Find out more about deployment here:
+
+  https://cra.link/deployment
 

@@ -1,4 +1,9 @@
-import { spawnSync, SpawnSyncOptions } from 'child_process';
+import {
+  spawn,
+  SpawnOptions,
+  spawnSync,
+  SpawnSyncOptions,
+} from 'child_process';
 import { cuteString } from '../utils/cute_string';
 import { tracer } from '../utils/tracer';
 
@@ -9,6 +14,15 @@ export function runGitCommandAndSplitLines(
     .split('\n')
     .filter((l) => l.length > 0);
 }
+
+export type TRunGitCommandParameters = {
+  args: string[];
+  options?: Omit<SpawnSyncOptions, 'encoding' | 'maxBuffer'> & {
+    noTrim?: boolean;
+  };
+  onError: 'throw' | 'ignore';
+  resource: string | null;
+};
 
 export function runGitCommand(params: TRunGitCommandParameters): string {
   // Only measure if we're with an existing span.
@@ -26,14 +40,32 @@ export function runGitCommand(params: TRunGitCommandParameters): string {
     : runGitCommandInternal(params);
 }
 
-export type TRunGitCommandParameters = {
+export type TRunAsyncGitCommandParameters = {
   args: string[];
-  options?: Omit<SpawnSyncOptions, 'encoding' | 'maxBuffer'> & {
+  options?: SpawnOptions & {
     noTrim?: boolean;
   };
   onError: 'throw' | 'ignore';
   resource: string | null;
 };
+
+export function runAsyncGitCommand(
+  params: TRunAsyncGitCommandParameters
+): Promise<string> {
+  // Only measure if we're with an existing span.
+  return params.resource && tracer.currentSpanId
+    ? tracer.span(
+        {
+          name: 'spawnedCommand',
+          resource: params.resource,
+          meta: { runCommandArgs: cuteString(params) },
+        },
+        () => {
+          return runAsyncGitCommandInternal(params);
+        }
+      )
+    : runAsyncGitCommandInternal(params);
+}
 
 function runGitCommandInternal(params: TRunGitCommandParameters): string {
   const spawnSyncOutput = spawnSync('git', params.args, {
@@ -80,6 +112,62 @@ function runGitCommandInternal(params: TRunGitCommandParameters): string {
     status: spawnSyncOutput.status,
     stdout: spawnSyncOutput.stdout,
     stderr: spawnSyncOutput.stderr,
+  });
+}
+
+function runAsyncGitCommandInternal(
+  params: TRunAsyncGitCommandParameters
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('git', params.args, {
+      ...params.options,
+      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    proc.stdout.setEncoding('utf8');
+    proc.stdout.on('data', function (data) {
+      stdout += data.toString();
+    });
+
+    let stderr = '';
+    proc.stderr.setEncoding('utf8');
+    proc.stderr.on('data', function (data) {
+      stderr += data.toString();
+    });
+
+    proc.addListener('close', (code, signal) => {
+      if (signal) {
+        reject(
+          new CommandKilledError({
+            command: 'git',
+            args: params.args,
+            signal: signal,
+            stdout: stdout,
+            stderr: stderr,
+          })
+        );
+      }
+
+      if (code === 0) {
+        resolve(params.options?.noTrim ? stdout : stdout.trim());
+      }
+
+      if (params.onError === 'ignore') {
+        resolve('');
+      }
+
+      reject(
+        new CommandFailedError({
+          command: 'git',
+          args: params.args,
+          status: code || 1,
+          stdout,
+          stderr,
+        })
+      );
+    });
   });
 }
 
