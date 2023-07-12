@@ -6,9 +6,9 @@ import type {
   PreviewContext,
   UncommittedChangesPreviewContext,
 } from "../previews";
-import type { CommandArg } from "../types";
+import type { CommandArg } from "@withgraphite/gti-shared";
 
-import { CommandRunner } from "../types";
+import { CommandRunner } from "@withgraphite/gti-shared";
 import { randomId } from "@withgraphite/gti-shared";
 import type { TrackEventName } from "@withgraphite/gti-shared";
 

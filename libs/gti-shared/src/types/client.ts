@@ -16,7 +16,6 @@ import type { TrackDataWithEventName } from "../analytics/types";
 import type { Hash } from "./common";
 import type { AllUndefined, Json } from "../typeUtils";
 import type { Comparison } from "../Comparison";
-import type { ExportStack, ImportedStack } from "./stack";
 export type Result<T> =
   | { value: T; error?: undefined }
   | { value?: undefined; error: Error };
@@ -95,6 +94,15 @@ export type ValidatedRepoInfo = {
   codeReviewSystem: CodeReviewSystem;
   pullRequestDomain: string | undefined;
   preferredBranchEdit: "amend" | "commit";
+  /**
+   * Configuring this per repo; in the event where users have two accounts (one on a GHES instance
+   * and one on a public instance), I imagine we would let them to configure GT auth per repo (perhaps
+   * similar to profiles)... that seems like a better incremental path than supporting multiple
+   * GH accounts per GT account.
+   */
+  profile: {
+    appUrl: string;
+  };
 };
 
 export type CodeReviewSystem =
@@ -107,10 +115,6 @@ export type CodeReviewSystem =
     }
   | {
       type: "none";
-    }
-  | {
-      type: "unknown";
-      path?: string;
     };
 
 export type SuccessorInfo = {
@@ -421,18 +425,6 @@ export type ServerToClientMessage =
   | { type: "beganLoadingMoreCommits" }
   | { type: "commitsShownRange"; rangeInDays: number | undefined }
   | { type: "additionalCommitAvailability"; moreAvailable: boolean }
-  | {
-      type: "exportedStack";
-      revs: string;
-      assumeTracked: Array<string>;
-      stack: ExportStack;
-      error: string | undefined;
-    }
-  | {
-      type: "importedStack";
-      imported: ImportedStack;
-      error: string | undefined;
-    }
   | OperationProgressEvent
   | PlatformSpecificServerToClientMessages;
 

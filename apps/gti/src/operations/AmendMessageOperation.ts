@@ -1,6 +1,6 @@
 import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
-import type { CommandArg } from "../types";
+import type { CommandArg } from "@withgraphite/gti-shared";
 
 import { Operation } from "./Operation";
 

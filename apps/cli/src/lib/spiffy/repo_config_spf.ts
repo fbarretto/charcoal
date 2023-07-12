@@ -4,6 +4,7 @@ import { runGitCommand } from '../git/runner';
 import { spiffy } from './spiffy';
 
 const schema = t.shape({
+  host: t.optional(t.string),
   owner: t.optional(t.string),
   name: t.optional(t.string),
   trunk: t.optional(t.string),
@@ -35,6 +36,22 @@ export const repoConfigFactory = spiffy({
       },
 
       graphiteInitialized: (): boolean => !!data.trunk,
+
+      getRepoHost: (): string => {
+        const configHost = data.host;
+        if (configHost) {
+          return configHost;
+        }
+
+        const inferredInfo = inferRepoGitHubInfo(data.remote ?? 'origin');
+        if (inferredInfo?.repoHost) {
+          return inferredInfo.repoHost;
+        }
+
+        throw new ExitFailedError(
+          "Could not determine the host of this repo (e.g. 'github.com' in the repo 'https://github.com/withgraphite/graphite-cli'). Please run `gt repo owner --set <owner>` to manually set the repo owner."
+        );
+      },
 
       getRepoOwner: (): string => {
         const configOwner = data.owner;
@@ -73,6 +90,7 @@ export const repoConfigFactory = spiffy({
 function inferRepoGitHubInfo(remote: string): {
   repoOwner: string;
   repoName: string;
+  repoHost: string;
 } {
   // This assumes the remote to fetch from is the same as the remote to push to.
   // If a user runs into this is not true, they can manually edit the repo config
@@ -98,6 +116,7 @@ function inferRepoGitHubInfo(remote: string): {
   return {
     repoOwner: match.owner,
     repoName: match.name,
+    repoHost: match.hostname,
   };
 }
 
@@ -119,7 +138,7 @@ function inferRepoGitHubInfo(remote: string): {
  */
 export function getOwnerAndNameFromURL(
   url: string
-): { name: string; owner: string } | null {
+): { name: string; owner: string; hostname: string } | null {
   const match =
     /(?:https:\/\/(.*)\/|(?:git\+ssh:\/\/|ssh:\/\/)?(?:git@)?([^:/]*)[:/])([^/]+)\/(.+?)(?:\.git)?$/.exec(
       url
@@ -130,8 +149,7 @@ export function getOwnerAndNameFromURL(
   }
 
   const [, hostname1, hostname2, owner, repo] = match;
-  void hostname1, hostname2;
-  return { owner, name: repo };
+  return { owner, name: repo, hostname: hostname1 ?? hostname2 };
 }
 
 export type TRepoConfig = ReturnType<typeof repoConfigFactory.load>;

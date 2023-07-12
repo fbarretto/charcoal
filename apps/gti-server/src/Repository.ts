@@ -349,17 +349,17 @@ export class Repository {
     cwd: string
   ): Promise<RepoInfo> {
     const [
+      profile,
       repoRoot,
       dotdir,
-      pathsDefault,
+      repoInfoRaw,
       pullRequestDomain,
       preferredBranchEdit,
     ] = await Promise.all([
+      findRepoProfile(command, logger, cwd),
       findRoot(command, logger, cwd).catch((err: Error) => err),
       findDotDir(command, logger, cwd),
-      getConfig(command, logger, cwd, "paths.default").then(
-        (value) => value ?? ""
-      ),
+      findRepoInfo(command, logger, cwd),
       getConfig(command, logger, cwd, "github.pull_request_domain"),
       getConfig(command, logger, cwd, "graphite.branch_edit").then(
         (value) => (value as "commit" | "amend") ?? ("amend" as const)
@@ -373,25 +373,16 @@ export class Repository {
     }
 
     let codeReviewSystem: CodeReviewSystem;
-    if (pathsDefault === "") {
+    if (typeof repoInfoRaw === "undefined") {
       codeReviewSystem = { type: "none" };
     } else {
-      const repoInfo = extractRepoInfoFromUrl(pathsDefault);
-      if (
-        repoInfo != null &&
-        (repoInfo.hostname === "github.com" ||
-          (await isGithubEnterprise(repoInfo.hostname)))
-      ) {
-        const { owner, repo, hostname } = repoInfo;
-        codeReviewSystem = {
-          type: "github",
-          owner,
-          repo,
-          hostname,
-        };
-      } else {
-        codeReviewSystem = { type: "unknown", path: pathsDefault };
-      }
+      const { owner, name, hostname } = repoInfoRaw;
+      codeReviewSystem = {
+        type: "github",
+        owner,
+        repo: name,
+        hostname,
+      };
     }
 
     const result: RepoInfo = {
@@ -402,6 +393,7 @@ export class Repository {
       codeReviewSystem,
       pullRequestDomain,
       preferredBranchEdit,
+      profile,
     };
     logger.info("repo info: ", result);
     return result;
@@ -792,6 +784,59 @@ async function findRoot(
   }
 }
 
+async function findRepoInfo(
+  command: string,
+  logger: Logger,
+  cwd: string
+): Promise<
+  | {
+      hostname: string;
+      owner: string;
+      name: string;
+    }
+  | undefined
+> {
+  try {
+    return JSON.parse(
+      (
+        await runCommand({
+          command,
+          args: ["interactive", "repo-info"],
+          logger,
+          cwd,
+        })
+      ).stdout
+    );
+  } catch (error) {
+    logger.error(`Failed to find repository info in ${cwd}`, error);
+    return undefined;
+  }
+}
+
+async function findRepoProfile(
+  command: string,
+  logger: Logger,
+  cwd: string
+): Promise<{
+  appUrl: string;
+}> {
+  try {
+    return JSON.parse(
+      (
+        await runCommand({
+          command,
+          args: ["interactive", "profile"],
+          logger,
+          cwd,
+        })
+      ).stdout
+    );
+  } catch (error) {
+    logger.error(`Failed to find repository profile in ${cwd}`, error);
+    throw error;
+  }
+}
+
 async function findDotDir(
   command: string,
   logger: Logger,
@@ -910,36 +955,6 @@ export function parseSuccessorData(
 }
 
 /**
- * extract repo info from a remote url, typically for GitHub or GitHub Enterprise,
- * in various formats:
- * https://github.com/owner/repo
- * https://github.com/owner/repo.git
- * github.com/owner/repo.git
- * git@github.com:owner/repo.git
- * ssh:git@github.com:owner/repo.git
- * ssh://git@github.com/owner/repo.git
- * git+ssh:git@github.com:owner/repo.git
- *
- * or similar urls with GitHub Enterprise hostnames:
- * https://ghe.myCompany.com/owner/repo
- */
-export function extractRepoInfoFromUrl(
-  url: string
-): { repo: string; owner: string; hostname: string } | null {
-  const match =
-    /(?:https:\/\/(.*)\/|(?:git\+ssh:\/\/|ssh:\/\/)?(?:git@)?([^:/]*)[:/])([^/]+)\/(.+?)(?:\.git)?$/.exec(
-      url
-    );
-
-  if (match == null) {
-    return null;
-  }
-
-  const [, hostname1, hostname2, owner, repo] = match;
-  return { owner, repo, hostname: hostname1 ?? hostname2 };
-}
-
-/**
  * Returns absolute path for a repo-relative file path.
  * If the path "escapes" the repository's root dir, returns null
  * Used to validate that a file path does not "escape" the repo, and the file can safely be modified on the filesystem.
@@ -973,24 +988,6 @@ export function repoRelativePathForAbsolutePath(
 
 function isProcessError(s: unknown): s is { stderr: string } {
   return s != null && typeof s === "object" && "stderr" in s;
-}
-
-/**
- * Query `gh` CLI to test if a hostname is GitHub or GitHub Enterprise.
- * Returns true if this hostname is a valid, authenticated GitHub instance.
- * Returns false if the hostname is not github, or if you're not authenticated for that hostname,
- * or if the network is not working.
- */
-async function isGithubEnterprise(hostname: string): Promise<boolean> {
-  const args = ["auth", "status"];
-  args.push("--hostname", hostname);
-
-  try {
-    await execa("gh", args, { stdout: "pipe", stderr: "pipe" });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function computeNewConflicts(

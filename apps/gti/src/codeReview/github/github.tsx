@@ -1,5 +1,5 @@
 import type { Operation } from "../../operations/Operation";
-import type { CodeReviewSystem, DiffSummary } from "../../types";
+import type { CodeReviewSystem, DiffSummary } from "@withgraphite/gti-shared";
 import type { UICodeReviewProvider } from "../UICodeReviewProvider";
 import type { ReactNode } from "react";
 

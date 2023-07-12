@@ -25,6 +25,7 @@ import {
   latestCommitTreeMap,
   latestUncommittedChanges,
   operationBeingPreviewed,
+  repositoryInfo,
   useRunOperation,
   useRunPreviewedOperation,
 } from "./serverAPIState";
@@ -92,6 +93,8 @@ export const Commit = memo(
       previewType?: CommitPreview;
       hasChildren: boolean;
     }) => {
+      const repoInfo = repositoryInfo.get();
+
       const isPublic = commit.partOfTrunk;
 
       const handlePreviewedOperation = useRunPreviewedOperation();
@@ -199,7 +202,36 @@ export const Commit = memo(
                 event.stopPropagation(); // don't select commit
               }}
             >
-              <>Goto</> <Icon icon="arrow-right" />
+              <>Checkout</> <Icon icon="arrow-right" />
+            </VSCodeButton>
+          </span>
+        );
+      }
+      if (
+        !actionsPrevented &&
+        !commit.isHead &&
+        commit.pr &&
+        repoInfo?.type === "success" &&
+        repoInfo.codeReviewSystem.type === "github"
+      ) {
+        const pr = commit.pr;
+        const stableRepoInfo = repoInfo.codeReviewSystem;
+        const stableProfile = repoInfo.profile;
+
+        commitActions.push(
+          <span className="goto-button" key="goto-button">
+            <VSCodeButton
+              appearance="secondary"
+              onClick={(event) => {
+                platform.openExternalLink(
+                  `${stableProfile.appUrl}/github/pr/${stableRepoInfo.owner}/${stableRepoInfo.repo}/${pr.number}`
+                );
+                event.stopPropagation(); // don't select commit
+                // We need to do this or it stays visible (as the focused element is ALWAYS visible in VSCode for A11y)
+                "blur" in event.target && (event.target as HTMLElement).blur();
+              }}
+            >
+              <>View on Graphite</> <Icon icon="arrow-right" />
             </VSCodeButton>
           </span>
         );

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { DiffSummary } from "../types";
+import type { DiffSummary } from "@withgraphite/gti-shared";
 import type { UICodeReviewProvider } from "./UICodeReviewProvider";
 
 import { useContextMenu } from "../ContextMenu";

@@ -1,4 +1,4 @@
-import type { Result } from "../types";
+import type { Result } from "@withgraphite/gti-shared";
 import { Comparison, comparisonIsAgainstHead } from "@withgraphite/gti-shared";
 import type { ParsedDiff } from "@withgraphite/gti-shared";
 

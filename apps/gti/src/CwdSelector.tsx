@@ -1,4 +1,4 @@
-import { VSCodeBadge, VSCodeButton } from "@vscode/webview-ui-toolkit/react";
+import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { Icon } from "./Icon";
 import { basename } from "@withgraphite/gti-shared";
 import { observer } from "mobx-react-lite";
@@ -77,10 +77,11 @@ const CwdDetails = observer(() => {
         <code>{repoRoot}</code>
       </DropdownField>
       {provider != null ? (
-        <DropdownField title={<>Code Review Provider</>}>
-          <span>
-            <VSCodeBadge>{provider?.name}</VSCodeBadge> <provider.RepoInfo />
-          </span>
+        <DropdownField title={<>Remote</>}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <Icon style={{ marginRight: "4px" }} icon="github" />{" "}
+            <provider.RepoInfo />
+          </div>
         </DropdownField>
       ) : null}
     </DropdownFields>

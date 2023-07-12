@@ -1,5 +1,5 @@
 import type { Operation } from "../operations/Operation";
-import type { DiffSummary } from "../types";
+import type { DiffSummary } from "@withgraphite/gti-shared";
 import type { ReactNode } from "react";
 import type { BranchInfo, PRNumber } from "@withgraphite/gti-cli-shared-types";
 import type { CommitTreeWithPreviews } from "../getCommitTree";

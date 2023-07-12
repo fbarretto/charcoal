@@ -1,4 +1,8 @@
-import type { DiffSummary, PageVisibility, Result } from "../types";
+import type {
+  DiffSummary,
+  PageVisibility,
+  Result,
+} from "@withgraphite/gti-shared";
 import type { UICodeReviewProvider } from "./UICodeReviewProvider";
 
 import serverAPI from "../ClientToServerAPI";

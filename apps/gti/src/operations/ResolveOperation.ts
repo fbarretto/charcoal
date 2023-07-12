@@ -5,7 +5,11 @@ import type {
   MergeConflictsPreviewContext,
   UncommittedChangesPreviewContext,
 } from "../previews";
-import type { CommandArg, MergeConflicts, UncommittedChanges } from "../types";
+import type {
+  CommandArg,
+  MergeConflicts,
+  UncommittedChanges,
+} from "@withgraphite/gti-shared";
 
 import { Operation } from "./Operation";
 

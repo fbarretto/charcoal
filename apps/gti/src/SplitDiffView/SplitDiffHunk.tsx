@@ -1,4 +1,4 @@
-import type { OneIndexedLineNumber } from "../types";
+import type { OneIndexedLineNumber } from "@withgraphite/gti-shared";
 import type { Context, LineRangeParams } from "./types";
 import type { Hunk, ParsedDiff } from "diff";
 

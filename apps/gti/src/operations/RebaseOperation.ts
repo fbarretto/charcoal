@@ -1,5 +1,5 @@
 import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
-import type { Revset } from "../types";
+import type { Revset } from "@withgraphite/gti-shared";
 
 import { CommitPreview } from "../previews";
 import { Operation } from "./Operation";

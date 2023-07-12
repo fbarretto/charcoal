@@ -2,7 +2,7 @@ import type {
   ApplyUncommittedChangesPreviewsFuncType,
   UncommittedChangesPreviewContext,
 } from "../previews";
-import type { UncommittedChanges } from "../types";
+import type { UncommittedChanges } from "@withgraphite/gti-shared";
 
 import { Operation } from "./Operation";
 

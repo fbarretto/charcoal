@@ -6,7 +6,7 @@ import type {
   PreviewContext,
   UncommittedChangesPreviewContext,
 } from "../previews";
-import type { CommandArg } from "../types";
+import type { CommandArg } from "@withgraphite/gti-shared";
 
 import { Operation } from "./Operation";
 

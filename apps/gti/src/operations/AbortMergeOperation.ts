@@ -1,4 +1,4 @@
-import type { MergeConflicts } from "../types";
+import type { MergeConflicts } from "@withgraphite/gti-shared";
 
 import { Operation } from "./Operation";
 
