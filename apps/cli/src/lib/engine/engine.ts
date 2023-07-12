@@ -25,6 +25,7 @@ import {
 } from './metadata_ref';
 import { validateOrFixParentBranchRevision } from './parse_branches_and_meta';
 import { TScopeSpec } from './scope_spec';
+import fjsh from 'fast-json-stable-hash';
 
 export type TEngine = {
   debug: string;
@@ -169,9 +170,10 @@ export function composeEngine({
 }): TEngine {
   const cacheLoader = composeCacheLoader(splog);
   void cacheLoader;
+  const originallyLoadedBranches = cacheLoader.loadCachedBranches(trunkName);
   const cache = {
     currentBranch: currentBranchOverride ?? git.getCurrentBranchName(),
-    branches: cacheLoader.loadCachedBranches(trunkName),
+    branches: originallyLoadedBranches,
   };
 
   const assertTrunk = () => {
@@ -428,7 +430,12 @@ export function composeEngine({
       return cuteString(cache);
     },
     persist() {
-      cacheLoader.persistCache(trunkName, cache.branches);
+      if (
+        fjsh.hash(originallyLoadedBranches, 'sha256') !==
+        fjsh.hash(cache.branches, 'sha256')
+      ) {
+        cacheLoader.persistCache(trunkName, cache.branches);
+      }
     },
     clear() {
       cacheLoader.clearPersistedCache();
