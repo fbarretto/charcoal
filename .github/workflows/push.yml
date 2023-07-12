@@ -27,7 +27,7 @@ jobs:
       - name: Install
         run: yarn install --immutable
       - name: Build
-        run: yarn workspace @withgraphite/graphite-cli run build
+        run: yarn turbo run build
       - name: Setup git
         run: git config --global user.email "test@gmail.com" && git config --global user.name "test"
       - name: Git Version

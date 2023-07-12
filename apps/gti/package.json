@@ -12,7 +12,7 @@
     "@types/react-dom": "^18.0.0",
     "@vscode/webview-ui-toolkit": "1.2.2",
     "@withgraphite/gti-cli-shared-types": "workspace:*",
-    "@withgraphite/gti-server": "workspace:*",
+    "@withgraphite/gti-shared": "workspace:*",
     "diff-sequences": "^29.4.3",
     "fast-json-stable-stringify": "^2.1.0",
     "immutable": "^4.3.0",

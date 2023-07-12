@@ -1,0 +1,23 @@
+assets by status 108 KiB [compared for emit]
+  asset server.js 68.2 KiB [emitted] [compared for emit] [minimized] (name: server) 1 related asset
+  asset 363.js 38.1 KiB [compared for emit] [minimized] (id hint: vendors) 1 related asset
+  asset child.js 2.03 KiB [emitted] [compared for emit] [minimized] (name: child) 1 related asset
+asset 1.js 39.6 KiB [emitted] [minimized] 1 related asset
+asset run-proxy.js 19.5 KiB [emitted] [minimized] (name: run-proxy) 1 related asset
+asset 345.js 6.8 KiB [emitted] [minimized] 1 related asset
+orphan modules 331 KiB [orphan] 44 modules
+runtime modules 5.27 KiB 17 modules
+built modules 272 KiB [built]
+  cacheable modules 271 KiB
+    modules by path ../../node_modules/ 86.9 KiB 38 modules
+    modules by path ./proxy/*.ts 150 KiB
+      ./proxy/child.ts 1.41 KiB [built] [code generated]
+      ./proxy/run-proxy.ts + 4 modules 32.8 KiB [built] [code generated]
+      ./proxy/server.ts + 15 modules 115 KiB [built] [code generated]
+      ./proxy/proxyUtils.ts 285 bytes [built] [code generated]
+    modules by path ../../libs/gti-shared/dist/src/ 34.6 KiB
+      ../../libs/gti-shared/dist/src/index.js + 11 modules 27 KiB [built] [code generated]
+      ../../libs/gti-shared/dist/src/analytics/index.js + 1 modules 4.47 KiB [built] [code generated]
+      ../../libs/gti-shared/dist/src/utils.js 3.17 KiB [built] [code generated]
+  + 14 modules
+webpack 5.87.0 compiled successfully in 9260 ms

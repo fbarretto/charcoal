@@ -25,8 +25,7 @@ import type {
   Status,
 } from "@withgraphite/gti-cli-shared-types";
 import { Comparison, ComparisonType } from "@withgraphite/gti-shared";
-import { exists } from "./fs";
-import { removeLeadingPathSep } from "@withgraphite/gti-shared";
+import { exists, removeLeadingPathSep } from "./fs";
 import { RateLimiter } from "@withgraphite/gti-shared";
 import { TypedEventEmitter } from "@withgraphite/gti-shared";
 import { notEmpty, unwrap } from "@withgraphite/gti-shared";
