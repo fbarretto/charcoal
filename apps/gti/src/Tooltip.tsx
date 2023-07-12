@@ -25,6 +25,7 @@ type TooltipProps = {
    * The delay is only on the leading-edge; disappearing is always instant.
    */
   delayMs?: number;
+  inline?: boolean;
 } & ExclusiveOr<
   ExclusiveOr<
     { trigger: "manual"; shouldShow: boolean },
@@ -77,6 +78,7 @@ export function Tooltip({
   trigger: triggerProp,
   delayMs,
   shouldShow,
+  inline,
 }: TooltipProps) {
   const trigger = triggerProp ?? "hover";
   const placement = placementProp ?? "top";
@@ -166,7 +168,7 @@ export function Tooltip({
 
   return (
     <div
-      className="tooltip-creator"
+      className={`tooltip-creator ${inline ? "tooltip-creator-inline" : ""}`}
       ref={ref}
       onClick={
         trigger === "click"

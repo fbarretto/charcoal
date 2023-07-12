@@ -1,14 +1,14 @@
 import { Operation } from "./Operation";
 
-export class PrSubmitOperation extends Operation {
-  static opName = "pr submit";
+export class DownstackSubmitOperation extends Operation {
+  static opName = "downstack submit";
 
   constructor(private branch: string, private options?: { draft?: boolean }) {
-    super("PrSubmitOperation");
+    super("DownstackSubmitOperation");
   }
 
   getArgs() {
-    const args = ["pr", "submit", "--branch", this.branch];
+    const args = ["downstack", "submit", "--branch", this.branch];
     if (this.options?.draft) {
       args.push("--draft");
     }

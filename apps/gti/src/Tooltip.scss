@@ -6,6 +6,10 @@
   display: flex;
 }
 
+.tooltip-creator-inline {
+  display: inline
+}
+
 .tooltip {
   position: absolute;
   pointer-events: initial;

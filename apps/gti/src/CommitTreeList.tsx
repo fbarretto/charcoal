@@ -24,15 +24,22 @@ import {
   commitFetchError,
   commitsShownRange,
   isFetchingAdditionalCommits,
+  latestUncommittedChanges,
   useRunOperation,
 } from "./serverAPIState";
 import { DOCUMENTATION_DELAY, Tooltip } from "./Tooltip";
 
-import type { BranchName } from "@withgraphite/gti-cli-shared-types";
+import type {
+  BranchInfo,
+  BranchName,
+} from "@withgraphite/gti-cli-shared-types";
 import { observer } from "mobx-react-lite";
 import "./CommitTreeList.scss";
 import { BannerNotice } from "./BannerNotice";
 import { repoMessage } from "./repoMessage";
+import type { DiffSummary } from "@withgraphite/gti-shared";
+import { RestackOperation } from "./operations/RestackOperation";
+import { StackSubmitOperation } from "./operations/StackSubmitOperation";
 
 export const CommitTreeList = observer(() => {
   useMarkOperationsCompleted();
@@ -104,7 +111,7 @@ function SubTree({
   const isPublic = info.partOfTrunk;
 
   const stackActions =
-    !isPublic && depth === 1 ? (
+    (!isPublic && depth === 1) || info.needsRestack ? (
       <StackActions key="stack-actions" tree={tree} />
     ) : null;
 
@@ -229,82 +236,111 @@ const StackActions = observer(
               resubmittableStack: [],
               submittableStack: [],
             }
-          : reviewProvider?.getSupportedStackActions(tree, diffMap.value);
+          : getSupportedStackActions(tree, diffMap.value);
       const resubmittableStack = reviewActions?.resubmittableStack;
       const submittableStack = reviewActions?.submittableStack;
       const MIN_STACK_SIZE_TO_SUGGEST_SUBMIT = 2; // don't show "submit stack" on single commits... they're not really "stacks".
 
-      // any existing diffs -> show resubmit stack,
-      if (
-        resubmittableStack != null &&
-        resubmittableStack.length >= MIN_STACK_SIZE_TO_SUGGEST_SUBMIT
-      ) {
+      if (tree.info.needsRestack) {
+        // can't rebase with uncommitted changes
+        const loadable = latestUncommittedChanges.get();
+        const hasUncommittedChanges = loadable.length > 0;
+
         actions.push(
-          <HighlightCommitsWhileHovering
-            key="resubmit-stack"
-            toHighlight={resubmittableStack}
+          <Tooltip
+            placement="bottom"
+            title={
+              hasUncommittedChanges
+                ? "Cannot restack while you have uncommited changes."
+                : "The parent branch has been updated, and children branches need to be restacked to incorporate those changes."
+            }
           >
-            <VSCodeButton
-              appearance="icon"
-              onClick={() => {
-                runOperation(
-                  reviewProvider.submitOperation(resubmittableStack, {})
-                );
-              }}
+            <HighlightCommitsWhileHovering
+              key="restack-stack"
+              toHighlight={getDescendents(tree)}
             >
-              <Icon icon="cloud-upload" slot="start" />
-              <>Resubmit stack</>
-            </VSCodeButton>
-          </HighlightCommitsWhileHovering>
-        );
-        //     any non-submitted diffs -> "submit all commits this stack" in hidden group
-        if (submittableStack != null && submittableStack.length > 0) {
-          moreActions.push({
-            label: (
-              <HighlightCommitsWhileHovering
-                key="submit-entire-stack"
-                toHighlight={[...resubmittableStack, ...submittableStack]}
+              <VSCodeButton
+                appearance="icon"
+                className="commit-tree-stack-actions-restack"
+                onClick={() => {
+                  runOperation(new RestackOperation(tree.info.branch));
+                }}
+                disabled={hasUncommittedChanges}
               >
-                <FlexRow>
-                  <Icon icon="cloud-upload" slot="start" />
-                  <>Submit entire stack</>
-                </FlexRow>
-              </HighlightCommitsWhileHovering>
-            ),
-            onClick: () => {
-              runOperation(
-                reviewProvider.submitOperation(
-                  [...resubmittableStack, ...submittableStack],
-                  {}
-                )
-              );
-            },
-          });
-        }
-        //     NO non-submitted diffs -> nothing in hidden group
-      } else if (
-        submittableStack != null &&
-        submittableStack.length >= MIN_STACK_SIZE_TO_SUGGEST_SUBMIT
-      ) {
-        // NO existing diffs -> show submit stack ()
-        actions.push(
-          <HighlightCommitsWhileHovering
-            key="submit-stack"
-            toHighlight={submittableStack}
-          >
-            <VSCodeButton
-              appearance="icon"
-              onClick={() => {
-                runOperation(
-                  reviewProvider.submitOperation(submittableStack, {})
-                );
-              }}
-            >
-              <Icon icon="cloud-upload" slot="start" />
-              <>Submit stack</>
-            </VSCodeButton>
-          </HighlightCommitsWhileHovering>
+                <Icon icon="debug-step-out" slot="start" />
+                <>Restack</>
+              </VSCodeButton>
+            </HighlightCommitsWhileHovering>
+          </Tooltip>
         );
+      } else {
+        // any existing diffs -> show resubmit stack,
+        if (
+          resubmittableStack != null &&
+          resubmittableStack.length >= MIN_STACK_SIZE_TO_SUGGEST_SUBMIT
+        ) {
+          actions.push(
+            <HighlightCommitsWhileHovering
+              key="resubmit-stack"
+              toHighlight={resubmittableStack}
+            >
+              <VSCodeButton
+                appearance="icon"
+                onClick={() => {
+                  runOperation(
+                    new StackSubmitOperation(tree.info.branch, {
+                      updateOnly: true,
+                    })
+                  );
+                }}
+              >
+                <Icon icon="cloud-upload" slot="start" />
+                <>Resubmit stack</>
+              </VSCodeButton>
+            </HighlightCommitsWhileHovering>
+          );
+          //     any non-submitted diffs -> "submit all commits this stack" in hidden group
+          if (submittableStack != null && submittableStack.length > 0) {
+            moreActions.push({
+              label: (
+                <HighlightCommitsWhileHovering
+                  key="submit-entire-stack"
+                  toHighlight={[...resubmittableStack, ...submittableStack]}
+                >
+                  <FlexRow>
+                    <Icon icon="cloud-upload" slot="start" />
+                    <>Submit entire stack</>
+                  </FlexRow>
+                </HighlightCommitsWhileHovering>
+              ),
+              onClick: () => {
+                runOperation(new StackSubmitOperation(tree.info.branch, {}));
+              },
+            });
+          }
+          //     NO non-submitted diffs -> nothing in hidden group
+        } else if (
+          submittableStack != null &&
+          submittableStack.length >= MIN_STACK_SIZE_TO_SUGGEST_SUBMIT
+        ) {
+          // NO existing diffs -> show submit stack ()
+          actions.push(
+            <HighlightCommitsWhileHovering
+              key="submit-stack"
+              toHighlight={submittableStack}
+            >
+              <VSCodeButton
+                appearance="icon"
+                onClick={() => {
+                  runOperation(new StackSubmitOperation(tree.info.branch, {}));
+                }}
+              >
+                <Icon icon="cloud-upload" slot="start" />
+                <>Submit stack</>
+              </VSCodeButton>
+            </HighlightCommitsWhileHovering>
+          );
+        }
       }
     }
 
@@ -329,3 +365,45 @@ const StackActions = observer(
     );
   }
 );
+
+function getDescendents(tree: CommitTreeWithPreviews): BranchInfo[] {
+  return [
+    tree.info,
+    ...tree.children.flatMap((child) => getDescendents(child)),
+  ];
+}
+
+function getSupportedStackActions(
+  tree: CommitTreeWithPreviews,
+  allDiffSummariesByBranchName: Map<string, DiffSummary>
+): {
+  resubmittableStack: Array<BranchInfo>;
+  submittableStack: Array<BranchInfo>;
+} {
+  const children = tree.children.map((child) =>
+    getSupportedStackActions(child, allDiffSummariesByBranchName)
+  );
+
+  if (tree.info.pr) {
+    return {
+      resubmittableStack: [
+        tree.info,
+        ...children.flatMap((child) => [...child.resubmittableStack]),
+      ],
+      submittableStack: [
+        ...children.flatMap((child) => [...child.submittableStack]),
+      ],
+    };
+  } else {
+    return {
+      resubmittableStack: [],
+      submittableStack: [
+        tree.info,
+        ...children.flatMap((child) => [
+          ...child.submittableStack,
+          ...child.resubmittableStack,
+        ]),
+      ],
+    };
+  }
+}

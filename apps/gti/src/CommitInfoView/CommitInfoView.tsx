@@ -1,15 +1,15 @@
 import { useCallback } from "react";
 
+import type {
+  CommitMessageFields,
+  FieldsBeingEdited,
+} from "@withgraphite/gti-shared";
 import {
   CommitInfoMode,
   EditedMessage,
   EditedMessageUnlessOptimistic,
   filesChangedForBranch,
 } from "./CommitInfoState";
-import type {
-  CommitMessageFields,
-  FieldsBeingEdited,
-} from "@withgraphite/gti-shared";
 
 import {
   VSCodeBadge,
@@ -19,8 +19,6 @@ import {
   VSCodeRadioGroup,
 } from "@vscode/webview-ui-toolkit/react";
 import { ComparisonType } from "@withgraphite/gti-shared";
-import { Icon } from "../Icon";
-import { notEmpty, unwrap } from "@withgraphite/gti-shared";
 import { useEffect } from "react";
 import {
   allDiffSummariesByBranchName,
@@ -34,6 +32,7 @@ import { Commit } from "../Commit";
 import { OpenComparisonViewButton } from "../ComparisonView/OpenComparisonViewButton";
 import { Center, LargeSpinner } from "../ComponentUtils";
 import { HighlightCommitsWhileHovering } from "../HighlightedCommits";
+import { Icon } from "../Icon";
 import { numPendingImageUploads } from "../ImageUpload";
 import { OperationDisabledButton } from "../OperationDisabledButton";
 import { AmendMessageOperation } from "../operations/AmendMessageOperation";
@@ -46,7 +45,11 @@ import {
   uncommittedChangesWithPreviews,
 } from "../previews";
 import { selectedCommitInfos, selectedCommits } from "../selection";
-import { repositoryInfo, useRunOperation } from "../serverAPIState";
+import {
+  latestCommitsByBranchName,
+  repositoryInfo,
+  useRunOperation,
+} from "../serverAPIState";
 import { Subtle } from "../Subtle";
 import { Tooltip } from "../Tooltip";
 import {
@@ -80,7 +83,10 @@ import {
 import "./CommitInfoView.scss";
 
 import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
+import type { DiffSummary } from "@withgraphite/gti-shared";
 import { observer } from "mobx-react-lite";
+import { PrSubmitOperation } from "../operations/PrSubmitOperation";
+import { DownstackSubmitOperation } from "../operations/DownstackSubmitOperation";
 
 /**
  * Throw if the edited message is of optimistic type.
@@ -131,12 +137,11 @@ export const MultiCommitInfo = observer(
     const diffSummaries = allDiffSummariesByBranchName.get();
     const runOperation = useRunOperation();
     const shouldSubmitAsDraft = submitAsDraft.get();
+    const diffSummaryValue = diffSummaries.value;
     const submittable =
-      (diffSummaries.value != null && repoInfo?.type === "success"
-        ? provider?.getSubmittableDiffs(
-            selectedCommits,
-            diffSummaries.value,
-            repoInfo.trunkBranch
+      (provider && diffSummaryValue != null && repoInfo?.type === "success"
+        ? selectedCommits.filter((commit) =>
+            isBranchSubmittable(commit, diffSummaryValue, repoInfo.trunkBranch)
           )
         : undefined) ?? [];
     return (
@@ -168,11 +173,13 @@ export const MultiCommitInfo = observer(
               <HighlightCommitsWhileHovering toHighlight={submittable}>
                 <VSCodeButton
                   onClick={() => {
-                    runOperation(
-                      unwrap(provider).submitOperation(selectedCommits, {
-                        draft: shouldSubmitAsDraft,
-                      })
-                    );
+                    for (const commit of submittable) {
+                      runOperation(
+                        new PrSubmitOperation(commit.branch, {
+                          draft: shouldSubmitAsDraft,
+                        })
+                      );
+                    }
                   }}
                 >
                   <>Submit Selected Commits</>
@@ -415,9 +422,9 @@ const ActionsBar = observer(
       ((!isCommitMode && isAnythingBeingEdited) ||
         uncommittedChanges.length > 0);
 
-    const provider = codeReviewProvider.get();
     const repoInfo = repositoryInfo.get();
     const diffSummaries = allDiffSummariesByBranchName.get();
+    const allCommits = latestCommitsByBranchName.get();
     const shouldSubmitAsDraft = submitAsDraft.get();
     const schema = commitMessageFieldsSchema.get();
 
@@ -492,15 +499,25 @@ const ActionsBar = observer(
       repoInfo?.type === "success" ? repoInfo.codeReviewSystem.type : "unknown";
     const canSubmitWithCodeReviewProvider =
       codeReviewProviderName !== "none" && codeReviewProviderName !== "unknown";
-    const submittable =
+    const canSubmit =
       diffSummaries.value &&
       repoInfo?.type === "success" &&
-      provider?.getSubmittableDiffs(
-        [commit],
-        diffSummaries.value,
-        repoInfo.trunkBranch
-      );
-    const canSubmitIndividualDiffs = submittable && submittable.length > 0;
+      isBranchSubmittable(commit, diffSummaries.value, repoInfo.trunkBranch);
+    const canDownstackSubmit =
+      diffSummaries.value && repoInfo?.type === "success"
+        ? isBranchDownstackSubmittable({
+            branch: commit,
+            allCommitsByBranchName: allCommits,
+            allDiffSummariesByBranchName: diffSummaries.value,
+            mainBranch: repoInfo.trunkBranch,
+          })
+        : {
+            canDownstackSubmit: "FALSE" as const,
+          };
+    // Don't show downstack submit if there is just one branch
+    const showDownstackSubmit =
+      canDownstackSubmit.canDownstackSubmit === "TRUE" &&
+      canDownstackSubmit.impactedBranches.length > 1;
 
     const ongoingImageUploads = numPendingImageUploads.get();
     const areImageUploadsOngoing = ongoingImageUploads > 0;
@@ -587,7 +604,7 @@ const ActionsBar = observer(
               </OperationDisabledButton>
             </Tooltip>
           )}
-          {commit.isHead || canSubmitIndividualDiffs ? (
+          {!anythingToCommit && canSubmit && (
             <Tooltip
               title={
                 areImageUploadsOngoing
@@ -604,34 +621,147 @@ const ActionsBar = observer(
                   !canSubmitWithCodeReviewProvider || areImageUploadsOngoing
                 }
                 runOperation={async () => {
-                  let amendOrCommitOp;
-                  if (anythingToCommit) {
-                    amendOrCommitOp = doAmendOrCommit();
-                  }
-
-                  const submitOp = unwrap(provider).submitOperation(
-                    commit.isHead ? [] : [commit], // [] means to submit the head commit
-                    {
+                  return [
+                    new PrSubmitOperation(commit.branch, {
                       draft: shouldSubmitAsDraft,
-                    }
-                  );
-                  return [amendOrCommitOp, submitOp].filter(notEmpty);
+                    }),
+                  ];
                 }}
               >
-                {commit.isHead && anythingToCommit ? (
-                  isCommitMode ? (
-                    <>Commit and Submit</>
-                  ) : (
-                    <>Amend and Submit</>
-                  )
-                ) : (
-                  <>Submit</>
-                )}
+                Submit
               </OperationDisabledButton>
             </Tooltip>
-          ) : null}
+          )}
+          {!anythingToCommit && showDownstackSubmit && (
+            <Tooltip
+              title={
+                areImageUploadsOngoing
+                  ? "Image uploads are still pending"
+                  : canSubmitWithCodeReviewProvider
+                  ? `Submit for code review with ${codeReviewProviderName}`
+                  : "Submitting for code review is currently only supported for GitHub-backed repos"
+              }
+              placement="top"
+            >
+              <HighlightCommitsWhileHovering
+                toHighlight={canDownstackSubmit.impactedBranches}
+              >
+                <OperationDisabledButton
+                  contextKey={`downstack-submit-${
+                    commit.isHead ? "head" : commit.branch
+                  }`}
+                  disabled={
+                    !canSubmitWithCodeReviewProvider || areImageUploadsOngoing
+                  }
+                  runOperation={async () => {
+                    return [
+                      new DownstackSubmitOperation(commit.branch, {
+                        draft: shouldSubmitAsDraft,
+                      }),
+                    ];
+                  }}
+                >
+                  Downstack Submit
+                </OperationDisabledButton>
+              </HighlightCommitsWhileHovering>
+            </Tooltip>
+          )}
         </div>
       </div>
     );
   }
 );
+
+function isBranchSubmittable(
+  branch: BranchInfo,
+  allDiffSummariesByBranchName: Map<string, DiffSummary>,
+  mainBranch: string
+): boolean {
+  const prInfo = allDiffSummariesByBranchName.get(branch.branch);
+
+  return (
+    !branch.partOfTrunk &&
+    (!prInfo || prInfo?.state === "OPEN") &&
+    branch.parents.every((parentBranchName) => {
+      /**
+       * The branch needs to be on main or the parents need to be submitted
+       */
+      return (
+        parentBranchName === mainBranch ||
+        allDiffSummariesByBranchName.get(parentBranchName)
+      );
+    })
+  );
+}
+
+// Typescript having some weirdness where if I leave it as a boolean it doesn't allow me
+// to treat it as a ADT
+type TBranchDownstackSubmittable =
+  | { canDownstackSubmit: "TRUE"; impactedBranches: BranchInfo[] }
+  | { canDownstackSubmit: "FALSE" };
+
+function isBranchDownstackSubmittable({
+  branch,
+  allCommitsByBranchName,
+  allDiffSummariesByBranchName,
+  mainBranch,
+}: {
+  branch: BranchInfo;
+  allCommitsByBranchName: Map<string, BranchInfo>;
+  allDiffSummariesByBranchName: Map<string, DiffSummary>;
+  mainBranch: string;
+}): TBranchDownstackSubmittable {
+  const prInfo = allDiffSummariesByBranchName.get(branch.branch);
+
+  if (branch.branch === mainBranch) {
+    return { canDownstackSubmit: "TRUE", impactedBranches: [] };
+  }
+
+  if (branch.partOfTrunk || prInfo?.state !== "OPEN") {
+    return {
+      canDownstackSubmit: "FALSE",
+    };
+  }
+
+  const parents = branch.parents.map((parentBranchName) => {
+    const parentInfo = allCommitsByBranchName.get(parentBranchName);
+    if (!parentInfo) {
+      return {
+        canDownstackSubmit: "FALSE",
+      };
+    }
+
+    return isBranchDownstackSubmittable({
+      branch: parentInfo,
+      allCommitsByBranchName,
+      allDiffSummariesByBranchName,
+      mainBranch,
+    });
+  });
+
+  let canSubmit = true;
+  const impactedBranches: BranchInfo[] = [branch];
+
+  for (const parent of parents) {
+    if (parent.canDownstackSubmit === "TRUE") {
+      impactedBranches.push(
+        ...(parent as Extract<typeof parent, { canDownstackSubmit: "TRUE" }>)
+          .impactedBranches
+      );
+    } else {
+      canSubmit = false;
+      break;
+    }
+  }
+
+  if (canSubmit) {
+    return {
+      canDownstackSubmit: "TRUE",
+      impactedBranches,
+    };
+  }
+
+  return {
+    canDownstackSubmit: "FALSE",
+  };
+}

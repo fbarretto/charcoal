@@ -13,6 +13,8 @@ export type BranchInfo = {
   parents: string[];
   isHead: boolean;
   partOfTrunk: boolean;
+  needsRestack: boolean;
+  needsSubmit: boolean;
   author: string;
   date: string;
   pr?: {

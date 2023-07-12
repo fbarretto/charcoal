@@ -18,21 +18,24 @@ export type TrackEventName =
   | "ContinueMergeOperation"
   | "CreateEmptyInitialCommit"
   | "DiscardOperation"
+  | "DownstackSubmitOperation"
   | "ForgetOperation"
-  | 'GettingStartedInteraction'
+  | "GettingStartedInteraction"
   | "GhStackSubmitOperation"
   | "GotoOperation"
   | "HideOperation"
-  | 'ImportStackOperation'
+  | "ImportStackOperation"
   | "PrSubmitOperation"
   | "PullOperation"
   | "PurgeOperation"
   | "RebaseOperation"
   | "ResolveOperation"
+  | "RestackOperation"
   | "RevertOperation"
   | "SetConfigOperation"
-  | 'ShowBugButtonNux'
-  | 'StackEditMetrics'
+  | "ShowBugButtonNux"
+  | "StackEditMetrics"
+  | "StackSubmitOperation"
   | "UncommitOperation"
   | "OptimisticFilesStateForceResolved"
   | "OptimisticCommitsStateForceResolved"

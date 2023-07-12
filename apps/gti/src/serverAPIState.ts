@@ -184,6 +184,15 @@ export const commitFetchError = computed(() => {
   return latestCommitsData.get().error;
 });
 
+export const latestCommitsByBranchName = computed(() => {
+  const commitsByBranchName = new Map<string, BranchInfo>();
+  latestCommits.get().forEach((commit) => {
+    commitsByBranchName.set(commit.branch, commit);
+  });
+
+  return commitsByBranchName;
+});
+
 export const hasExperimentalFeatures = observableConfig<boolean | null>({
   config: "gti.experimental-features",
   default: null,

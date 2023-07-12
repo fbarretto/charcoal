@@ -27,6 +27,9 @@
   margin-top: var(--pad);
   margin-top: var(--halfpad);
 }
+.commit-tree-stack-actions-restack {
+  // color: var(--scm-modified-foreground);
+}
 
 .commit-group.with-vertical-line:before {
   /* branch vertical line */
@@ -175,6 +178,15 @@ but only on the top commit of a stack
 }
 .commit-title .commit-date {
   margin-left: var(--pad);
+}
+
+.commit-unpublished {
+  color: var(--scm-modified-foreground);
+}
+
+.commit-needs-restack {
+  color: var(--scm-modified-foreground);
+  padding: 0 var(--halfpad) 0 0;
 }
 
 .commit .unsaved-message-indicator {

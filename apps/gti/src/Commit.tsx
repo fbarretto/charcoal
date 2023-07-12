@@ -29,7 +29,7 @@ import {
   useRunPreviewedOperation,
 } from "./serverAPIState";
 import { short } from "./utils";
-import { VSCodeButton, VSCodeTag } from "@vscode/webview-ui-toolkit/react";
+import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import React, { memo, useCallback } from "react";
 import { ComparisonType } from "@withgraphite/gti-shared";
 import { useContextMenu } from "./ContextMenu";
@@ -246,15 +246,24 @@ export const Commit = memo(
               onDoubleClick={onDoubleClickToShowDrawer}
             >
               <div className="commit-avatar" />
-              {isPublic ? null : (
-                <span className="commit-title">
-                  <span>{commit.title}</span>
-                  <CommitDate date={new Date(commit.date)} />
-                </span>
-              )}
+              <span className="commit-title">
+                {commit.title ? (
+                  <Tooltip inline title={commit.title}>
+                    <span>{commit.branch}</span>
+                  </Tooltip>
+                ) : (
+                  <span>{commit.branch}</span>
+                )}
+                <CommitDate date={new Date(commit.date)} />
+              </span>
+              {!isPublic && (commit.needsSubmit || !commit.pr) ? (
+                <div className="commit-needs-restack">
+                  <Tooltip title={"This branch needs to be submitted"}>
+                    <Icon icon="cloud-upload" />
+                  </Tooltip>
+                </div>
+              ) : null}
               <UnsavedEditedMessageIndicator commit={commit} />
-              <VSCodeTag key={commit.branch}>{commit.branch}</VSCodeTag>
-              {isPublic ? <CommitDate date={new Date(commit.date)} /> : null}
               {previewType === CommitPreview.REBASE_OPTIMISTIC_ROOT ? (
                 <span className="commit-inline-operation-progress">
                   <Icon icon="loading" /> <>rebasing...</>

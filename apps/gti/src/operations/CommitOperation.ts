@@ -65,6 +65,8 @@ export class CommitOperation extends Operation {
         branch: OPTIMISTIC_COMMIT_HASH,
         partOfTrunk: false,
         date: new Date().toISOString(),
+        needsRestack: false,
+        needsSubmit: true,
       },
     };
     const func: ApplyPreviewsFuncType = (tree, _previewType) => {
