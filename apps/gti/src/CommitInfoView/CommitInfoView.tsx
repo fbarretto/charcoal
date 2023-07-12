@@ -124,270 +124,275 @@ export const CommitInfoSidebar = observer(() => {
   }
 });
 
-export function MultiCommitInfo({
-  selectedCommits,
-}: {
-  selectedCommits: Array<BranchInfo>;
-}) {
-  const provider = codeReviewProvider.get();
-  const repoInfo = repositoryInfo.get();
-  const diffSummaries = allDiffSummariesByBranchName.get();
-  const runOperation = useRunOperation();
-  const shouldSubmitAsDraft = submitAsDraft.get();
-  const submittable =
-    (diffSummaries.value != null && repoInfo?.type === "success"
-      ? provider?.getSubmittableDiffs(
-          selectedCommits,
-          diffSummaries.value,
-          repoInfo.trunkBranch
-        )
-      : undefined) ?? [];
-  return (
-    <div
-      className="commit-info-view-multi-commit"
-      data-testid="commit-info-view"
-    >
-      <strong className="commit-list-header">
-        <Icon icon="layers" size="M" />
-        <>{selectedCommits.length} Commits Selected</>
-      </strong>
-      <VSCodeDivider />
-      <div className="commit-list">
-        {selectedCommits.map((commit) => (
-          <Commit
-            key={commit.branch}
-            commit={commit}
-            hasChildren={false}
-            previewType={CommitPreview.NON_ACTIONABLE_COMMIT}
-          />
-        ))}
-      </div>
-      <div className="commit-info-actions-bar">
-        <div className="commit-info-actions-bar-left">
-          <SubmitAsDraftCheckbox commitsToBeSubmit={selectedCommits} />
+export const MultiCommitInfo = observer(
+  ({ selectedCommits }: { selectedCommits: Array<BranchInfo> }) => {
+    const provider = codeReviewProvider.get();
+    const repoInfo = repositoryInfo.get();
+    const diffSummaries = allDiffSummariesByBranchName.get();
+    const runOperation = useRunOperation();
+    const shouldSubmitAsDraft = submitAsDraft.get();
+    const submittable =
+      (diffSummaries.value != null && repoInfo?.type === "success"
+        ? provider?.getSubmittableDiffs(
+            selectedCommits,
+            diffSummaries.value,
+            repoInfo.trunkBranch
+          )
+        : undefined) ?? [];
+    return (
+      <div
+        className="commit-info-view-multi-commit"
+        data-testid="commit-info-view"
+      >
+        <strong className="commit-list-header">
+          <Icon icon="layers" size="M" />
+          <>{selectedCommits.length} Commits Selected</>
+        </strong>
+        <VSCodeDivider />
+        <div className="commit-list">
+          {selectedCommits.map((commit) => (
+            <Commit
+              key={commit.branch}
+              commit={commit}
+              hasChildren={false}
+              previewType={CommitPreview.NON_ACTIONABLE_COMMIT}
+            />
+          ))}
         </div>
-        <div className="commit-info-actions-bar-right">
-          {submittable.length === 0 ? null : (
-            <HighlightCommitsWhileHovering toHighlight={submittable}>
-              <VSCodeButton
-                onClick={() => {
-                  runOperation(
-                    unwrap(provider).submitOperation(selectedCommits, {
-                      draft: shouldSubmitAsDraft,
-                    })
-                  );
-                }}
-              >
-                <>Submit Selected Commits</>
-              </VSCodeButton>
-            </HighlightCommitsWhileHovering>
-          )}
+        <div className="commit-info-actions-bar">
+          <div className="commit-info-actions-bar-left">
+            <SubmitAsDraftCheckbox commitsToBeSubmit={selectedCommits} />
+          </div>
+          <div className="commit-info-actions-bar-right">
+            {submittable.length === 0 ? null : (
+              <HighlightCommitsWhileHovering toHighlight={submittable}>
+                <VSCodeButton
+                  onClick={() => {
+                    runOperation(
+                      unwrap(provider).submitOperation(selectedCommits, {
+                        draft: shouldSubmitAsDraft,
+                      })
+                    );
+                  }}
+                >
+                  <>Submit Selected Commits</>
+                </VSCodeButton>
+              </HighlightCommitsWhileHovering>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-export function CommitInfoDetails({ commit }: { commit: BranchInfo }) {
-  const mode = commitMode.get();
-  const isCommitMode = commit.isHead && mode === "commit";
-  const editedMessageState = editedCommitMessages(
-    isCommitMode ? "head" : commit.branch
-  );
-  const editedMessage = editedMessageState.get();
-  const uncommittedChanges = uncommittedChangesWithPreviews.get();
-  const schema = commitMessageFieldsSchema.get();
-
-  const isPublic = mode === "amend" && commit.partOfTrunk;
-
-  const fieldsBeingEdited = commitFieldsBeingEdited.get();
-
-  const startEditingField = (field: string) => {
-    assert(
-      editedMessage.type !== "optimistic",
-      "Cannot start editing fields when viewing optimistic commit"
     );
-    commitFieldsBeingEdited.set({ ...fieldsBeingEdited, [field]: true });
-  };
+  }
+);
 
-  const parsedFields = parseCommitMessageFields(
-    schema,
-    commit.title,
-    commit.description
-  );
+export const CommitInfoDetails = observer(
+  ({ commit }: { commit: BranchInfo }) => {
+    const mode = commitMode.get();
+    const isCommitMode = commit.isHead && mode === "commit";
+    const editedMessageState = editedCommitMessages(
+      isCommitMode ? "head" : commit.branch
+    );
+    const editedMessage = editedMessageState.get();
+    const uncommittedChanges = uncommittedChangesWithPreviews.get();
+    const schema = commitMessageFieldsSchema.get();
 
-  useEffect(() => {
-    if (editedMessage.type === "optimistic") {
-      // invariant: if mode === 'commit', editedMessage.type !== 'optimistic'.
+    const isPublic = mode === "amend" && commit.partOfTrunk;
+
+    const fieldsBeingEdited = commitFieldsBeingEdited.get();
+
+    const startEditingField = (field: string) => {
       assert(
-        !isCommitMode,
-        "Should not be in commit mode while editedMessage.type is optimistic"
+        editedMessage.type !== "optimistic",
+        "Cannot start editing fields when viewing optimistic commit"
+      );
+      commitFieldsBeingEdited.set({ ...fieldsBeingEdited, [field]: true });
+    };
+
+    const parsedFields = parseCommitMessageFields(
+      schema,
+      commit.title,
+      commit.description
+    );
+
+    useEffect(() => {
+      if (editedMessage.type === "optimistic") {
+        // invariant: if mode === 'commit', editedMessage.type !== 'optimistic'.
+        assert(
+          !isCommitMode,
+          "Should not be in commit mode while editedMessage.type is optimistic"
+        );
+
+        // no fields are edited during optimistic state
+        commitFieldsBeingEdited.set(noFieldsBeingEdited(schema));
+        return;
+      }
+      if (fieldsBeingEdited.forceWhileOnHead && commit.isHead) {
+        // `forceWhileOnHead` is used to allow fields to be marked as edited externally,
+        // even though they would get reset here after rendering.
+        // This will get reset when the user cancels or changes to a different commit.
+        return;
+      }
+      // If the selected commit is changed, the fields being edited should reset;
+      // except for fields that are being edited on this commit, too
+      commitFieldsBeingEdited.set(
+        isCommitMode
+          ? allFieldsBeingEdited(schema)
+          : findFieldsBeingEdited(schema, editedMessage.fields, parsedFields)
       );
 
-      // no fields are edited during optimistic state
-      commitFieldsBeingEdited.set(noFieldsBeingEdited(schema));
-      return;
-    }
-    if (fieldsBeingEdited.forceWhileOnHead && commit.isHead) {
-      // `forceWhileOnHead` is used to allow fields to be marked as edited externally,
-      // even though they would get reset here after rendering.
-      // This will get reset when the user cancels or changes to a different commit.
-      return;
-    }
-    // If the selected commit is changed, the fields being edited should reset;
-    // except for fields that are being edited on this commit, too
-    commitFieldsBeingEdited.set(
-      isCommitMode
-        ? allFieldsBeingEdited(schema)
-        : findFieldsBeingEdited(schema, editedMessage.fields, parsedFields)
-    );
+      // We only want to recompute this when the commit/mode changes.
+      // we expect the edited message to change constantly.
+    }, [commit.branch, isCommitMode]);
 
-    // We only want to recompute this when the commit/mode changes.
-    // we expect the edited message to change constantly.
-  }, [commit.branch, isCommitMode]);
+    const filesChangedData = filesChangedForBranch(commit.branch);
+    const filesChanged = filesChangedData.get();
+    useEffect(() => {
+      filesChangedData.set({
+        ...filesChangedData.get(),
+        // triggers a refresh
+        isLoading: true,
+      });
+    }, [commit.date]);
 
-  const filesChangedData = filesChangedForBranch(commit.branch);
-  const filesChanged = filesChangedData.get();
-  useEffect(() => {
-    filesChangedData.set({
-      ...filesChangedData.get(),
-      // triggers a refresh
-      isLoading: true,
-    });
-  }, [commit.date]);
+    const topmostEditedField = getTopmostEditedField(schema, fieldsBeingEdited);
 
-  const topmostEditedField = getTopmostEditedField(schema, fieldsBeingEdited);
-
-  return (
-    <div className="commit-info-view" data-testid="commit-info-view">
-      {!commit.isHead ? null : (
-        <div
-          className="commit-info-view-toolbar-top"
-          data-testid="commit-info-toolbar-top"
-        >
-          <VSCodeRadioGroup
-            value={mode}
-            onChange={(e) =>
-              commitMode.set(
-                (e.target as HTMLOptionElement).value as CommitInfoMode
-              )
-            }
+    return (
+      <div className="commit-info-view" data-testid="commit-info-view">
+        {!commit.isHead ? null : (
+          <div
+            className="commit-info-view-toolbar-top"
+            data-testid="commit-info-toolbar-top"
           >
-            <VSCodeRadio
-              value="commit"
-              checked={mode === "commit"}
-              tabIndex={0}
+            <VSCodeRadioGroup
+              value={mode}
+              onChange={(e) =>
+                commitMode.set(
+                  (e.target as HTMLOptionElement).value as CommitInfoMode
+                )
+              }
             >
-              <>Commit</>
-            </VSCodeRadio>
-            <VSCodeRadio value="amend" checked={mode === "amend"} tabIndex={0}>
-              <>Amend</>
-            </VSCodeRadio>
-          </VSCodeRadioGroup>
-        </div>
-      )}
+              <VSCodeRadio
+                value="commit"
+                checked={mode === "commit"}
+                tabIndex={0}
+              >
+                <>Commit</>
+              </VSCodeRadio>
+              <VSCodeRadio
+                value="amend"
+                checked={mode === "amend"}
+                tabIndex={0}
+              >
+                <>Amend</>
+              </VSCodeRadio>
+            </VSCodeRadioGroup>
+          </div>
+        )}
 
-      <div
-        className="commit-info-view-main-content"
-        // remount this if we change to commit mode
-        key={mode}
-      >
-        {schema.map((field) => (
-          <CommitInfoField
-            key={field.key}
-            field={field}
-            content={parsedFields[field.key as keyof CommitMessageFields]}
-            autofocus={topmostEditedField === field.key}
-            readonly={editedMessage.type === "optimistic" || isPublic}
-            isBeingEdited={fieldsBeingEdited[field.key]}
-            startEditingField={() => startEditingField(field.key)}
-            editedField={editedMessage.fields?.[field.key]}
-            setEditedField={(newVal: string) =>
-              editedMessageState.set(
-                editedMessage.type === "optimistic"
-                  ? editedMessage
-                  : {
-                      fields: {
-                        ...editedMessage.fields,
-                        [field.key]: field.type === "field" ? [newVal] : newVal,
-                      },
-                    }
-              )
-            }
-            extra={
-              mode !== "commit" && field.key === "Title" ? (
-                <CommitTitleByline commit={commit} />
-              ) : undefined
-            }
-          />
-        ))}
-        <VSCodeDivider />
-        {commit.isHead && !isPublic ? (
-          <Section data-testid="changes-to-amend">
-            <SmallCapsTitle>
-              {isCommitMode ? <>Changes to Commit</> : <>Changes to Amend</>}
-              <VSCodeBadge>{uncommittedChanges.length}</VSCodeBadge>
-            </SmallCapsTitle>
-            {uncommittedChanges.length === 0 ? (
-              <Subtle>
-                {isCommitMode ? (
-                  <>No changes to commit</>
-                ) : (
-                  <>No changes to amend</>
-                )}
-              </Subtle>
-            ) : (
-              <UncommittedChanges
-                place={isCommitMode ? "commit sidebar" : "amend sidebar"}
-              />
-            )}
-          </Section>
-        ) : null}
-        {isCommitMode ? null : filesChanged.data === null ? (
-          <Center>
-            <LargeSpinner />
-          </Center>
-        ) : (
-          <Section>
-            <SmallCapsTitle>
-              <>Files Changed</>
-              <VSCodeBadge>{filesChanged.data?.total}</VSCodeBadge>
-            </SmallCapsTitle>
-            <div className="changed-file-list">
-              <OpenComparisonViewButton
-                comparison={{
-                  type: ComparisonType.Committed,
-                  hash: commit.branch,
-                }}
-              />
-              <ChangedFiles
-                files={filesChanged.data?.files || []}
-                comparison={
-                  commit.isHead
-                    ? { type: ComparisonType.HeadChanges }
+        <div
+          className="commit-info-view-main-content"
+          // remount this if we change to commit mode
+          key={mode}
+        >
+          {schema.map((field) => (
+            <CommitInfoField
+              key={field.key}
+              field={field}
+              content={parsedFields[field.key as keyof CommitMessageFields]}
+              autofocus={topmostEditedField === field.key}
+              readonly={editedMessage.type === "optimistic" || isPublic}
+              isBeingEdited={fieldsBeingEdited[field.key]}
+              startEditingField={() => startEditingField(field.key)}
+              editedField={editedMessage.fields?.[field.key]}
+              setEditedField={(newVal: string) =>
+                editedMessageState.set(
+                  editedMessage.type === "optimistic"
+                    ? editedMessage
                     : {
-                        type: ComparisonType.Committed,
-                        hash: commit.branch,
+                        fields: {
+                          ...editedMessage.fields,
+                          [field.key]:
+                            field.type === "field" ? [newVal] : newVal,
+                        },
                       }
-                }
-              />
-            </div>
-          </Section>
+                )
+              }
+              extra={
+                mode !== "commit" && field.key === "Title" ? (
+                  <CommitTitleByline commit={commit} />
+                ) : undefined
+              }
+            />
+          ))}
+          <VSCodeDivider />
+          {commit.isHead && !isPublic ? (
+            <Section data-testid="changes-to-amend">
+              <SmallCapsTitle>
+                {isCommitMode ? <>Changes to Commit</> : <>Changes to Amend</>}
+                <VSCodeBadge>{uncommittedChanges.length}</VSCodeBadge>
+              </SmallCapsTitle>
+              {uncommittedChanges.length === 0 ? (
+                <Subtle>
+                  {isCommitMode ? (
+                    <>No changes to commit</>
+                  ) : (
+                    <>No changes to amend</>
+                  )}
+                </Subtle>
+              ) : (
+                <UncommittedChanges
+                  place={isCommitMode ? "commit sidebar" : "amend sidebar"}
+                />
+              )}
+            </Section>
+          ) : null}
+          {isCommitMode ? null : filesChanged.data === null ? (
+            <Center>
+              <LargeSpinner />
+            </Center>
+          ) : (
+            <Section>
+              <SmallCapsTitle>
+                <>Files Changed</>
+                <VSCodeBadge>{filesChanged.data?.total}</VSCodeBadge>
+              </SmallCapsTitle>
+              <div className="changed-file-list">
+                <OpenComparisonViewButton
+                  comparison={{
+                    type: ComparisonType.Committed,
+                    hash: commit.branch,
+                  }}
+                />
+                <ChangedFiles
+                  files={filesChanged.data?.files || []}
+                  comparison={
+                    commit.isHead
+                      ? { type: ComparisonType.HeadChanges }
+                      : {
+                          type: ComparisonType.Committed,
+                          hash: commit.branch,
+                        }
+                  }
+                />
+              </div>
+            </Section>
+          )}
+        </div>
+        {!isPublic && (
+          <div className="commit-info-view-toolbar-bottom">
+            <ActionsBar
+              commit={commit}
+              editedMessage={editedMessage}
+              fieldsBeingEdited={fieldsBeingEdited}
+              isCommitMode={isCommitMode}
+            />
+          </div>
         )}
       </div>
-      {!isPublic && (
-        <div className="commit-info-view-toolbar-bottom">
-          <ActionsBar
-            commit={commit}
-            editedMessage={editedMessage}
-            fieldsBeingEdited={fieldsBeingEdited}
-            isCommitMode={isCommitMode}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
+    );
+  }
+);
 
 const ActionsBar = observer(
   ({
