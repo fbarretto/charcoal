@@ -6,7 +6,6 @@ import type {
   UncommittedChangesPreviewContext,
 } from "../previews";
 import type {
-  CommandArg,
   MergeConflicts,
   UncommittedChanges,
 } from "@withgraphite/gti-shared";
@@ -16,9 +15,6 @@ import { Operation } from "./Operation";
 export enum ResolveTool {
   mark = "mark",
   unmark = "unmark",
-  both = "internal:union",
-  local = "internal:merge-local",
-  other = "internal:merge-other",
 }
 
 export class ResolveOperation extends Operation {
@@ -29,27 +25,27 @@ export class ResolveOperation extends Operation {
   static opName = "Resolve";
 
   getArgs() {
-    const args: Array<CommandArg> = ["resolve"];
-
     switch (this.tool) {
       case ResolveTool.mark:
-        args.push("--mark");
+        return [
+          "add",
+          {
+            type: "repo-relative-file" as const,
+            path: this.filePath,
+          },
+        ];
         break;
       case ResolveTool.unmark:
-        args.push("--unmark");
-        break;
-      case ResolveTool.both:
-      case ResolveTool.local:
-      case ResolveTool.other:
-        args.push("--tool", this.tool);
-        break;
+        return [
+          "checkout",
+          "--conflict=merge",
+          "--",
+          {
+            type: "repo-relative-file" as const,
+            path: this.filePath,
+          },
+        ];
     }
-
-    args.push({
-      type: "repo-relative-file" as const,
-      path: this.filePath,
-    });
-    return args;
   }
 
   makeOptimisticUncommittedChangesApplier?(

@@ -17,7 +17,7 @@ export class PurgeOperation extends Operation {
   }
 
   getArgs() {
-    const args = ["interactive", "purge"];
+    const args = ["clean", "--force"];
     return args;
   }
 

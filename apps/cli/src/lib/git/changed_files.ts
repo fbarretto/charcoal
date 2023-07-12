@@ -1,17 +1,18 @@
 export type TChangedFile = {
   path: string;
   status: 'added' | 'copied' | 'deleted' | 'modified' | 'renamed';
+  from: string | undefined;
 };
 
 export type TStatusFile = {
   path: string;
   status:
     | 'added'
-    | 'copied'
     | 'deleted'
-    | 'modified'
+    | 'copied'
     | 'renamed'
-    | 'unresolved'
-    | 'untracked_added'
-    | 'untracked_deleted';
+    | 'modified'
+    | 'unresolved';
+  staged: 'full' | 'partial' | 'none';
+  from: string | undefined;
 };

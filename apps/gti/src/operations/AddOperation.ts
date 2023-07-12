@@ -6,6 +6,7 @@ import type {
 import type { UncommittedChanges } from "@withgraphite/gti-shared";
 
 import { Operation } from "./Operation";
+import { changeStatusToTracked } from "./AddAllOperation";
 
 export class AddOperation extends Operation {
   constructor(private filePath: RepoRelativePath) {
@@ -30,7 +31,19 @@ export class AddOperation extends Operation {
     if (
       context.uncommittedChanges.some(
         (change) =>
-          change.path === this.filePath && change.status !== "UNTRACKED_ADD"
+          change.path === this.filePath &&
+          ![
+            "UNTRACKED_ADD",
+            "UNTRACKED_MODIFY",
+            "UNTRACKED_REMOVE",
+            "UNTRACKED_COPY",
+            "UNTRACKED_RENAME",
+            "PARTIALLY_TRACKED_ADD",
+            "PARTIALLY_TRACKED_MODIFY",
+            "PARTIALLY_TRACKED_REMOVE",
+            "PARTIALLY_TRACKED_COPY",
+            "PARTIALLY_TRACKED_RENAME",
+          ].includes(change.status)
       )
     ) {
       return undefined;
@@ -41,7 +54,7 @@ export class AddOperation extends Operation {
     ) => {
       return changes.map((change) =>
         change.path === this.filePath
-          ? { path: change.path, status: "TRACKED_ADD" }
+          ? { path: change.path, status: changeStatusToTracked(change.status) }
           : change
       );
     };

@@ -52,11 +52,7 @@ import {
 } from "../serverAPIState";
 import { Subtle } from "../Subtle";
 import { Tooltip } from "../Tooltip";
-import {
-  ChangedFiles,
-  deselectedUncommittedChanges,
-  UncommittedChanges,
-} from "../UncommittedChanges";
+import { ChangedFiles, UncommittedChanges } from "../UncommittedChanges";
 import { assert, firstOfIterable } from "../utils";
 import { CommitInfoField } from "./CommitInfoField";
 import {
@@ -416,11 +412,8 @@ const ActionsBar = observer(
     const isAnythingBeingEdited =
       Object.values(fieldsBeingEdited).some(Boolean);
     const uncommittedChanges = uncommittedChangesWithPreviews.get();
-    const deselected = deselectedUncommittedChanges;
     const anythingToCommit =
-      !(deselected.size > 0 && deselected.size === uncommittedChanges.length) &&
-      ((!isCommitMode && isAnythingBeingEdited) ||
-        uncommittedChanges.length > 0);
+      (!isCommitMode && isAnythingBeingEdited) || uncommittedChanges.length > 0;
 
     const repoInfo = repositoryInfo.get();
     const diffSummaries = allDiffSummariesByBranchName.get();
@@ -474,18 +467,10 @@ const ActionsBar = observer(
         schema,
         assertNonOptimistic(editedMessage).fields
       );
-      const filesToCommit =
-        deselected.size === 0
-          ? // all files
-            undefined
-          : // only files not unchecked
-            uncommittedChanges
-              .filter((file) => !deselected.has(file.path))
-              .map((file) => file.path);
 
       const operation = isCommitMode
         ? new CommitOperation(message, commit.branch)
-        : new AmendOperation(filesToCommit, message);
+        : new AmendOperation(message);
 
       void clearEditedCommitMessage(/* skip confirmation */ true);
       // reset to amend mode now that the commit has been made
@@ -548,12 +533,8 @@ const ActionsBar = observer(
                 areImageUploadsOngoing
                   ? "Image uploads are still pending"
                   : isCommitMode
-                  ? deselected.size === 0
-                    ? "No changes to commit"
-                    : "No selected changes to commit"
-                  : deselected.size === 0
-                  ? "No changes to amend"
-                  : "No selected changes to amend"
+                  ? "No changes to commit"
+                  : "No changes to amend"
               }
               trigger={
                 areImageUploadsOngoing || !anythingToCommit

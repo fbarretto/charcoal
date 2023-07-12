@@ -5,21 +5,36 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import type { PathTree } from "./pathTree";
 import type {
   ChangedFile,
   ChangedFileType,
   RepoRelativePath,
 } from "@withgraphite/gti-cli-shared-types";
-import type { MergeConflicts } from "@withgraphite/gti-shared";
+import type {
+  Comparison,
+  EnsureAssignedTogether,
+  MergeConflicts,
+} from "@withgraphite/gti-shared";
 import type { MutableRefObject } from "react";
-import type { Comparison } from "@withgraphite/gti-shared";
-import type { EnsureAssignedTogether } from "@withgraphite/gti-shared";
+import type { PathTree } from "./pathTree";
 
 import {
+  VSCodeButton,
+  VSCodeCheckbox,
+  VSCodeTextField,
+} from "@vscode/webview-ui-toolkit/react";
+import {
+  ComparisonType,
+  minimalDisambiguousPaths,
+  notEmpty,
+} from "@withgraphite/gti-shared";
+import { runInAction } from "mobx";
+import { observer } from "mobx-react-lite";
+import { useCallback, useRef, useState } from "react";
+import {
   ChangedFileDisplayTypePicker,
-  type ChangedFilesDisplayType,
   changedFilesDisplayType,
+  type ChangedFilesDisplayType,
 } from "./ChangedFileDisplayTypePicker";
 import serverAPI from "./ClientToServerAPI";
 import {
@@ -32,17 +47,17 @@ import {
   commitMessageFieldsSchema,
 } from "./CommitInfoView/CommitMessageFields";
 import { OpenComparisonViewButton } from "./ComparisonView/OpenComparisonViewButton";
-import { ErrorNotice } from "./ErrorNotice";
-import { DOCUMENTATION_DELAY, Tooltip } from "./Tooltip";
 import { gtiDrawerState } from "./drawerState";
+import { ErrorNotice } from "./ErrorNotice";
+import { useDeepMemo } from "./hooks";
+import { Icon } from "./Icon";
 import { AbortMergeOperation } from "./operations/AbortMergeOperation";
 import { AddOperation } from "./operations/AddOperation";
-import { AddRemoveOperation } from "./operations/AddRemoveOperation";
+import { AddAllOperation } from "./operations/AddAllOperation";
 import { AmendOperation } from "./operations/AmendOperation";
 import { CommitOperation } from "./operations/CommitOperation";
 import { ContinueOperation } from "./operations/ContinueMergeOperation";
 import { DiscardOperation } from "./operations/DiscardOperation";
-import { ForgetOperation } from "./operations/ForgetOperation";
 import { PurgeOperation } from "./operations/PurgeOperation";
 import { ResolveOperation, ResolveTool } from "./operations/ResolveOperation";
 import { RevertOperation } from "./operations/RevertOperation";
@@ -60,21 +75,16 @@ import {
   uncommittedChangesFetchError,
   useRunOperation,
 } from "./serverAPIState";
-import {
-  VSCodeButton,
-  VSCodeCheckbox,
-  VSCodeTextField,
-} from "@vscode/webview-ui-toolkit/react";
-import { useEffect, useRef, useState, useCallback } from "react";
-import { ComparisonType } from "@withgraphite/gti-shared";
-import { Icon } from "./Icon";
-import { useDeepMemo } from "./hooks";
-import { minimalDisambiguousPaths } from "@withgraphite/gti-shared";
-import { notEmpty } from "@withgraphite/gti-shared";
-import { observable, ObservableSet, runInAction } from "mobx";
-import { observer } from "mobx-react-lite";
+import { DOCUMENTATION_DELAY, Tooltip } from "./Tooltip";
 
 import "./UncommittedChanges.scss";
+import { SoftResetOperation } from "./operations/SoftResetOperation";
+import type { Operation } from "./operations/Operation";
+import { SoftResetAllOperation } from "./operations/SoftResetAllOperation";
+import {
+  AutoResolveOperation,
+  AutoResolveTool,
+} from "./operations/AutoResolveOperation";
 
 type UIChangedFile = {
   path: RepoRelativePath;
@@ -94,11 +104,6 @@ function processCopiesAndRenames(
     files.map((file) => file.path)
   );
   const copySources = new Set(files.map((file) => file.copy).filter(notEmpty));
-  const removedFiles = new Set(
-    files
-      .filter((file) => file.status === "TRACKED_REMOVE")
-      .map((file) => file.path)
-  );
 
   return (
     files
@@ -117,14 +122,26 @@ function processCopiesAndRenames(
             file.path,
           ]);
           fileLabel = `${originalName} → ${copiedName}`;
-          if (removedFiles.has(file.copy)) {
+          if (
+            [
+              "TRACKED_RENAME",
+              "PARTIALLY_TRACKED_RENAME",
+              "UNTRACKED_RENAME",
+            ].includes(file.status)
+          ) {
             renamedFrom = file.copy;
             tooltip = `${file.path}\n\nThis file was renamed from ${file.copy}`;
-            visualStatus = "RENAMED";
-          } else {
+            visualStatus = file.status;
+          } else if (
+            [
+              "TRACKED_COPY",
+              "PARTIALLY_TRACKED_COPY",
+              "UNTRACKED_COPY",
+            ].includes(file.status)
+          ) {
             copiedFrom = file.copy;
             tooltip = `${file.path}\n\nThis file was copied from ${file.copy}`;
-            visualStatus = "COPIED";
+            visualStatus = file.status;
           }
         }
 
@@ -151,18 +168,26 @@ function processCopiesAndRenames(
   );
 }
 
-type VisualChangedFileType = ChangedFileType | "RENAMED" | "COPIED";
+type VisualChangedFileType = ChangedFileType;
 
 const sortKeyForStatus: Record<VisualChangedFileType, number> = {
-  MODIFIED: 0,
-  RENAMED: 1,
-  TRACKED_ADD: 2,
-  COPIED: 3,
-  TRACKED_REMOVE: 4,
-  UNTRACKED_REMOVE: 5,
-  UNTRACKED_ADD: 6,
-  UNRESOLVED: 7,
-  RESOLVED: 8,
+  TRACKED_MODIFY: 0,
+  PARTIALLY_TRACKED_MODIFY: 1,
+  TRACKED_RENAME: 2,
+  PARTIALLY_TRACKED_RENAME: 3,
+  TRACKED_ADD: 4,
+  PARTIALLY_TRACKED_ADD: 5,
+  TRACKED_COPY: 6,
+  PARTIALLY_TRACKED_COPY: 7,
+  TRACKED_REMOVE: 8,
+  PARTIALLY_TRACKED_REMOVE: 9,
+  UNTRACKED_MODIFY: 10,
+  UNTRACKED_REMOVE: 11,
+  UNTRACKED_ADD: 11,
+  UNTRACKED_RENAME: 12,
+  UNTRACKED_COPY: 13,
+  UNRESOLVED: 14,
+  RESOLVED: 15,
 };
 
 export function ChangedFiles(
@@ -273,105 +298,107 @@ function FileTree(props: {
   return renderTree(tree);
 }
 
-function File({
-  file,
-  displayType,
-  comparison,
-  deselectedFiles,
-  setDeselectedFiles,
-}: {
-  file: UIChangedFile;
-  displayType: ChangedFilesDisplayType;
-  comparison: Comparison;
-  deselectedFiles?: Set<string>;
-  setDeselectedFiles?: (newDeselected: Set<string>) => unknown;
-}) {
-  // Renamed files are files which have a copy field, where that path was also removed.
-  // Visually show renamed files as if they were modified, even though sl treats them as added.
-  const [statusName, icon] = nameAndIconForFileStatus[file.visualStatus];
+const File = observer(
+  ({
+    file,
+    displayType,
+    comparison,
+  }: {
+    file: UIChangedFile;
+    displayType: ChangedFilesDisplayType;
+    comparison: Comparison;
+  }) => {
+    // Renamed files are files which have a copy field, where that path was also removed.
+    // Visually show renamed files as if they were modified, even though sl treats them as added.
+    const [statusName, icon, checkbox] =
+      nameAndIconForFileStatus[file.visualStatus];
 
-  return (
-    <div
-      className={`changed-file file-${statusName}`}
-      data-testid={`changed-file-${file.path}`}
-      key={file.path}
-      tabIndex={0}
-      onKeyPress={(e) => {
-        if (e.key === "Enter") {
-          platform.openFile(file.path);
-        }
-      }}
-    >
-      <FileSelectionCheckbox
-        file={file}
-        deselectedFiles={deselectedFiles}
-        setDeselectedFiles={setDeselectedFiles}
-      />
-      <span
-        className="changed-file-path"
-        onClick={() => {
-          platform.openFile(file.path);
+    const operationAndTooltip = callbackForFileCheckbox(file);
+    const runOperation = useRunOperation();
+
+    return (
+      <div
+        className={`changed-file file-${statusName}`}
+        data-testid={`changed-file-${file.path}`}
+        key={file.path}
+        tabIndex={0}
+        onKeyPress={(e) => {
+          if (e.key === "Enter") {
+            platform.openFile(file.path);
+          }
         }}
       >
-        <Icon icon={icon} />
-        <Tooltip title={file.tooltip} delayMs={2_000} placement="right">
-          <span className="changed-file-path-text">
-            {displayType === "fish"
-              ? file.path
-                  .split("/")
-                  .map((a, i, arr) => (i === arr.length - 1 ? a : a[0]))
-                  .join("/")
-              : displayType === "fullPaths"
-              ? file.path
-              : displayType === "tree"
-              ? file.path.slice(file.path.lastIndexOf("/") + 1)
-              : file.label}
-          </span>
+        <Tooltip
+          delayMs={DOCUMENTATION_DELAY}
+          title={operationAndTooltip?.tooltip || ""}
+        >
+          <VSCodeCheckbox
+            className={
+              operationAndTooltip !== null
+                ? `changed-file-checkbox-clickable`
+                : ""
+            }
+            checked={checkbox === "full" || checkbox === "partial"}
+            indeterminate={checkbox === "partial"}
+            readOnly={true}
+            onClick={() => {
+              const op = operationAndTooltip?.operation();
+              if (op) {
+                runOperation(op);
+              }
+            }}
+            // Note: Using `onClick` instead of `onChange` since onChange apparently fires when the controlled `checked` value changes,
+            // which means this fires when using "select all" / "deselect all"
+            // onClick={(e) => {
+            //   const newDeselected = new Set(deselectedFiles);
+            //   const checked = (e.target as HTMLInputElement).checked;
+            //   if (checked) {
+            //     if (newDeselected.has(file.path)) {
+            //       newDeselected.delete(file.path);
+            //       if (file.renamedFrom != null) {
+            //         newDeselected.delete(file.renamedFrom); // checkbox applies to original part of renamed files too
+            //       }
+            //       setDeselectedFiles?.(newDeselected);
+            //     }
+            //   } else {
+            //     if (!newDeselected.has(file.path)) {
+            //       newDeselected.add(file.path);
+            //       if (file.renamedFrom != null) {
+            //         newDeselected.add(file.renamedFrom); // checkbox applies to original part of renamed files too
+            //       }
+            //       setDeselectedFiles?.(newDeselected);
+            //     }
+            //   }
+            // }}
+          />
         </Tooltip>
-      </span>
-      <FileActions file={file} comparison={comparison} />
-    </div>
-  );
-}
-
-function FileSelectionCheckbox({
-  file,
-  deselectedFiles,
-  setDeselectedFiles,
-}: {
-  file: UIChangedFile;
-  deselectedFiles?: Set<string>;
-  setDeselectedFiles?: (newDeselected: Set<string>) => unknown;
-}) {
-  return deselectedFiles == null ? null : (
-    <VSCodeCheckbox
-      checked={!deselectedFiles.has(file.path)}
-      // Note: Using `onClick` instead of `onChange` since onChange apparently fires when the controlled `checked` value changes,
-      // which means this fires when using "select all" / "deselect all"
-      onClick={(e) => {
-        const newDeselected = new Set(deselectedFiles);
-        const checked = (e.target as HTMLInputElement).checked;
-        if (checked) {
-          if (newDeselected.has(file.path)) {
-            newDeselected.delete(file.path);
-            if (file.renamedFrom != null) {
-              newDeselected.delete(file.renamedFrom); // checkbox applies to original part of renamed files too
-            }
-            setDeselectedFiles?.(newDeselected);
-          }
-        } else {
-          if (!newDeselected.has(file.path)) {
-            newDeselected.add(file.path);
-            if (file.renamedFrom != null) {
-              newDeselected.add(file.renamedFrom); // checkbox applies to original part of renamed files too
-            }
-            setDeselectedFiles?.(newDeselected);
-          }
-        }
-      }}
-    />
-  );
-}
+        <span
+          className="changed-file-path"
+          onClick={() => {
+            platform.openFile(file.path);
+          }}
+        >
+          <Icon icon={icon} />
+          <Tooltip title={file.tooltip} delayMs={2_000} placement="right">
+            <span className="changed-file-path-text">
+              {displayType === "fish"
+                ? file.path
+                    .split("/")
+                    .map((a, i, arr) => (i === arr.length - 1 ? a : a[0]))
+                    .join("/")
+                : displayType === "fullPaths"
+                ? file.path
+                : displayType === "tree"
+                ? file.path.slice(file.path.lastIndexOf("/") + 1)
+                : file.label}
+            </span>
+          </Tooltip>
+        </span>
+        <FileActions file={file} comparison={comparison} />
+      </div>
+    );
+  }
+);
 
 export const UncommittedChanges = observer(function ({
   place,
@@ -386,7 +413,6 @@ export const UncommittedChanges = observer(function ({
 
   const conflicts = optimisticMergeConflicts.get();
 
-  const deselectedFiles = useDeselectedFiles(uncommittedChanges);
   const commitTitleRef = useRef<HTMLTextAreaElement | undefined>(null);
 
   const runOperation = useRunOperation();
@@ -441,16 +467,25 @@ export const UncommittedChanges = observer(function ({
   if (uncommittedChanges.length === 0) {
     return null;
   }
-  const allFilesSelected = deselectedFiles.size === 0;
-  const noFilesSelected = deselectedFiles.size === uncommittedChanges.length;
 
   const allConflictsResolved =
     conflicts?.files?.every((conflict) => conflict.status === "RESOLVED") ??
     false;
 
   // only show addremove button if some files are untracked/missing
-  const UNTRACKED_OR_MISSING = ["UNTRACKED_ADD", "UNTRACKED_REMOVE"];
-  const addremoveButton = uncommittedChanges.some((file) =>
+  const UNTRACKED_OR_MISSING = [
+    "UNTRACKED_ADD",
+    "UNTRACKED_REMOVE",
+    "UNTRACKED_MODIFY",
+    "UNTRACKED_COPY",
+    "UNTRACKED_RENAME",
+    "PARTIALLY_TRACKED_ADD",
+    "PARTIALLY_TRACKED_REMOVE",
+    "PARTIALLY_TRACKED_MODIFY",
+    "PARTIALLY_TRACKED_COPY",
+    "PARTIALLY_TRACKED_RENAME",
+  ];
+  const addAllButton = uncommittedChanges.some((file) =>
     UNTRACKED_OR_MISSING.includes(file.status)
   ) ? (
     <Tooltip
@@ -459,21 +494,40 @@ export const UncommittedChanges = observer(function ({
     >
       <VSCodeButton
         appearance="icon"
-        key="addremove"
-        data-testid="addremove-button"
+        key="allall"
         onClick={() => {
-          // If all files are selected, no need to pass specific files to addremove.
-          const filesToAddRemove = allFilesSelected
-            ? []
-            : uncommittedChanges
-                .filter((file) => UNTRACKED_OR_MISSING.includes(file.status))
-                .filter((file) => !deselectedFiles.has(file.path))
-                .map((file) => file.path);
-          runOperation(new AddRemoveOperation(filesToAddRemove));
+          runOperation(new AddAllOperation());
         }}
       >
         <Icon slot="start" icon="expand-all" />
-        <>Add/Remove</>
+        <>Add all</>
+      </VSCodeButton>
+    </Tooltip>
+  ) : null;
+
+  const TRACKED_TYPES = [
+    "TRACKED_ADD",
+    "TRACKED_REMOVE",
+    "TRACKED_MODIFY",
+    "TRACKED_COPY",
+    "TRACKED_RENAME",
+  ];
+  const resetButton = uncommittedChanges.some((file) =>
+    TRACKED_TYPES.includes(file.status)
+  ) ? (
+    <Tooltip
+      delayMs={DOCUMENTATION_DELAY}
+      title={"Add all untracked files and remove all missing files."}
+    >
+      <VSCodeButton
+        appearance="icon"
+        key="reset"
+        onClick={() => {
+          runOperation(new SoftResetAllOperation());
+        }}
+      >
+        <Icon slot="start" icon="close-all" />
+        <>Reset</>
       </VSCodeButton>
     </Tooltip>
   ) : null;
@@ -514,49 +568,20 @@ export const UncommittedChanges = observer(function ({
                     : ComparisonType.UncommittedChanges,
               }}
             />
-            <VSCodeButton
-              appearance="icon"
-              key="select-all"
-              disabled={allFilesSelected}
-              onClick={() => {
-                deselectedUncommittedChanges.clear();
-              }}
-            >
-              <Icon slot="start" icon="check-all" />
-              <>Select All</>
-            </VSCodeButton>
-            <VSCodeButton
-              appearance="icon"
-              key="deselect-all"
-              data-testid="deselect-all-button"
-              disabled={noFilesSelected}
-              onClick={() => {
-                deselectedUncommittedChanges.replace(
-                  uncommittedChanges.map((file) => file.path)
-                );
-              }}
-            >
-              <Icon slot="start" icon="close-all" />
-              <>Deselect All</>
-            </VSCodeButton>
-            {addremoveButton}
+            {addAllButton}
+            {resetButton}
             <Tooltip
               delayMs={DOCUMENTATION_DELAY}
-              title={`Discard ${
-                uncommittedChanges.length - deselectedFiles.size
-              } selected uncommitted change${
-                uncommittedChanges.length - deselectedFiles.size === 1
-                  ? ""
-                  : "s"
+              title={`Discard ${uncommittedChanges.length} uncommitted change${
+                uncommittedChanges.length === 1 ? "" : "s"
               }, including untracked files.\n\nNote: Changes will be irreversably lost.`}
             >
               <VSCodeButton
                 appearance="icon"
-                disabled={noFilesSelected}
                 onClick={() => {
-                  const selectedFiles = uncommittedChanges
-                    .filter((file) => !deselectedFiles.has(file.path))
-                    .map((file) => file.path);
+                  const selectedFiles = uncommittedChanges.map(
+                    (file) => file.path
+                  );
                   void platform
                     .confirm(
                       `Are you sure you want to discard your ${
@@ -569,20 +594,13 @@ export const UncommittedChanges = observer(function ({
                       if (!ok) {
                         return;
                       }
-                      if (deselectedFiles.size === 0) {
-                        // all changes selected -> use clean goto rather than reverting each file. This is generally faster.
+                      // all changes selected -> use clean goto rather than reverting each file. This is generally faster.
 
-                        // to "discard", we need to both remove uncommitted changes
-                        runOperation(new DiscardOperation());
-                        // ...and delete untracked files.
-                        // Technically we only need to do the purge when we have untracked files, though there's a chance there's files we don't know about yet while status is running.
-                        runOperation(new PurgeOperation());
-                      } else {
-                        // only a subset of files selected -> we need to revert selected files individually
-                        for (const selectedFile of selectedFiles) {
-                          runOperation(new RevertOperation(selectedFile));
-                        }
-                      }
+                      // to "discard", we need to both remove uncommitted changes
+                      runOperation(new DiscardOperation());
+                      // ...and delete untracked files.
+                      // Technically we only need to do the purge when we have untracked files, though there's a chance there's files we don't know about yet while status is running.
+                      runOperation(new PurgeOperation());
                     });
                 }}
               >
@@ -603,7 +621,6 @@ export const UncommittedChanges = observer(function ({
       ) : (
         <ChangedFiles
           files={uncommittedChanges}
-          deselectedFiles={deselectedFiles}
           comparison={{
             type: ComparisonType.UncommittedChanges,
           }}
@@ -615,7 +632,6 @@ export const UncommittedChanges = observer(function ({
             <span className="quick-commit-inputs">
               <VSCodeButton
                 appearance="icon"
-                disabled={noFilesSelected}
                 data-testid="quick-commit-button"
                 onClick={() => {
                   const title =
@@ -653,18 +669,9 @@ export const UncommittedChanges = observer(function ({
             <div className="button-row">
               <VSCodeButton
                 appearance="icon"
-                disabled={noFilesSelected}
                 data-testid="uncommitted-changes-quick-amend-button"
                 onClick={() => {
-                  const filesToCommit =
-                    deselectedFiles.size === 0
-                      ? // all files
-                        undefined
-                      : // only files not unchecked
-                        uncommittedChanges
-                          .filter((file) => !deselectedFiles.has(file.path))
-                          .map((file) => file.path);
-                  runOperation(new AmendOperation(filesToCommit));
+                  runOperation(new AmendOperation());
                 }}
               >
                 <Icon slot="start" icon="debug-step-into" />
@@ -749,7 +756,8 @@ function MergeConflictButtons({
 }
 
 const revertableStatues = new Set([
-  "MODIFIED",
+  "TRACKED_MODIFY",
+  "UNTRACKED_MODIFY",
   "TRACKED_REMOVE",
   "UNTRACKED_REMOVE",
 ]);
@@ -810,39 +818,8 @@ function FileActions({
   }
 
   if (comparison.type === ComparisonType.UncommittedChanges) {
-    if (file.status === "TRACKED_ADD") {
+    if (file.status === "UNTRACKED_ADD") {
       actions.push(
-        <Tooltip
-          title={
-            "Stop tracking this file, without removing from the filesystem"
-          }
-          key="forget"
-          delayMs={1000}
-        >
-          <VSCodeButton
-            className="file-show-on-hover"
-            key={file.path}
-            appearance="icon"
-            onClick={() => {
-              runOperation(new ForgetOperation(file.path));
-            }}
-          >
-            <Icon icon="circle-slash" />
-          </VSCodeButton>
-        </Tooltip>
-      );
-    } else if (file.status === "UNTRACKED_ADD") {
-      actions.push(
-        <Tooltip title={"Start tracking this file"} key="add" delayMs={1000}>
-          <VSCodeButton
-            className="file-show-on-hover"
-            key={file.path}
-            appearance="icon"
-            onClick={() => runOperation(new AddOperation(file.path))}
-          >
-            <Icon icon="add" />
-          </VSCodeButton>
-        </Tooltip>,
         <Tooltip
           title={"Remove this file from the filesystem"}
           key="remove"
@@ -905,7 +882,9 @@ function FileActions({
             key={file.path}
             appearance="icon"
             onClick={() =>
-              runOperation(new ResolveOperation(file.path, ResolveTool.local))
+              runOperation(
+                new AutoResolveOperation(file.path, AutoResolveTool.ours)
+              )
             }
           >
             <Icon icon="fold-up" />
@@ -917,22 +896,12 @@ function FileActions({
             key={file.path}
             appearance="icon"
             onClick={() =>
-              runOperation(new ResolveOperation(file.path, ResolveTool.other))
+              runOperation(
+                new AutoResolveOperation(file.path, AutoResolveTool.theirs)
+              )
             }
           >
             <Icon icon="fold-down" />
-          </VSCodeButton>
-        </Tooltip>,
-        <Tooltip title={"Combine both incoming and local"} key="resolve-both">
-          <VSCodeButton
-            className="file-show-on-hover"
-            key={file.path}
-            appearance="icon"
-            onClick={() =>
-              runOperation(new ResolveOperation(file.path, ResolveTool.both))
-            }
-          >
-            <Icon icon="fold" />
           </VSCodeButton>
         </Tooltip>
       );
@@ -946,46 +915,91 @@ function FileActions({
 }
 
 /**
- * The subset of uncommitted changes which have been unchecked in the list.
- * Deselected files won't be committed or amended.
- */
-export const deselectedUncommittedChanges = observable.set<RepoRelativePath>(
-  []
-);
-serverAPI.onCwdChanged(() => deselectedUncommittedChanges.clear());
-
-function useDeselectedFiles(
-  files: Array<ChangedFile>
-): ObservableSet<RepoRelativePath> {
-  const deselectedFiles = deselectedUncommittedChanges;
-  useEffect(() => {
-    runInAction(() => {
-      const allPaths = new Set(files.map((file) => file.path));
-      for (const deselected of deselectedFiles) {
-        if (!allPaths.has(deselected)) {
-          // invariant: deselectedFiles is a subset of uncommittedChangesWithPreviews
-          deselectedFiles.delete(deselected);
-        }
-      }
-    });
-  }, [files, deselectedFiles]);
-  return deselectedFiles;
-}
-
-/**
  * Map for changed files statuses into classNames (for color & styles) and icon names.
  */
 const nameAndIconForFileStatus: Record<
   VisualChangedFileType,
-  [string, string]
+  [string, string, "full" | "partial" | "empty"]
 > = {
-  TRACKED_ADD: ["added", "diff-added"],
-  MODIFIED: ["modified", "diff-modified"],
-  TRACKED_REMOVE: ["removed", "diff-removed"],
-  UNTRACKED_ADD: ["ignored", "question"],
-  UNTRACKED_REMOVE: ["ignored", "warning"],
-  UNRESOLVED: ["unresolved", "diff-ignored"],
-  RESOLVED: ["resolved", "pass"],
-  RENAMED: ["modified", "diff-renamed"],
-  COPIED: ["added", "diff-added"],
+  TRACKED_ADD: ["added", "diff-added", "full"],
+  TRACKED_MODIFY: ["modified", "diff-modified", "full"],
+  TRACKED_REMOVE: ["removed", "diff-removed", "full"],
+  PARTIALLY_TRACKED_ADD: ["added", "diff-added", "partial"],
+  PARTIALLY_TRACKED_MODIFY: ["modified", "diff-modified", "partial"],
+  PARTIALLY_TRACKED_REMOVE: ["removed", "diff-removed", "partial"],
+  UNTRACKED_MODIFY: ["modified", "diff-modified", "empty"],
+  UNTRACKED_ADD: ["ignored", "question", "empty"],
+  UNTRACKED_REMOVE: ["ignored", "warning", "empty"],
+  UNRESOLVED: ["unresolved", "diff-ignored", "empty"],
+  RESOLVED: ["resolved", "pass", "full"],
+  TRACKED_RENAME: ["modified", "diff-renamed", "full"],
+  PARTIALLY_TRACKED_RENAME: ["modified", "diff-renamed", "partial"],
+  UNTRACKED_RENAME: ["modified", "diff-renamed", "empty"],
+  TRACKED_COPY: ["added", "diff-added", "full"],
+  PARTIALLY_TRACKED_COPY: ["added", "diff-added", "partial"],
+  UNTRACKED_COPY: ["added", "diff-added", "empty"],
 };
+
+function callbackForFileCheckbox(file: ChangedFile): {
+  operation: () => Operation;
+  tooltip: string;
+} | null {
+  if (
+    [
+      "UNTRACKED_ADD",
+      "UNTRACKED_MODIFY",
+      "UNTRACKED_REMOVE",
+      "UNTRACKED_COPY",
+      "UNTRACKED_RENAME",
+      "PARTIALLY_TRACKED_ADD",
+      "PARTIALLY_TRACKED_MODIFY",
+      "PARTIALLY_TRACKED_REMOVE",
+      "PARTIALLY_TRACKED_COPY",
+      "PARTIALLY_TRACKED_RENAME",
+    ].includes(file.status)
+  ) {
+    return {
+      tooltip: "Add changes",
+      operation: () => new AddOperation(file.path),
+    };
+  }
+
+  if (
+    ["TRACKED_MODIFY", "TRACKED_COPY", "TRACKED_RENAME"].includes(file.status)
+  ) {
+    return {
+      tooltip: "Unstage changes",
+      operation: () => new SoftResetOperation(file.path),
+    };
+  }
+
+  if (file.status === "TRACKED_ADD") {
+    return {
+      tooltip: "Forget file",
+      operation: () => new SoftResetOperation(file.path),
+    };
+  }
+
+  if (file.status === "TRACKED_REMOVE") {
+    return {
+      tooltip: "Restore file",
+      operation: () => new RevertOperation(file.path),
+    };
+  }
+
+  if (file.status === "UNRESOLVED") {
+    return {
+      tooltip: "Mark as resolved",
+      operation: () => new ResolveOperation(file.path, ResolveTool.mark),
+    };
+  }
+
+  if (file.status === "RESOLVED") {
+    return {
+      tooltip: "Mark as unresolved",
+      operation: () => new ResolveOperation(file.path, ResolveTool.unmark),
+    };
+  }
+
+  return null;
+}

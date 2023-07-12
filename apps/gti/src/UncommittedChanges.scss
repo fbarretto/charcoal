@@ -118,6 +118,10 @@
   color: var(--highlight-foreground);
 }
 
+.changed-file-checkbox-clickable::part(control) {
+  cursor: pointer;
+}
+
 .file-actions {
   display: flex;
   flex-wrap: nowrap;

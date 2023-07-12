@@ -1,11 +1,9 @@
-import type { RepoRelativePath } from "@withgraphite/gti-cli-shared-types";
 import type {
   ApplyPreviewsFuncType,
   ApplyUncommittedChangesPreviewsFuncType,
   PreviewContext,
   UncommittedChangesPreviewContext,
 } from "../previews";
-import type { UncommittedChanges } from "@withgraphite/gti-shared";
 
 import { Operation } from "./Operation";
 
@@ -14,13 +12,7 @@ export class AmendOperation extends Operation {
    * @param filePathsToAmend if provided, only these file paths will be included in the amend operation. If undefined, ALL uncommitted changes are included. Paths should be relative to repo root.
    * @param message if provided, update commit description to use this title & description
    */
-  constructor(
-    /**
-     * unused
-     */
-    private filePathsToAmend?: Array<RepoRelativePath>,
-    private message?: string
-  ) {
+  constructor(private message?: string) {
     super("AmendOperation");
   }
 
@@ -33,25 +25,12 @@ export class AmendOperation extends Operation {
   makeOptimisticUncommittedChangesApplier?(
     context: UncommittedChangesPreviewContext
   ): ApplyUncommittedChangesPreviewsFuncType | undefined {
-    const filesToAmend = new Set(this.filePathsToAmend);
-    if (
-      context.uncommittedChanges.length === 0 ||
-      (filesToAmend.size > 0 &&
-        context.uncommittedChanges.every(
-          (change) => !filesToAmend.has(change.path)
-        ))
-    ) {
+    if (context.uncommittedChanges.length === 0) {
       return undefined;
     }
 
-    const func: ApplyUncommittedChangesPreviewsFuncType = (
-      changes: UncommittedChanges
-    ) => {
-      if (this.filePathsToAmend != null) {
-        return changes.filter((change) => !filesToAmend.has(change.path));
-      } else {
-        return [];
-      }
+    const func: ApplyUncommittedChangesPreviewsFuncType = () => {
+      return [];
     };
     return func;
   }

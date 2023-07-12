@@ -18,8 +18,9 @@ export const handler = async (argv: argsT): Promise<void> => {
 
     const statusFilesForInteractive: ChangedFile[] = statusFiles.map(
       (file) => ({
-        status: interactiveStatusFromStatus(file.status),
+        status: interactiveStatusFromStatus(file.status, file.staged),
         path: file.path,
+        copy: file.from,
       })
     );
 
@@ -33,27 +34,26 @@ export const handler = async (argv: argsT): Promise<void> => {
 };
 
 function interactiveStatusFromStatus(
-  status: TStatusFile['status']
+  status: TStatusFile['status'],
+  staged: TStatusFile['staged']
 ): ChangedFile['status'] {
   if (status === 'unresolved') {
     return 'UNRESOLVED';
   }
 
-  if (status === 'untracked_added') {
-    return 'UNTRACKED_ADD';
-  }
-
-  if (status === 'untracked_deleted') {
-    return 'UNTRACKED_REMOVE';
-  }
-
-  if (status === 'added') {
-    return 'TRACKED_ADD';
-  }
-
-  if (status === 'deleted') {
-    return 'TRACKED_REMOVE';
-  }
-
-  return 'MODIFIED';
+  return `${
+    {
+      full: 'TRACKED' as const,
+      partial: 'PARTIALLY_TRACKED' as const,
+      none: 'UNTRACKED' as const,
+    }[staged]
+  }_${
+    {
+      added: 'ADD' as const,
+      modified: 'MODIFY' as const,
+      deleted: 'REMOVE' as const,
+      copied: 'COPY' as const,
+      renamed: 'RENAME' as const,
+    }[status]
+  }`;
 }

@@ -1,11 +1,12 @@
 import type { RepoRelativePath } from "./common";
 
 export type ChangedFileType =
-  | "TRACKED_ADD"
-  | "MODIFIED"
-  | "TRACKED_REMOVE"
-  | "UNTRACKED_ADD"
-  | "UNTRACKED_REMOVE"
+  | `${"TRACKED" | "PARTIALLY_TRACKED" | "UNTRACKED"}_${
+      | "ADD"
+      | "MODIFY"
+      | "REMOVE"
+      | "COPY"
+      | "RENAME"}`
   | "UNRESOLVED"
   | "RESOLVED";
 export type ChangedFile = {

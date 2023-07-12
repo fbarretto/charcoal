@@ -23,71 +23,124 @@ export function getStatus(): TStatusFile[] {
     const workingTreeStatus = rawStatus[1];
     const path = rawStatus.slice(3);
 
-    const status = statusFromStatusCode(indexStatus, workingTreeStatus);
+    const statusAndStaged = statusFromStatusCode(
+      indexStatus,
+      workingTreeStatus
+    );
 
-    // Renamed and copied files include the origin before the destination
-    const parameters = status === 'copied' || status === 'renamed' ? 2 : 1;
-
-    files.push({ path, status });
-
-    i += parameters;
+    // Renamed and copied files include the origin before the destination (but the origin is a new line)
+    if (
+      statusAndStaged.status === 'copied' ||
+      statusAndStaged.status === 'renamed'
+    ) {
+      files.push({ path, ...statusAndStaged, from: tokens[i + 1] });
+      i += 2;
+    } else {
+      files.push({ path, ...statusAndStaged, from: undefined });
+      i += 1;
+    }
   }
 
   return files;
 }
 
-function statusFromStatusCode(indexStatus: string, workingTreeStatus: string) {
+function statusFromStatusCode(
+  indexStatus: string,
+  workingTreeStatus: string
+): Pick<TStatusFile, 'status' | 'staged'> {
   if (
     (indexStatus === 'A' && workingTreeStatus === 'A') ||
     (indexStatus === 'D' && workingTreeStatus === 'D') ||
     indexStatus === 'U' ||
     workingTreeStatus === 'U'
   ) {
-    return 'unresolved' as const;
-  }
-
-  if (workingTreeStatus === 'M' || workingTreeStatus === 'T') {
-    return 'modified' as const;
-  }
-
-  if (workingTreeStatus === 'D') {
-    return 'deleted' as const;
-  }
-
-  if (workingTreeStatus === 'C') {
-    return 'copied' as const;
-  }
-
-  if (workingTreeStatus === 'R') {
-    return 'renamed' as const;
-  }
-
-  if (workingTreeStatus === 'D') {
-    return 'untracked_deleted' as const;
+    return {
+      status: 'unresolved' as const,
+      staged: 'none',
+    };
   }
 
   if (workingTreeStatus === '?') {
-    return 'untracked_added' as const;
+    return {
+      status: 'added' as const,
+      staged: 'none',
+    };
   }
 
-  if (
-    workingTreeStatus === ' ' &&
-    (indexStatus === 'M' || indexStatus === 'T')
-  ) {
-    return 'modified' as const;
+  if (indexStatus === ' ') {
+    if (workingTreeStatus === 'M' || workingTreeStatus === 'T') {
+      return {
+        status: 'modified' as const,
+        staged: 'none',
+      };
+    }
+
+    if (workingTreeStatus === 'D') {
+      return {
+        status: 'deleted' as const,
+        staged: 'none',
+      };
+    }
+
+    if (workingTreeStatus === 'C') {
+      return {
+        status: 'copied' as const,
+        staged: 'none',
+      };
+    }
+
+    if (workingTreeStatus === 'R') {
+      return {
+        status: 'renamed' as const,
+        staged: 'none',
+      };
+    }
+
+    if (workingTreeStatus === 'A') {
+      return {
+        status: 'added' as const,
+        staged: 'none',
+      };
+    }
   }
 
-  if (workingTreeStatus === ' ' && indexStatus === 'A') {
-    return 'added' as const;
+  if (indexStatus === 'M' || indexStatus === 'T') {
+    return {
+      status: 'modified' as const,
+      staged: workingTreeStatus === ' ' ? 'full' : 'partial',
+    };
   }
 
-  if (workingTreeStatus === ' ' && indexStatus === 'R') {
-    return 'renamed' as const;
+  if (indexStatus === 'A') {
+    return {
+      status: 'added' as const,
+      staged: workingTreeStatus === ' ' ? 'full' : 'partial',
+    };
   }
 
-  if (workingTreeStatus === ' ' && indexStatus === 'C') {
-    return 'copied' as const;
+  if (indexStatus === 'D') {
+    return {
+      status: 'deleted' as const,
+      staged: workingTreeStatus === ' ' ? 'full' : 'partial',
+    };
   }
 
-  return 'modified';
+  if (indexStatus === 'C') {
+    return {
+      status: 'copied' as const,
+      staged: workingTreeStatus === ' ' ? 'full' : 'partial',
+    };
+  }
+
+  if (indexStatus === 'R') {
+    return {
+      status: 'renamed' as const,
+      staged: workingTreeStatus === ' ' ? 'full' : 'partial',
+    };
+  }
+
+  return {
+    status: 'modified' as const,
+    staged: 'none',
+  };
 }

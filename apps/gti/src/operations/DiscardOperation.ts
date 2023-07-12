@@ -18,16 +18,23 @@ export class DiscardOperation extends Operation {
   }
 
   getArgs() {
-    return ["interactive", "discard"];
+    return ["reset", "-q", "--hard"];
   }
 
   makeOptimisticUncommittedChangesApplier?(
     context: UncommittedChangesPreviewContext
   ): ApplyUncommittedChangesPreviewsFuncType | undefined {
     const trackedChangeTypes = [
-      "MODIFIED",
+      "TRACKED_MODIFY",
       "TRACKED_ADD",
       "TRACKED_REMOVE",
+      "TRACKED_COPY",
+      "TRACKED_RENAME",
+      "PARTIALLY_TRACKED_MODIFY",
+      "PARTIALLY_TRACKED_ADD",
+      "PARTIALLY_TRACKED_REMOVE",
+      "PARTIALLY_TRACKED_COPY",
+      "PARTIALLY_TRACKED_RENAME",
       "UNTRACKED_REMOVE",
     ];
     if (

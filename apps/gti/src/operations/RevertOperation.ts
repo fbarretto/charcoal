@@ -16,8 +16,8 @@ export class RevertOperation extends Operation {
 
   getArgs() {
     const args = [
-      "interactive",
       "restore",
+      "-SW",
       {
         type: "repo-relative-file" as const,
         path: this.file,

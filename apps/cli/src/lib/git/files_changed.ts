@@ -25,12 +25,16 @@ export function getFilesChanged(from: string, to: string): TChangedFile[] {
     const status = statusFromStatusCode(rawStatus[0]);
 
     // Renamed and copied files include the origin before the destination
-    const parameters = status === 'copied' || status === 'renamed' ? 2 : 1;
-    const path = tokens[i + parameters];
-
-    files.push({ path, status });
-
-    i += parameters + 1;
+    if (status === 'copied' || status === 'renamed') {
+      const from = tokens[i + 1];
+      const path = tokens[i + 2];
+      files.push({ path, status, from });
+      i += 3;
+    } else {
+      const path = tokens[i + 1];
+      files.push({ path, status, from: undefined });
+      i += 2;
+    }
   }
 
   return files;

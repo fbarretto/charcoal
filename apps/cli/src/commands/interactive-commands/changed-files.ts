@@ -27,9 +27,9 @@ export const handler = async (argv: argsT): Promise<void> => {
           path: file.path,
           status: {
             added: 'TRACKED_ADD' as const,
-            modified: 'MODIFIED' as const,
+            modified: 'TRACKED_MODIFY' as const,
             deleted: 'TRACKED_REMOVE' as const,
-            renamed: 'MODIFIED' as const,
+            renamed: 'TRACKED_MODIFY' as const,
             copied: 'TRACKED_ADD' as const,
           }[file.status],
         })),
