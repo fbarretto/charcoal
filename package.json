@@ -4,7 +4,7 @@
   "workspaces": {
     "packages": [
       "./apps/cli",
-      "./apps/gti",
+      "./apps/gti-client",
       "./apps/gti-server",
       "./libs/gti-shared",
       "./libs/gti-cli-shared-types",

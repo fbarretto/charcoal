@@ -2,7 +2,7 @@
   "name": "@withgraphite/gti-vscode",
   "displayName": "Graphite interactive",
   "description": "Graphite: Code review for fast moving teams",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "Graphite",
   "engines": {
     "vscode": "^1.63.0"
@@ -102,7 +102,7 @@
     "@types/node": "^16.11.7",
     "@types/react-dom": "^18.0.0",
     "@types/vscode": "^1.34.0",
-    "@withgraphite/gti": "workspace:*",
+    "@withgraphite/gti-client": "workspace:*",
     "circular-dependency-plugin": "^5.2.2",
     "cross-env": "7.0.3",
     "mini-css-extract-plugin": "^2.6.1",

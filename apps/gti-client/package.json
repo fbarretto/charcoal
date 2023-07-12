@@ -1,5 +1,5 @@
 {
-  "name": "@withgraphite/gti",
+  "name": "@withgraphite/gti-client",
   "version": "0.1.4",
   "main": "dist/src/App.js",
   "browser": "dist/src/App.js",

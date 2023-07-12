@@ -1,6 +1,6 @@
 {
   "name": "@withgraphite/gti-server",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "gti-server",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -30,7 +30,7 @@
     "build": "rm -rf dist/ && tsc"
   },
   "dependencies": {
-    "@withgraphite/gti": "workspace:*",
+    "@withgraphite/gti-client": "workspace:*",
     "execa": "5.1.1",
     "fb-watchman": "^2.0.2",
     "ws": "^8.6.0"

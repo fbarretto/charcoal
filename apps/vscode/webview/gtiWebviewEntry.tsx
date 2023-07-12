@@ -1,4 +1,4 @@
-import App from "@withgraphite/gti/src/App";
+import App from "@withgraphite/gti-client/src/App";
 import ReactDOM from "react-dom/client";
 
 import "./vscode-styles.scss";
