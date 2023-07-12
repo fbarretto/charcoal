@@ -2,7 +2,7 @@
   "name": "@withgraphite/gti-cli-shared-types",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "devDependencies": {
     "typescript": "^4.6.4"
   },
@@ -10,6 +10,9 @@
     "eslint": "eslint . --ext .ts --ext .tsx",
     "build": "rm -rf dist/ && tsc"
   },
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   }
