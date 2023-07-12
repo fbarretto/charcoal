@@ -7,7 +7,7 @@
   "homepage": "https://github.com/withgraphite/graphite-cli",
   "repository": "github:withgraphite/graphite-cli",
   "dependencies": {
-    "@withgraphite/graphite-cli-routes": "^0.27.0",
+    "@withgraphite/graphite-cli-routes": "^0.29.0",
     "@withgraphite/gti-cli-shared-types": "workspace:*",
     "@withgraphite/gti-server": "workspace:*",
     "@withgraphite/retype": "^0.3.11",
@@ -45,7 +45,7 @@
     "lint": "eslint src --quiet --ext .ts --cache",
     "check": "tsc --noEmit",
     "build": "rm -rf dist/ && yarn lint && tsc && cp scripts/node_version.js dist/scripts/node_version.js && cp .CHANGELOG.md dist/.CHANGELOG.md && cp src/lib/gt.fish dist/src/lib/gt.fish",
-    "build-pkg": "yarn build && pkg dist/src/index.js -c package.json --public-packages \"*\"",
+    "build-pkg": "pkg dist/src/index.js -c package.json --public-packages \"*\"",
     "dev": "./scripts/installation/develop.sh",
     "cli": "node ./dist/src/index.js",
     "test": "tsc && yarn mocha \"dist/test/**/*.test.js\"  --parallel --jobs 8",

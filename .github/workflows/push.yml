@@ -82,6 +82,8 @@ jobs:
           node-version: 16
       - name: Install
         run: yarn install --immutable
+      - name: Build
+        run: yarn turbo run build
       - name: Build binary
         run: ${{ matrix.build }}
       - name: Upload binary
