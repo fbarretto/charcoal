@@ -5,6 +5,7 @@ import { makeServerSideTracker } from "./analytics/serverSideTracker";
 import { fileLogger, stdoutLogger } from "./logger";
 import { browserServerPlatform } from "./serverPlatform";
 import ServerToClientAPI from "./ServerToClientAPI";
+import { runCommand } from "./Repository";
 
 export { DEFAULT_PORT, runProxyMain } from "../proxy/startServer";
 
@@ -56,7 +57,19 @@ export function onClientConnection(connection: ClientConnection): () => void {
   logger.log(`establish client connection for ${connection.cwd}`);
   logger.log(`platform '${platform.platformName}', version '${version}'`);
 
-  const tracker = makeServerSideTracker(logger, platform, version);
+  const tracker = makeServerSideTracker(logger, platform, version, (data) => {
+    return runCommand({
+      command: connection.command || "gt",
+      args: [
+        "interactive",
+        "log-action",
+        data.eventName || data.errorName || "UNKNOWN_CLI_EVENT",
+        (data.timestamp ? new Date(data.timestamp) : new Date()).toISOString(),
+        JSON.stringify(data),
+      ],
+      cwd: connection.cwd,
+    });
+  });
   tracker.track("ClientConnection", { extras: { cwd: connection.cwd } });
 
   // start listening to messages

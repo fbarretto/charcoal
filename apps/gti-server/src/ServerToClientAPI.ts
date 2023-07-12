@@ -197,7 +197,7 @@ export default class ServerToClientAPI {
     // Set as loading right away while we determine the new cwd's repo
     // This ensures new messages coming in will be queued and handled only with the new repository
     this.currentState = { type: "loading" };
-    const command = this.connection.command ?? "sl";
+    const command = this.connection.command ?? "gt";
     this.activeRepoRef = repositoryCache.getOrCreate(
       command,
       this.logger,

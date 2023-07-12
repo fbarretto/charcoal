@@ -705,13 +705,13 @@ export class Repository {
     cwd?: string,
     options?: execa.Options
   ) {
-    return runCommand(
-      this.info.command,
+    return runCommand({
+      command: this.info.command,
       args,
-      this.logger,
-      unwrap(cwd ?? this.info.repoRoot),
-      options
-    );
+      logger: this.logger,
+      cwd: unwrap(cwd ?? this.info.repoRoot),
+      options,
+    });
   }
 
   public getConfig(configName: string): Promise<string | undefined> {
@@ -738,20 +738,28 @@ export class Repository {
   }
 }
 
-function runCommand(
-  command_: string,
-  args_: Array<string>,
-  logger: Logger,
-  cwd: string,
-  options_?: execa.Options
-): execa.ExecaChildProcess {
+export function runCommand({
+  command: command_,
+  args: args_,
+  logger,
+  cwd,
+  options: options_,
+}: {
+  command: string;
+  args: Array<string>;
+  logger?: Logger;
+  cwd: string;
+  options?: execa.Options;
+}): execa.ExecaChildProcess {
   const { command, args, options } = getExecParams(
     command_,
     args_,
     cwd,
     options_
   );
-  logger.log("run command: ", command, ...args);
+  if (logger) {
+    logger.log("run command: ", command, ...args);
+  }
   return execa(command, args, options);
 }
 
@@ -764,8 +772,9 @@ async function findRoot(
   cwd: string
 ): Promise<AbsolutePath | undefined> {
   try {
-    return (await runCommand(command, ["interactive", "root"], logger, cwd))
-      .stdout;
+    return (
+      await runCommand({ command, args: ["interactive", "root"], logger, cwd })
+    ).stdout;
   } catch (error) {
     if (
       ["ENOENT", "EACCES"].includes((error as { code: string }).code) ||
@@ -790,12 +799,12 @@ async function findDotDir(
 ): Promise<AbsolutePath | undefined> {
   try {
     return (
-      await runCommand(
+      await runCommand({
         command,
-        ["interactive", "root", "--dotdir"],
+        args: ["interactive", "root", "--dotdir"],
         logger,
-        cwd
-      )
+        cwd,
+      })
     ).stdout;
   } catch (error) {
     logger.error(`Failed to find repository dotdir in ${cwd}`, error);
@@ -811,12 +820,12 @@ async function getConfig(
 ): Promise<string | undefined> {
   try {
     return (
-      await runCommand(
+      await runCommand({
         command,
-        ["interactive", "config", configName],
+        args: ["interactive", "config", configName],
         logger,
-        cwd
-      )
+        cwd,
+      })
     ).stdout.trim();
   } catch {
     // `config` exits with status 1 if config is not set. This is not an error.
@@ -832,12 +841,12 @@ async function setConfig(
   configName: string,
   configValue: string
 ): Promise<void> {
-  await runCommand(
+  await runCommand({
     command,
-    ["interactive", "config", `--${level}`, configName, configValue],
+    args: ["interactive", "config", `--${level}`, configName, configValue],
     logger,
-    cwd
-  );
+    cwd,
+  });
 }
 
 function getExecParams(
@@ -861,11 +870,6 @@ function getExecParams(
     ...options_,
     env: {
       LANG: "en_US.utf-8", // make sure to use unicode if user hasn't set LANG themselves
-      // TODO: remove when GT_ENCODING is used everywhere
-      HGENCODING: "UTF-8",
-      GT_ENCODING: "UTF-8",
-      // override any custom aliases a user has defined.
-      GT_AUTOMATION: "true",
       EDITOR: undefined,
       GRAPHITE_INTERACTIVE: "true",
     },

@@ -20,7 +20,7 @@ class ServerSideContext {
   }
 }
 
-const noOp = (_data: FullTrackData, _logger: Logger) => {
+const noOp = (_data: FullTrackData) => {
   /* In open source builds, analytics tracking is completely disabled/removed. */
 };
 
@@ -33,7 +33,6 @@ export function makeServerSideTracker(
   logger: Logger,
   platform: ServerPlatform,
   version: string,
-  // @nocommit
   // prettier-ignore
   writeToServer = noOp
 ): ServerSideTracker {
@@ -47,7 +46,7 @@ export function makeServerSideTracker(
         data.errorName ?? "",
         data.extras != null ? JSON.stringify(data.extras) : ""
       );
-      writeToServer({ ...data, ...context.data }, logger);
+      writeToServer({ ...data, ...context.data });
     },
     new ServerSideContext(
       logger,

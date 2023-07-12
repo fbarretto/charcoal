@@ -8,6 +8,8 @@ import { registerGraphiteDiffContentProvider } from "./DiffContentProvider";
 import { registerGTICommands } from "./gtiWebviewPanel";
 import { VSCodePlatform } from "./vscodePlatform";
 import { watchAndCreateRepositoriesForWorkspaceFolders } from "./VSCodeRepo";
+import { runCommand } from "@withgraphite/gti-server/src/Repository";
+import { getCLICommand } from "./config";
 
 export async function activate(context: vscode.ExtensionContext) {
   const start = Date.now();
@@ -15,7 +17,23 @@ export async function activate(context: vscode.ExtensionContext) {
   const extensionTracker = makeServerSideTracker(
     logger,
     VSCodePlatform,
-    packageJson.version
+    packageJson.version,
+    (data) => {
+      return runCommand({
+        command: getCLICommand(),
+        args: [
+          "interactive",
+          "log-action",
+          data.eventName || data.errorName || "UNKNOWN_CLI_EVENT",
+          (data.timestamp
+            ? new Date(data.timestamp)
+            : new Date()
+          ).toISOString(),
+          JSON.stringify(data),
+        ],
+        cwd: process.cwd(),
+      });
+    }
   );
   try {
     context.subscriptions.push(registerGTICommands(context, logger));
