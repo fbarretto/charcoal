@@ -9,6 +9,7 @@ import {
 import { DOCUMENTATION_DELAY, Tooltip } from "./Tooltip";
 
 import { codeReviewProvider, diffSummary } from "./codeReview/CodeReviewInfo";
+import { filesChangedForBranch } from "./CommitInfoView/CommitInfoState";
 
 export const UncommitButton = observer(() => {
   // TODO: use treeWithPreviews instead,
@@ -35,6 +36,7 @@ export const UncommitButton = observer(() => {
   if (isClosed) {
     return null;
   }
+  const filesChanged = filesChangedForBranch(headCommit.branch).get();
   return (
     <Tooltip
       delayMs={DOCUMENTATION_DELAY}
@@ -43,7 +45,11 @@ export const UncommitButton = observer(() => {
       }
     >
       <VSCodeButton
-        onClick={() => runOperation(new UncommitOperation(headCommit))}
+        onClick={() =>
+          runOperation(
+            new UncommitOperation(headCommit, filesChanged.data?.files || [])
+          )
+        }
         appearance="secondary"
       >
         <>Uncommit</>

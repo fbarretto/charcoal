@@ -24,3 +24,8 @@ export type ChangedFile = {
    * */
   copy?: RepoRelativePath;
 };
+
+export type ChangedFiles = {
+  files: ChangedFile[];
+  total: number;
+};

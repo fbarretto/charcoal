@@ -8,6 +8,7 @@ import type {
   FieldsBeingEdited,
 } from "@withgraphite/gti-shared";
 
+import type { ChangedFiles } from "@withgraphite/gti-cli-shared-types";
 import serverAPI from "../ClientToServerAPI";
 import { observableBoxWithInitializers } from "../lib/mobx-recoil/observable_box_with_init";
 import {
@@ -158,3 +159,45 @@ export const commitFieldsBeingEdited = observable.box<FieldsBeingEdited>(
 );
 
 export const commitMode = observable.box<CommitInfoMode>("amend");
+
+export const filesChangedForBranch = family({
+  genKey: (branch: BranchName) => {
+    return branch;
+  },
+  genValue: (branch: BranchName) => {
+    return observableBoxWithInitializers<{
+      isLoading: boolean;
+      data: ChangedFiles | null;
+    }>({
+      default: { isLoading: true, data: null },
+      setter: (value) => {
+        if (value.isLoading) {
+          serverAPI.postMessage({ type: "requestChangedFiles", branch });
+        }
+      },
+      effects: [
+        () =>
+          serverAPI.onConnectOrReconnect(() =>
+            serverAPI.postMessage({
+              type: "requestChangedFiles",
+              branch,
+            })
+          ),
+        ({ setSelf }) => {
+          const disposable = serverAPI.onMessageOfType(
+            "changedFiles",
+            (event) => {
+              if (event.branch === branch) {
+                setSelf({
+                  isLoading: false,
+                  data: event.data,
+                });
+              }
+            }
+          );
+          return () => disposable.dispose();
+        },
+      ],
+    });
+  },
+});

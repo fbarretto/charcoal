@@ -5,6 +5,7 @@ import type {
   FetchedCommits,
   FetchedUncommittedChanges,
 } from "@withgraphite/gti-shared";
+import type { ChangedFiles } from "@withgraphite/gti-cli-shared-types";
 import type { ClientConnection } from ".";
 import type { ServerSideTracker } from "./analytics/serverSideTracker";
 import type { Logger } from "@withgraphite/gti-shared";
@@ -603,6 +604,24 @@ export default class ServerToClientAPI {
             type: "comparison",
             comparison,
             data: { diff: data },
+          })
+        );
+        break;
+      }
+      case "requestChangedFiles": {
+        const { branch } = data;
+        const resultPromise: Promise<ChangedFiles> = repo
+          .runCommand(["interactive", "changed-files", branch])
+          .then((o) => JSON.parse(o.stdout))
+          .catch((error) => {
+            logger?.error("error running diff", error.toString());
+            return { error };
+          });
+        void resultPromise.then((result) =>
+          this.postMessage({
+            type: "changedFiles",
+            branch,
+            data: result,
           })
         );
         break;

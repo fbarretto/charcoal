@@ -1,9 +1,10 @@
 import { useCallback } from "react";
 
-import type {
+import {
   CommitInfoMode,
   EditedMessage,
   EditedMessageUnlessOptimistic,
+  filesChangedForBranch,
 } from "./CommitInfoState";
 import type {
   CommitMessageFields,
@@ -31,7 +32,7 @@ import {
 } from "../codeReview/DraftCheckbox";
 import { Commit } from "../Commit";
 import { OpenComparisonViewButton } from "../ComparisonView/OpenComparisonViewButton";
-import { Center } from "../ComponentUtils";
+import { Center, LargeSpinner } from "../ComponentUtils";
 import { HighlightCommitsWhileHovering } from "../HighlightedCommits";
 import { numPendingImageUploads } from "../ImageUpload";
 import { OperationDisabledButton } from "../OperationDisabledButton";
@@ -240,6 +241,16 @@ export function CommitInfoDetails({ commit }: { commit: BranchInfo }) {
     // we expect the edited message to change constantly.
   }, [commit.branch, isCommitMode]);
 
+  const filesChangedData = filesChangedForBranch(commit.branch);
+  const filesChanged = filesChangedData.get();
+  useEffect(() => {
+    filesChangedData.set({
+      ...filesChangedData.get(),
+      // triggers a refresh
+      isLoading: true,
+    });
+  }, [commit.date]);
+
   const topmostEditedField = getTopmostEditedField(schema, fieldsBeingEdited);
 
   return (
@@ -327,11 +338,15 @@ export function CommitInfoDetails({ commit }: { commit: BranchInfo }) {
             )}
           </Section>
         ) : null}
-        {isCommitMode ? null : (
+        {isCommitMode ? null : filesChanged.data === null ? (
+          <Center>
+            <LargeSpinner />
+          </Center>
+        ) : (
           <Section>
             <SmallCapsTitle>
               <>Files Changed</>
-              <VSCodeBadge>{commit.totalFileCount}</VSCodeBadge>
+              <VSCodeBadge>{filesChanged.data?.total}</VSCodeBadge>
             </SmallCapsTitle>
             <div className="changed-file-list">
               <OpenComparisonViewButton
@@ -341,7 +356,7 @@ export function CommitInfoDetails({ commit }: { commit: BranchInfo }) {
                 }}
               />
               <ChangedFiles
-                files={commit.filesSample}
+                files={filesChanged.data?.files || []}
                 comparison={
                   commit.isHead
                     ? { type: ComparisonType.HeadChanges }

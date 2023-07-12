@@ -1,5 +1,7 @@
 import type {
   BranchInfo,
+  BranchName,
+  ChangedFiles,
   ChangedFile,
   PRNumber,
   RepoRelativePath,
@@ -359,6 +361,7 @@ export type ClientToServerMessage =
   | { type: "runOperation"; operation: RunnableOperation }
   | { type: "abortRunningOperation"; operationId: string }
   | { type: "deleteFile"; filePath: RepoRelativePath }
+  | { type: "requestChangedFiles"; branch: string }
   | { type: "fetchCommitMessageTemplate" }
   | { type: "typeahead"; kind: TypeaheadKind; query: string; id: string }
   | { type: "requestRepoInfo" }
@@ -431,6 +434,7 @@ export type ServerToClientMessage =
   | { type: "beganLoadingMoreCommits" }
   | { type: "commitsShownRange"; rangeInDays: number | undefined }
   | { type: "additionalCommitAvailability"; moreAvailable: boolean }
+  | { type: "changedFiles"; branch: BranchName; data: ChangedFiles }
   | OperationProgressEvent
   | PlatformSpecificServerToClientMessages;
 

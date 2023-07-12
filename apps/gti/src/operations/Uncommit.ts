@@ -1,4 +1,7 @@
-import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
+import type {
+  BranchInfo,
+  ChangedFile,
+} from "@withgraphite/gti-cli-shared-types";
 import type {
   ApplyPreviewsFuncType,
   ApplyUncommittedChangesPreviewsFuncType,
@@ -13,7 +16,10 @@ export class UncommitOperation extends Operation {
   /**
    * @param originalHeadCommit the current head commit, needed to track when optimistic state is resolved and get the list of files that will be uncommitted
    */
-  constructor(private originalHeadCommit: BranchInfo) {
+  constructor(
+    private originalHeadCommit: BranchInfo,
+    private files: ChangedFile[]
+  ) {
     super("UncommitOperation");
   }
 
@@ -56,7 +62,7 @@ export class UncommitOperation extends Operation {
   makeOptimisticUncommittedChangesApplier?(
     context: UncommittedChangesPreviewContext
   ): ApplyUncommittedChangesPreviewsFuncType | undefined {
-    const uncommittedChangesAfterUncommit = this.originalHeadCommit.filesSample;
+    const uncommittedChangesAfterUncommit = this.files;
     const preexistingChanges = new Set(
       context.uncommittedChanges.map((change) => change.path)
     );

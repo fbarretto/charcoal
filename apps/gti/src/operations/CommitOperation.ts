@@ -51,20 +51,19 @@ export class CommitOperation extends Operation {
     const [title] = this.message.split(/\n+/, 1);
     const description = this.message.slice(title.length);
 
+    // TODO: we should include the files that will be in the commit.
+    // These files are visible in the commit info view during optimistic state.
+
     const optimisticCommit: CommitTree = {
       children: [],
       info: {
         author: head?.author ?? "",
         description: description,
         title: title,
-        // TODO: we should include the files that will be in the commit.
-        // These files are visible in the commit info view during optimistic state.
-        filesSample: [],
         isHead: true,
         parents: [head?.branch ?? ""],
         branch: OPTIMISTIC_COMMIT_HASH,
         partOfTrunk: false,
-        totalFileCount: 0,
         date: new Date().toISOString(),
       },
     };

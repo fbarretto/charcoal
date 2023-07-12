@@ -13,14 +13,17 @@ type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
     const commitInfos: Array<BranchInfo> = await Promise.all(
-      context.engine.allBranchNames.map((branchName) => {
+      context.engine.allBranchNames.map(async (branchName) => {
         const prInfo = context.engine.getPrInfo(branchName);
         const parent = context.engine.getParent(branchName);
 
-        const commitDate = context.engine.getCommitDate(branchName);
-        const commitAuthor = context.engine.getCommitAuthor(branchName);
-
-        const filesChanged = context.engine.getChangedFiles(branchName);
+        const [commitDate, commitAuthor, isMergedIntoTrunk] = await Promise.all(
+          [
+            context.engine.getCommitDate(branchName),
+            context.engine.getCommitAuthor(branchName),
+            context.engine.isMergedIntoTrunk(branchName),
+          ]
+        );
 
         return {
           branch: branchName,
@@ -28,26 +31,11 @@ export const handler = async (argv: argsT): Promise<void> => {
           // Cache
           parents: parent ? [parent] : [],
           isHead: context.engine.currentBranch === branchName,
-          partOfTrunk:
-            context.engine.isMergedIntoTrunk(branchName) ||
-            context.engine.isTrunk(branchName),
+          partOfTrunk: isMergedIntoTrunk || context.engine.isTrunk(branchName),
 
           // Git
           author: commitAuthor,
           date: commitDate.toISOString(),
-
-          // Files
-          filesSample: filesChanged.map((file) => ({
-            path: file.path,
-            status: {
-              added: 'A' as const,
-              modified: 'M' as const,
-              deleted: 'R' as const,
-              renamed: 'M' as const,
-              copied: 'A' as const,
-            }[file.status],
-          })),
-          totalFileCount: filesChanged.length,
 
           // PR
           title: prInfo?.title || '',
