@@ -2,7 +2,7 @@
   "name": "@withgraphite/gti-vscode",
   "displayName": "Graphite interactive",
   "description": "Graphite: Code review for fast moving teams",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "Graphite",
   "engines": {
     "vscode": "^1.63.0"
@@ -91,7 +91,6 @@
   },
   "scripts": {
     "eslint": "eslint extension webview --ext .ts --ext .tsx",
-    "test": "jest --passWithNoTests",
     "watch-extension": "webpack --watch --config extension.webpack.config.ts",
     "watch-webview": "webpack --watch --config webview.webpack.config.ts",
     "build-extension": "cross-env NODE_ENV=production webpack --config extension.webpack.config.ts",
