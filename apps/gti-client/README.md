@@ -65,11 +65,11 @@ When developing, it's useful to add a few extra arguments to `yarn serve`:
 
 ## Production builds
 
-`gti/release.js` is a script to build production bundles and
+`gti-client/release.js` is a script to build production bundles and
 package them into a single self-contained directory that can be distributed.
 
 `yarn build` lets you build production bundles without watching for changes, in either
-`gti/` or `gti-server/`.
+`gti-client/` or `gti-server/`.
 
 # Internals
 

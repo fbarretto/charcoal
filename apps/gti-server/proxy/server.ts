@@ -12,7 +12,7 @@ import path from "path";
 import urlModule from "url";
 import WebSocket from "ws";
 
-const frontendDir = path.join(__dirname, "../../../gti");
+const frontendDir = path.join(__dirname, "../../../gti-client");
 
 export type StartServerArgs = {
   port: number;

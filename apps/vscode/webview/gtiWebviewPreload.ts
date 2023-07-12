@@ -1,7 +1,7 @@
 // This file is loaded before the rest of the GTI webview.
 // We define global platform data here that the rest of the app can use
 
-import type { Platform } from "@withgraphite/gti/src/platform";
+import type { Platform } from "@withgraphite/gti-client/src/platform";
 
 // important: this import should not transitively import code
 // which depends on `window.gtiPlatform`, or else it won't be defined yet.

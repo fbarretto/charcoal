@@ -31,7 +31,7 @@ export type NonNullReactElement = React.ReactElement | React.ReactFragment;
 /**
  * name of the gti platform being used,
  * for example 'browser' or 'vscode'.
- * Note: This is exposed outisde of gti/platform.ts to prevent import cycles.
+ * Note: This is exposed outisde of gti-client/platform.ts to prevent import cycles.
  */
 export function gtiPlatformName(): string {
   return window.gtiPlatform?.platformName ?? "browser";

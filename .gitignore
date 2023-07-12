@@ -3,6 +3,7 @@ xcuserdata/
 **/node_modules
 .yarn/*
 .turbo/*
+turbo-build.log
 !.yarn/releases
 !.yarn/plugins
 !.yarn/sdks
