@@ -12,7 +12,7 @@ const args = {
 } as const;
 
 export const command = 'changed-files [branch]';
-export const canonical = 'interactive changed-files';
+export const canonical = 'internal-only changed-files';
 export const description = false;
 export const builder = args;
 

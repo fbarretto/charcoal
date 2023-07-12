@@ -311,7 +311,7 @@ export class Repository {
     const fetchStartTimestamp = Date.now();
     let output: Status;
     try {
-      const proc = await this.runCommand(["interactive", "status"]);
+      const proc = await this.runCommand(["internal-only", "status"]);
       output = JSON.parse(proc.stdout) as Status;
     } catch (err) {
       this.logger.error(`failed to check for merge conflicts: ${err}`);
@@ -534,7 +534,7 @@ export class Repository {
     const fetchStartTimestamp = Date.now();
     try {
       this.uncommittedChangesBeginFetchingEmitter.emit("start");
-      const proc = await this.runCommand(["interactive", "status"]);
+      const proc = await this.runCommand(["internal-only", "status"]);
       const files = (JSON.parse(proc.stdout) as Status).files.map((change) => ({
         ...change,
         path: removeLeadingPathSep(change.path),
@@ -609,7 +609,7 @@ export class Repository {
     const fetchStartTimestamp = Date.now();
     try {
       this.smartlogCommitsBeginFetchingEmitter.emit("start");
-      const proc = await this.runCommand(["interactive", "log"]);
+      const proc = await this.runCommand(["internal-only", "log"]);
       const commits = parseCommitInfoOutput(this.logger, proc.stdout.trim());
       if (commits.length === 0) {
         throw new Error(ErrorShortMessages.NoCommitsFetched);
@@ -668,7 +668,7 @@ export class Repository {
       return (
         await this.runCommand(
           [
-            "interactive",
+            "internal-only",
             "relative-cat",
             ...this.catArgs(comparison, relativePath),
           ],
@@ -793,7 +793,7 @@ async function findRepoInfo(
       (
         await runCommand({
           command,
-          args: ["interactive", "repo-info"],
+          args: ["internal-only", "repo-info"],
           logger,
           cwd,
         })
@@ -817,7 +817,7 @@ async function findRepoProfile(
       (
         await runCommand({
           command,
-          args: ["interactive", "profile"],
+          args: ["internal-only", "profile"],
           logger,
           cwd,
         })
@@ -841,7 +841,7 @@ async function getConfig(
     return (
       await runCommand({
         command,
-        args: ["interactive", "config", configName],
+        args: ["internal-only", "config", configName],
         logger,
         cwd,
       })
@@ -865,7 +865,7 @@ async function setConfig(
   await runCommand({
     command,
     args: [
-      "interactive",
+      "internal-only",
       "set-config",
       `--level`,
       level,

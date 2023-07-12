@@ -5,7 +5,7 @@ import { graphite } from '../../lib/runner';
 const args = {} as const;
 
 export const command = 'pulltrunk';
-export const canonical = 'interactive pulltrunk';
+export const canonical = 'internal-only pulltrunk';
 export const description = false;
 export const builder = args;
 

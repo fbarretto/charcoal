@@ -8,7 +8,7 @@ import { graphite } from '../../lib/runner';
 const args = {} as const;
 
 export const command = 'log';
-export const canonical = 'interactive log';
+export const canonical = 'internal-only log';
 export const description = false;
 export const builder = args;
 

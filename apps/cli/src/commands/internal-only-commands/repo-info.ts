@@ -9,7 +9,7 @@ import {
 const args = {} as const;
 
 export const command = 'repo-info';
-export const canonical = 'interactive repo-info';
+export const canonical = 'internal-only repo-info';
 export const description = false;
 export const builder = args;
 

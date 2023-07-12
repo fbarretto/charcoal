@@ -530,7 +530,7 @@ export default class ServerToClientAPI {
       }
       case "fetchRepoMessage": {
         const repoMessage: Promise<Result<string>> = repo
-          .runCommand(["interactive", "repo-message"])
+          .runCommand(["internal-only", "repo-message"])
           .then((o) => ({ value: o.stdout }))
           .catch((error) => {
             logger?.error("error fetching repo message", error.toString());
@@ -546,7 +546,7 @@ export default class ServerToClientAPI {
       }
       case "fetchUpgradePrompt": {
         const upgradePrompt: Promise<Result<string>> = repo
-          .runCommand(["interactive", "upgrade-prompt"])
+          .runCommand(["internal-only", "upgrade-prompt"])
           .then((o) => ({ value: o.stdout }))
           .catch((error) => {
             logger?.error("error fetching upgrade prompt", error.toString());
@@ -590,7 +590,7 @@ export default class ServerToClientAPI {
         const { comparison } = data;
         const diff: Promise<Result<string>> = repo
           .runCommand([
-            "interactive",
+            "internal-only",
             "diff",
             ...revsetArgsForComparison(comparison),
           ])
@@ -611,7 +611,7 @@ export default class ServerToClientAPI {
       case "requestChangedFiles": {
         const { branch } = data;
         const resultPromise: Promise<ChangedFiles> = repo
-          .runCommand(["interactive", "changed-files", branch])
+          .runCommand(["internal-only", "changed-files", branch])
           .then((o) => JSON.parse(o.stdout))
           .catch((error) => {
             logger?.error("error running diff", error.toString());
@@ -668,7 +668,7 @@ export default class ServerToClientAPI {
       }
       case "fetchCommitMessageTemplate": {
         repo
-          .runCommand(["interactive", "templates"])
+          .runCommand(["internal-only", "templates"])
           .then((result) => {
             const templates: Record<string, string> = JSON.parse(result.stdout);
             this.postMessage({

@@ -25,7 +25,7 @@ const args = {
 } as const;
 
 export const command = 'log-action [name] [timestamp] [payload]';
-export const canonical = 'interactive log-action';
+export const canonical = 'internal-only log-action';
 export const description = false;
 export const builder = args;
 

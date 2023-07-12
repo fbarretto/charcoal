@@ -2,12 +2,11 @@ import { API_ROUTES } from '@withgraphite/graphite-cli-routes';
 import yargs from 'yargs';
 import { graphite } from '../../lib/runner';
 import { requestWithArgs } from '../../lib/api/request';
-import { version } from '../../../package.json';
 
 const args = {} as const;
 
-export const command = 'upgrade-prompt';
-export const canonical = 'interactive upgrade-prompt';
+export const command = 'repo-message';
+export const canonical = 'internal-only repo-message';
 export const description = false;
 export const builder = args;
 
@@ -16,18 +15,18 @@ export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
     const response = await requestWithArgs(
       context.userConfig,
-      API_ROUTES.upgradePrompt,
+      API_ROUTES.getRepoMessage,
       {},
       {
-        user: context.userEmail ?? 'NotFound',
-        currentVersion: version,
+        org: context.repoConfig.getRepoOwner(),
+        repo: context.repoConfig.getRepoName(),
       }
     );
 
-    if (response._response.status == 200) {
-      if (response.prompt) {
-        context.splog.message(response.prompt.message);
-      }
+    if (response._response.status !== 200 || !response.message) {
+      return;
     }
+
+    context.splog.message(response.message.text);
   });
 };

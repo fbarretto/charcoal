@@ -39,7 +39,7 @@ export class GitHubCodeReviewProvider {
   }
 
   public async triggerDiffSummariesFetch(_diffs: Array<PRNumber>) {
-    const value = await this.runCommand(["interactive", "prs"]);
+    const value = await this.runCommand(["internal-only", "prs"]);
     const prs = JSON.parse(value.stdout) as PRInfo[];
     this.diffSummaries.emit("data", prs);
   }

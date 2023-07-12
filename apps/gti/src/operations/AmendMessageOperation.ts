@@ -13,7 +13,7 @@ export class AmendMessageOperation extends Operation {
 
   getArgs() {
     const args: Array<CommandArg> = [
-      "interactive",
+      "internal-only",
       "metaedit",
       this.branch,
       "--title",

@@ -1,31 +1,31 @@
 import yargs from 'yargs';
+import { currentBranchOnto } from '../../actions/current_branch_onto';
 import { graphite } from '../../lib/runner';
 
 const args = {
-  branch: {
+  source: {
     type: 'string',
     required: true,
     positional: true,
   },
-  title: {
+  dest: {
     type: 'string',
-  },
-  body: {
-    type: 'string',
+    required: true,
+    positional: true,
   },
 } as const;
 
-export const command = 'metaedit [branch]';
-export const canonical = 'interactive metaedit';
+export const command = 'rebase [source] [dest]';
+export const canonical = 'internal-only rebase';
 export const description = false;
 export const builder = args;
 
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
-    context.engine.upsertPrInfo(argv.branch, {
-      title: argv.title,
-      body: argv.body,
-    });
+    const current = context.engine.currentBranch;
+    context.engine.checkoutBranch(argv.source);
+    currentBranchOnto(argv.dest, context);
+    current && context.engine.checkoutBranch(current);
   });
 };

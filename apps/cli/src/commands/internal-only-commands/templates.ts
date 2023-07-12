@@ -6,7 +6,7 @@ import fs from 'fs';
 const args = {} as const;
 
 export const command = 'templates';
-export const canonical = 'interactive templates';
+export const canonical = 'internal-only templates';
 export const description = false;
 export const builder = args;
 

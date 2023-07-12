@@ -13,7 +13,7 @@ export class SetConfigOperation extends Operation {
 
   getArgs() {
     return [
-      "interactive",
+      "internal-only",
       "set-config",
       `--level`,
       this.scope,

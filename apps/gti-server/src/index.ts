@@ -61,7 +61,7 @@ export function onClientConnection(connection: ClientConnection): () => void {
     return runCommand({
       command: connection.command || "gt",
       args: [
-        "interactive",
+        "internal-only",
         "log-action",
         data.eventName || data.errorName || "UNKNOWN_CLI_EVENT",
         (data.timestamp ? new Date(data.timestamp) : new Date()).toISOString(),

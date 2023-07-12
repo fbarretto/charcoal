@@ -1,31 +1,29 @@
 import yargs from 'yargs';
-import { currentBranchOnto } from '../../actions/current_branch_onto';
 import { graphite } from '../../lib/runner';
 
 const args = {
-  source: {
+  ref: {
+    demandOption: true,
     type: 'string',
-    required: true,
     positional: true,
+    describe: 'The ref to load the file from.',
   },
-  dest: {
+  file: {
+    demandOption: true,
     type: 'string',
-    required: true,
     positional: true,
+    describe: 'The config to load.',
   },
 } as const;
 
-export const command = 'rebase [source] [dest]';
-export const canonical = 'interactive rebase';
+export const command = 'cat [ref] [file]';
+export const canonical = 'internal-only cat';
 export const description = false;
 export const builder = args;
 
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
-    const current = context.engine.currentBranch;
-    context.engine.checkoutBranch(argv.source);
-    currentBranchOnto(argv.dest, context);
-    current && context.engine.checkoutBranch(current);
+    context.splog.info(context.engine.getFileContents(argv.ref, argv.file));
   });
 };

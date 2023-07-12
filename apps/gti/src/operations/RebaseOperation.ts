@@ -14,7 +14,7 @@ export class RebaseOperation extends Operation {
 
   getArgs() {
     return [
-      "interactive",
+      "internal-only",
       "rebase",
       "--source",
       this.source,

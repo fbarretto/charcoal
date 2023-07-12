@@ -15,7 +15,7 @@ const args = {
 } as const;
 
 export const command = 'root';
-export const canonical = 'interactive root';
+export const canonical = 'internal-only root';
 export const description = false;
 export const builder = args;
 

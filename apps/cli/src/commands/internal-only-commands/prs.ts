@@ -6,7 +6,7 @@ import { graphite } from '../../lib/runner';
 const args = {} as const;
 
 export const command = 'prs';
-export const canonical = 'interactive prs';
+export const canonical = 'internal-only prs';
 export const description = false;
 export const builder = args;
 

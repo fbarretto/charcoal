@@ -72,7 +72,7 @@ const args = {
 } as const;
 
 export const command = 'start';
-export const canonical = 'interactive start';
+export const canonical = 'internal-only start';
 export const description = 'Start GT Interactive';
 export const builder = args;
 

@@ -22,7 +22,7 @@ const args = {
 } as const;
 
 export const command = 'relative-cat [target] [file]';
-export const canonical = 'interactive relative-cat';
+export const canonical = 'internal-only relative-cat';
 export const description = false;
 export const builder = args;
 

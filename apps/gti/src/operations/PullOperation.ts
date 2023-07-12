@@ -8,6 +8,6 @@ export class PullOperation extends Operation {
   }
 
   getArgs() {
-    return ["interactive", "pulltrunk"];
+    return ["internal-only", "pulltrunk"];
   }
 }

@@ -21,7 +21,7 @@ const args = {
 } as const;
 
 export const command = 'set-config [config-name] [config-value]';
-export const canonical = 'interactive set-config';
+export const canonical = 'internal-only set-config';
 export const description = false;
 export const builder = args;
 

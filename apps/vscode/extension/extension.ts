@@ -22,7 +22,7 @@ export async function activate(context: vscode.ExtensionContext) {
       return runCommand({
         command: getCLICommand(),
         args: [
-          "interactive",
+          "internal-only",
           "log-action",
           data.eventName || data.errorName || "UNKNOWN_CLI_EVENT",
           (data.timestamp

@@ -16,7 +16,7 @@ const args = {
 } as const;
 
 export const command = 'diff [target]';
-export const canonical = 'interactive diff';
+export const canonical = 'internal-only diff';
 export const description = false;
 export const builder = args;
 

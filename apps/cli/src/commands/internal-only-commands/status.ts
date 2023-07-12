@@ -6,7 +6,7 @@ import { graphite } from '../../lib/runner';
 const args = {} as const;
 
 export const command = 'status';
-export const canonical = 'interactive status';
+export const canonical = 'internal-only status';
 export const description = false;
 export const builder = args;
 

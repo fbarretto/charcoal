@@ -8,6 +8,6 @@ export class CreateEmptyInitialCommitOperation extends Operation {
   }
 
   getArgs() {
-    return ["interactive", "init"];
+    return ["internal-only", "init"];
   }
 }
