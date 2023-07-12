@@ -332,7 +332,7 @@ export class Repository {
     if (this.mergeConflicts) {
       const maxConflictsToLog = 20;
       const remainingConflicts = (this.mergeConflicts.files ?? [])
-        .filter((conflict) => conflict.status === "U")
+        .filter((conflict) => conflict.status === "UNRESOLVED")
         .map((conflict) => conflict.path)
         .slice(0, maxConflictsToLog);
       this.logger.info("remaining files with conflicts: ", remainingConflicts);
@@ -975,7 +975,7 @@ function computeNewConflicts(
   }
 
   const newConflicts = newConflictData.files.filter(
-    (file) => file.status === "U"
+    (file) => file.status === "UNRESOLVED"
   );
   const conflicts: MergeConflicts = {
     state: "loaded",
@@ -990,15 +990,15 @@ function computeNewConflicts(
     );
     conflicts.files = previousConflicts.files.map((conflict) =>
       newConflictSet.has(conflict.path)
-        ? { path: conflict.path, status: "U" }
+        ? { path: conflict.path, status: "UNRESOLVED" }
         : // 'R' is overloaded to mean "removed" for `gt status` but 'Resolved' for `gt resolve --list`
           // let's re-write this to make the UI layer simpler.
-          { path: conflict.path, status: "Resolved" }
+          { path: conflict.path, status: "RESOLVED" }
     );
   } else {
     conflicts.files = newConflicts.map((conflict) => ({
       path: conflict.path,
-      status: "U",
+      status: "UNRESOLVED",
     }));
   }
 

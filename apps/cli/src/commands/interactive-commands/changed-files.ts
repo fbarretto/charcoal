@@ -26,11 +26,11 @@ export const handler = async (argv: argsT): Promise<void> => {
         files: filesChanged.map((file) => ({
           path: file.path,
           status: {
-            added: 'A' as const,
-            modified: 'M' as const,
-            deleted: 'R' as const,
-            renamed: 'M' as const,
-            copied: 'A' as const,
+            added: 'TRACKED_ADD' as const,
+            modified: 'MODIFIED' as const,
+            deleted: 'TRACKED_REMOVE' as const,
+            renamed: 'MODIFIED' as const,
+            copied: 'TRACKED_ADD' as const,
           }[file.status],
         })),
         total: filesChanged.length,

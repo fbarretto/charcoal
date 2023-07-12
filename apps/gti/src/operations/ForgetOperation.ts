@@ -29,7 +29,8 @@ export class ForgetOperation extends Operation {
   ): ApplyUncommittedChangesPreviewsFuncType | undefined {
     if (
       context.uncommittedChanges.some(
-        (change) => change.path === this.filePath && change.status === "?"
+        (change) =>
+          change.path === this.filePath && change.status === "UNTRACKED_ADD"
       )
     ) {
       return undefined;
@@ -40,7 +41,7 @@ export class ForgetOperation extends Operation {
     ) => {
       return changes.map((change) =>
         change.path === this.filePath
-          ? { path: change.path, status: "?" }
+          ? { path: change.path, status: "UNTRACKED_ADD" }
           : change
       );
     };

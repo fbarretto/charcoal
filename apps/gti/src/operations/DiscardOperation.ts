@@ -24,7 +24,12 @@ export class DiscardOperation extends Operation {
   makeOptimisticUncommittedChangesApplier?(
     context: UncommittedChangesPreviewContext
   ): ApplyUncommittedChangesPreviewsFuncType | undefined {
-    const trackedChangeTypes = ["M", "A", "R", "!"];
+    const trackedChangeTypes = [
+      "MODIFIED",
+      "TRACKED_ADD",
+      "TRACKED_REMOVE",
+      "UNTRACKED_REMOVE",
+    ];
     if (
       context.uncommittedChanges.length === 0 ||
       // some files may become untracked after clean goto

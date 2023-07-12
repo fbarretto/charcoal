@@ -95,7 +95,9 @@ function processCopiesAndRenames(
   );
   const copySources = new Set(files.map((file) => file.copy).filter(notEmpty));
   const removedFiles = new Set(
-    files.filter((file) => file.status === "R").map((file) => file.path)
+    files
+      .filter((file) => file.status === "TRACKED_REMOVE")
+      .map((file) => file.path)
   );
 
   return (
@@ -118,11 +120,11 @@ function processCopiesAndRenames(
           if (removedFiles.has(file.copy)) {
             renamedFrom = file.copy;
             tooltip = `${file.path}\n\nThis file was renamed from ${file.copy}`;
-            visualStatus = "Renamed";
+            visualStatus = "RENAMED";
           } else {
             copiedFrom = file.copy;
             tooltip = `${file.path}\n\nThis file was copied from ${file.copy}`;
-            visualStatus = "Copied";
+            visualStatus = "COPIED";
           }
         }
 
@@ -137,7 +139,10 @@ function processCopiesAndRenames(
         };
       })
       // Hide files that were renamed. This comes after the map since we need to use the index to refer to minimalDisambiguousPaths
-      .filter((file) => !(file.status === "R" && copySources.has(file.path)))
+      .filter(
+        (file) =>
+          !(file.status === "TRACKED_REMOVE" && copySources.has(file.path))
+      )
       .sort((a, b) =>
         a.visualStatus === b.visualStatus
           ? a.path.localeCompare(b.path)
@@ -146,18 +151,18 @@ function processCopiesAndRenames(
   );
 }
 
-type VisualChangedFileType = ChangedFileType | "Renamed" | "Copied";
+type VisualChangedFileType = ChangedFileType | "RENAMED" | "COPIED";
 
 const sortKeyForStatus: Record<VisualChangedFileType, number> = {
-  M: 0,
-  Renamed: 1,
-  A: 2,
-  Copied: 3,
-  R: 4,
-  "!": 5,
-  "?": 6,
-  U: 7,
-  Resolved: 8,
+  MODIFIED: 0,
+  RENAMED: 1,
+  TRACKED_ADD: 2,
+  COPIED: 3,
+  TRACKED_REMOVE: 4,
+  UNTRACKED_REMOVE: 5,
+  UNTRACKED_ADD: 6,
+  UNRESOLVED: 7,
+  RESOLVED: 8,
 };
 
 export function ChangedFiles(
@@ -440,11 +445,11 @@ export const UncommittedChanges = observer(function ({
   const noFilesSelected = deselectedFiles.size === uncommittedChanges.length;
 
   const allConflictsResolved =
-    conflicts?.files?.every((conflict) => conflict.status === "Resolved") ??
+    conflicts?.files?.every((conflict) => conflict.status === "RESOLVED") ??
     false;
 
   // only show addremove button if some files are untracked/missing
-  const UNTRACKED_OR_MISSING = ["?", "!"];
+  const UNTRACKED_OR_MISSING = ["UNTRACKED_ADD", "UNTRACKED_REMOVE"];
   const addremoveButton = uncommittedChanges.some((file) =>
     UNTRACKED_OR_MISSING.includes(file.status)
   ) ? (
@@ -743,8 +748,12 @@ function MergeConflictButtons({
   );
 }
 
-const revertableStatues = new Set(["M", "R", "!"]);
-const conflictStatuses = new Set<ChangedFileType>(["U", "Resolved"]);
+const revertableStatues = new Set([
+  "MODIFIED",
+  "TRACKED_REMOVE",
+  "UNTRACKED_REMOVE",
+]);
+const conflictStatuses = new Set<ChangedFileType>(["UNRESOLVED", "RESOLVED"]);
 function FileActions({
   comparison,
   file,
@@ -801,7 +810,7 @@ function FileActions({
   }
 
   if (comparison.type === ComparisonType.UncommittedChanges) {
-    if (file.status === "A") {
+    if (file.status === "TRACKED_ADD") {
       actions.push(
         <Tooltip
           title={
@@ -822,7 +831,7 @@ function FileActions({
           </VSCodeButton>
         </Tooltip>
       );
-    } else if (file.status === "?") {
+    } else if (file.status === "UNTRACKED_ADD") {
       actions.push(
         <Tooltip title={"Start tracking this file"} key="add" delayMs={1000}>
           <VSCodeButton
@@ -861,7 +870,7 @@ function FileActions({
           </VSCodeButton>
         </Tooltip>
       );
-    } else if (file.status === "Resolved") {
+    } else if (file.status === "RESOLVED") {
       actions.push(
         <Tooltip title={"Mark as unresolved"} key="unresolve-mark">
           <VSCodeButton
@@ -875,7 +884,7 @@ function FileActions({
           </VSCodeButton>
         </Tooltip>
       );
-    } else if (file.status === "U") {
+    } else if (file.status === "UNRESOLVED") {
       actions.push(
         <Tooltip title={"Mark as resolved"} key="resolve-mark">
           <VSCodeButton
@@ -970,13 +979,13 @@ const nameAndIconForFileStatus: Record<
   VisualChangedFileType,
   [string, string]
 > = {
-  A: ["added", "diff-added"],
-  M: ["modified", "diff-modified"],
-  R: ["removed", "diff-removed"],
-  "?": ["ignored", "question"],
-  "!": ["ignored", "warning"],
-  U: ["unresolved", "diff-ignored"],
-  Resolved: ["resolved", "pass"],
-  Renamed: ["modified", "diff-renamed"],
-  Copied: ["added", "diff-added"],
+  TRACKED_ADD: ["added", "diff-added"],
+  MODIFIED: ["modified", "diff-modified"],
+  TRACKED_REMOVE: ["removed", "diff-removed"],
+  UNTRACKED_ADD: ["ignored", "question"],
+  UNTRACKED_REMOVE: ["ignored", "warning"],
+  UNRESOLVED: ["unresolved", "diff-ignored"],
+  RESOLVED: ["resolved", "pass"],
+  RENAMED: ["modified", "diff-renamed"],
+  COPIED: ["added", "diff-added"],
 };

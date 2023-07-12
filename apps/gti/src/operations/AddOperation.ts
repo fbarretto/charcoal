@@ -29,7 +29,8 @@ export class AddOperation extends Operation {
   ): ApplyUncommittedChangesPreviewsFuncType | undefined {
     if (
       context.uncommittedChanges.some(
-        (change) => change.path === this.filePath && change.status !== "?"
+        (change) =>
+          change.path === this.filePath && change.status !== "UNTRACKED_ADD"
       )
     ) {
       return undefined;
@@ -40,7 +41,7 @@ export class AddOperation extends Operation {
     ) => {
       return changes.map((change) =>
         change.path === this.filePath
-          ? { path: change.path, status: "A" }
+          ? { path: change.path, status: "TRACKED_ADD" }
           : change
       );
     };

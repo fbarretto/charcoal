@@ -36,24 +36,24 @@ function interactiveStatusFromStatus(
   status: TStatusFile['status']
 ): ChangedFile['status'] {
   if (status === 'unresolved') {
-    return 'U';
+    return 'UNRESOLVED';
   }
 
   if (status === 'untracked_added') {
-    return '?';
+    return 'UNTRACKED_ADD';
   }
 
   if (status === 'untracked_deleted') {
-    return '!';
+    return 'UNTRACKED_REMOVE';
   }
 
   if (status === 'added') {
-    return 'A';
+    return 'TRACKED_ADD';
   }
 
   if (status === 'deleted') {
-    return 'R';
+    return 'TRACKED_REMOVE';
   }
 
-  return 'M';
+  return 'MODIFIED';
 }

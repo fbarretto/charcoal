@@ -57,7 +57,8 @@ export class ResolveOperation extends Operation {
   ): ApplyUncommittedChangesPreviewsFuncType | undefined {
     if (
       context.uncommittedChanges.some(
-        (change) => change.path === this.filePath && change.status !== "U"
+        (change) =>
+          change.path === this.filePath && change.status !== "UNRESOLVED"
       )
     ) {
       return undefined;
@@ -68,7 +69,7 @@ export class ResolveOperation extends Operation {
     ) => {
       return changes.map((change) =>
         change.path === this.filePath
-          ? { path: change.path, status: "Resolved" }
+          ? { path: change.path, status: "RESOLVED" }
           : change
       );
     };
@@ -80,7 +81,8 @@ export class ResolveOperation extends Operation {
   ): ApplyMergeConflictsPreviewsFuncType | undefined {
     if (
       context.conflicts?.files?.some(
-        (change) => change.path === this.filePath && change.status !== "U"
+        (change) =>
+          change.path === this.filePath && change.status !== "UNRESOLVED"
       ) === true
     ) {
       return undefined;
@@ -97,7 +99,7 @@ export class ResolveOperation extends Operation {
         files:
           conflicts?.files?.map((change) =>
             change.path === this.filePath
-              ? { path: change.path, status: "Resolved" as const }
+              ? { path: change.path, status: "RESOLVED" as const }
               : change
           ) ?? [],
       };

@@ -24,7 +24,7 @@ export class PurgeOperation extends Operation {
   makeOptimisticUncommittedChangesApplier?(
     context: UncommittedChangesPreviewContext
   ): ApplyUncommittedChangesPreviewsFuncType | undefined {
-    const untrackedChangeTypes = ["?"];
+    const untrackedChangeTypes = ["UNTRACKED_ADD"];
     if (
       context.uncommittedChanges.length === 0 ||
       // no untracked files should be left

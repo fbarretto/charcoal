@@ -37,8 +37,8 @@ export class AddRemoveOperation extends Operation {
       context.uncommittedChanges.every(
         (change) =>
           (allFiles || this.paths.includes(change.path)) &&
-          change.status !== "?" &&
-          change.status !== "!"
+          change.status !== "UNTRACKED_ADD" &&
+          change.status !== "UNTRACKED_REMOVE"
       )
     ) {
       return undefined;
@@ -52,10 +52,10 @@ export class AddRemoveOperation extends Operation {
           ? {
               path: change.path,
               status:
-                change.status === "?"
-                  ? "A"
-                  : change.status === "!"
-                  ? "R"
+                change.status === "UNTRACKED_ADD"
+                  ? "TRACKED_ADD"
+                  : change.status === "UNTRACKED_REMOVE"
+                  ? "TRACKED_REMOVE"
                   : change.status,
             }
           : change
