@@ -2,6 +2,7 @@
 xcuserdata/
 **/node_modules
 .yarn/*
+.turbo/*
 !.yarn/releases
 !.yarn/plugins
 !.yarn/sdks
