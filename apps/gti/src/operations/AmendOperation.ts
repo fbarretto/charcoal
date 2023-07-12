@@ -12,14 +12,18 @@ export class AmendOperation extends Operation {
    * @param filePathsToAmend if provided, only these file paths will be included in the amend operation. If undefined, ALL uncommitted changes are included. Paths should be relative to repo root.
    * @param message if provided, update commit description to use this title & description
    */
-  constructor(private message?: string) {
+  constructor(private method: "commit" | "amend", private message?: string) {
     super("AmendOperation");
   }
 
   static opName = "Amend";
 
   getArgs() {
-    return ["commit", "amend", "-n"];
+    if (this.method === "commit") {
+      return ["commit", "create", "-m", this.message || ""];
+    }
+
+    return ["commit", "amend", "-m", this.message || ""];
   }
 
   makeOptimisticUncommittedChangesApplier?(

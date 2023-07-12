@@ -72,6 +72,7 @@ import { selectedCommits } from "./selection";
 import {
   latestHeadCommit,
   operationList,
+  repositoryInfo,
   uncommittedChangesFetchError,
   useRunOperation,
 } from "./serverAPIState";
@@ -410,6 +411,7 @@ export const UncommittedChanges = observer(function ({
   // TODO: use treeWithPreviews instead, and update CommitOperation
   const headCommit = latestHeadCommit.get();
   const schema = commitMessageFieldsSchema.get();
+  const repoInfo = repositoryInfo.get();
 
   const conflicts = optimisticMergeConflicts.get();
 
@@ -671,7 +673,13 @@ export const UncommittedChanges = observer(function ({
                 appearance="icon"
                 data-testid="uncommitted-changes-quick-amend-button"
                 onClick={() => {
-                  runOperation(new AmendOperation());
+                  runOperation(
+                    new AmendOperation(
+                      repoInfo?.type === "success"
+                        ? repoInfo.preferredBranchEdit
+                        : "amend"
+                    )
+                  );
                 }}
               >
                 <Icon slot="start" icon="debug-step-into" />

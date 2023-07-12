@@ -470,7 +470,12 @@ const ActionsBar = observer(
 
       const operation = isCommitMode
         ? new CommitOperation(message, commit.branch)
-        : new AmendOperation(message);
+        : new AmendOperation(
+            repoInfo?.type === "success"
+              ? repoInfo.preferredBranchEdit
+              : "amend",
+            message
+          );
 
       void clearEditedCommitMessage(/* skip confirmation */ true);
       // reset to amend mode now that the commit has been made
