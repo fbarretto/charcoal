@@ -1,7 +1,7 @@
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react-lite";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { observableConfig } from "../config_observable";
 import { useCommand } from "../GTIShortcuts";
 import { Icon } from "../Icon";
@@ -11,34 +11,30 @@ import "./GettingStarted.scss";
 
 export const hasShownGettingStarted = observableConfig<boolean | null>({
   config: "gti.hasShownGettingStarted",
-  default: false,
+  default: null,
+  defaultAfterNetworkReturn: false,
 });
 
 export const GettingStartedModal = observer(() => {
   const hasShownAlready = hasShownGettingStarted.get();
-  const [isShowingStable, setIsShowingStable] = useState(false);
 
-  useEffect(() => {
-    if (hasShownAlready === false) {
-      setIsShowingStable(true);
-      runInAction(() => {
-        hasShownGettingStarted.set(true);
-      });
-    } else {
-      setIsShowingStable(false);
-    }
-  }, [hasShownAlready]);
-  if (!isShowingStable) {
+  if (hasShownAlready || hasShownAlready === null) {
     return null;
   }
+
   return <DismissableModal />;
 });
 
 const DismissableModal = observer(() => {
   const [visible, setVisible] = useState(true);
-  useCommand("Escape", () => {
+  const dismiss = useCallback(() => {
     setVisible(false);
-  });
+    runInAction(() => {
+      hasShownGettingStarted.set(true);
+    });
+  }, [setVisible, hasShownGettingStarted]);
+
+  useCommand("Escape", dismiss);
 
   if (!visible) {
     return null;
@@ -46,11 +42,7 @@ const DismissableModal = observer(() => {
 
   return (
     <Modal className="getting-started-modal">
-      <DismissButton
-        dismiss={() => {
-          setVisible(false);
-        }}
-      />
+      <DismissButton dismiss={dismiss} />
       <div className="content">
         <header>
           <h1>Welcome to the GTI beta 🎉</h1>
@@ -92,9 +84,7 @@ const DismissableModal = observer(() => {
           <VSCodeButton
             key="help-button"
             appearance="secondary"
-            onClick={() => {
-              setVisible(false);
-            }}
+            onClick={dismiss}
           >
             <>Let's go</>
           </VSCodeButton>

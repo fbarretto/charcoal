@@ -7,11 +7,15 @@ import { observableBoxWithInitializers } from "./lib/mobx-recoil/observable_box_
 export const observableConfig = <T extends Json>({
   config,
   default: defaultValue,
+  defaultAfterNetworkReturn: defaultAfterNetworkReturn,
 }: {
   config: ConfigName;
   default: T;
-}) =>
-  observableBoxWithInitializers<T>({
+  defaultAfterNetworkReturn?: T;
+}) => {
+  let networkHasReturned = false;
+
+  return observableBoxWithInitializers<T>({
     default: defaultValue,
     setter: (value) => {
       serverAPI.postMessage({
@@ -26,7 +30,14 @@ export const observableConfig = <T extends Json>({
           if (event.name === config) {
             if (event.value != null) {
               setSelf(JSON.parse(event.value));
+            } else if (
+              networkHasReturned === false &&
+              typeof defaultAfterNetworkReturn !== "undefined"
+            ) {
+              setSelf(defaultAfterNetworkReturn);
             }
+
+            networkHasReturned = true;
           }
         });
         return () => disposable.dispose();
@@ -42,3 +53,4 @@ export const observableConfig = <T extends Json>({
       },
     ],
   });
+};
