@@ -698,7 +698,7 @@ function isBranchDownstackSubmittable({
     return { canDownstackSubmit: "TRUE", impactedBranches: [] };
   }
 
-  if (branch.partOfTrunk || prInfo?.state !== "OPEN") {
+  if (branch.partOfTrunk || (prInfo && prInfo?.state !== "OPEN")) {
     return {
       canDownstackSubmit: "FALSE",
     };
