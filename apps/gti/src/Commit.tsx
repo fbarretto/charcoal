@@ -132,19 +132,19 @@ export const Commit = memo(
       const contextMenu = useContextMenu(() => {
         const items = [
           {
-            label: <>Copy Commit Hash "{short(commit?.branch)}"</>,
+            label: <>Copy Branch Name "{short(commit?.branch)}"</>,
             onClick: () => platform.clipboardCopy(commit.branch),
           },
         ];
         if (!isPublic) {
           items.push({
-            label: <>View Changes in Commit</>,
+            label: <>View Changes in Branch</>,
             onClick: viewChangesCallback,
           });
         }
         if (!isPublic && !actionsPrevented) {
           items.push({
-            label: <>Hide Commit and Descendents</>,
+            label: <>Hide Branch and Descendents</>,
             onClick: () =>
               operationBeingPreviewed.set(new HideOperation(commit.branch)),
           });

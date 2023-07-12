@@ -73,7 +73,7 @@ const GTIDrawers = observer(() => {
       rightLabel={
         <>
           <Icon icon="edit" />
-          <>Commit Info</>
+          <>Branch Info</>
         </>
       }
       right={<CommitInfoSidebar />}
