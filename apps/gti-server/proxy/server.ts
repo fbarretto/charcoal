@@ -12,7 +12,7 @@ import path from "path";
 import urlModule from "url";
 import WebSocket from "ws";
 
-const ossSmartlogDir = path.join(__dirname, "../../gti");
+const frontendDir = path.join(__dirname, "../../../gti");
 
 export type StartServerArgs = {
   port: number;
@@ -50,7 +50,7 @@ export function startServer({
     try {
       const manifest = JSON.parse(
         fs.readFileSync(
-          path.join(ossSmartlogDir, "build/asset-manifest.json"),
+          path.join(frontendDir, "build/asset-manifest.json"),
           "utf-8"
         )
       ) as { files: Array<string> };
@@ -113,7 +113,7 @@ export function startServer({
           let contents: string | Buffer;
           try {
             contents = await fs.promises.readFile(
-              path.join(ossSmartlogDir, "build", relativePath)
+              path.join(frontendDir, "build", relativePath)
             );
           } catch (e: unknown) {
             res.writeHead(500, { "Content-Type": "text/plain" });
@@ -263,7 +263,7 @@ function getSearchParams(url: string): Map<string, string> {
 }
 
 const extensionToMIMEType: { [key: string]: string } = {
-  css: "text.scss",
+  css: "text/css",
   html: "text/html",
   js: "text/javascript",
   ttf: "font/ttf",

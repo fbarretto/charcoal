@@ -11,10 +11,15 @@
     "importsNotUsedAsValues": "error",
     "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
-    "module": "esnext",
+    "module": "commonjs",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "declaration": true,
+    "declarationMap": true
   },
   // As explained on:
   // https://webpack.js.org/configuration/configuration-languages/
