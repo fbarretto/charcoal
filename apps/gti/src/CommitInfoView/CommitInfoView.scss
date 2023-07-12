@@ -124,6 +124,10 @@
   margin-top: 0;
 }
 
+.commit-info-section.commit-info-title-empty {
+  margin-top: 0;
+}
+
 .commit-info-view-toolbar-bottom:before {
   /* fade to bg color just above toolbar, to hint that you can keep scrolling */
   background: linear-gradient(0deg, var(--background), transparent);

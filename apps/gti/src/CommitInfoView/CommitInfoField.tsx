@@ -7,43 +7,87 @@ import { CommitInfoTextField } from "./TextField";
 import { Section, SmallCapsTitle } from "./utils";
 import { Fragment } from "react";
 import { Icon } from "../Icon";
+import { observer } from "mobx-react-lite";
 
-export function CommitInfoField({
-  field,
-  isBeingEdited,
-  readonly,
-  content,
-  editedField,
-  startEditingField,
-  setEditedField,
-  extra,
-  autofocus,
-}: {
-  field: FieldConfig;
-  isBeingEdited: boolean;
-  readonly: boolean;
-  startEditingField: () => void;
-  content?: string | Array<string>;
-  editedField: string | Array<string> | undefined;
-  setEditedField: (value: string) => unknown;
-  extra?: JSX.Element;
-  autofocus?: boolean;
-}): JSX.Element | null {
-  const editedFieldContent =
-    editedField == null
-      ? ""
-      : Array.isArray(editedField)
-      ? editedField.join(", ")
-      : editedField;
-  if (field.type === "title") {
-    return (
-      <>
-        {isBeingEdited ? (
-          <Section className="commit-info-title-field-section">
-            <SmallCapsTitle>
-              <Icon icon="milestone" />
-              <>{field.key}</>
-            </SmallCapsTitle>
+export const CommitInfoField = observer(
+  ({
+    field,
+    isBeingEdited,
+    readonly,
+    content,
+    editedField,
+    startEditingField,
+    setEditedField,
+    extra,
+    autofocus,
+  }: {
+    field: FieldConfig;
+    isBeingEdited: boolean;
+    readonly: boolean;
+    startEditingField: () => void;
+    content?: string | Array<string>;
+    editedField: string | Array<string> | undefined;
+    setEditedField: (value: string) => unknown;
+    extra?: JSX.Element;
+    autofocus?: boolean;
+  }): JSX.Element | null => {
+    const editedFieldContent =
+      editedField == null
+        ? ""
+        : Array.isArray(editedField)
+        ? editedField.join(", ")
+        : editedField;
+    if (field.type === "title") {
+      return (
+        <>
+          {isBeingEdited ? (
+            <Section className="commit-info-title-field-section">
+              <SmallCapsTitle>
+                <Icon icon="milestone" />
+                <>{field.key}</>
+              </SmallCapsTitle>
+              <CommitInfoTextArea
+                kind={field.type}
+                name={field.key}
+                autoFocus={autofocus ?? false}
+                editedMessage={editedFieldContent}
+                setEditedCommitMessage={setEditedField}
+              />
+            </Section>
+          ) : (
+            <ClickToEditField
+              startEditingField={readonly ? undefined : startEditingField}
+              kind={field.type}
+              fieldKey={field.key}
+            >
+              <span>{content || <span className="subtle">Untitled</span>}</span>
+              {readonly ? null : (
+                <span className="hover-edit-button">
+                  <Icon icon="edit" />
+                </span>
+              )}
+            </ClickToEditField>
+          )}
+          {extra}
+        </>
+      );
+    } else {
+      const Wrapper = field.type === "field" ? Fragment : SeeMoreContainer;
+      return isBeingEdited ? (
+        <Section className="commit-info-field-section">
+          <SmallCapsTitle>
+            <Icon icon={field.icon} />
+            {field.key}
+          </SmallCapsTitle>
+          {field.type === "field" ? (
+            <CommitInfoTextField
+              name={field.key}
+              autoFocus={autofocus ?? false}
+              editedMessage={editedFieldContent}
+              setEditedCommitMessage={setEditedField}
+              typeaheadKind={field.typeaheadKind}
+            />
+          ) : (
             <CommitInfoTextArea
               kind={field.type}
               name={field.key}
@@ -51,89 +95,48 @@ export function CommitInfoField({
               editedMessage={editedFieldContent}
               setEditedCommitMessage={setEditedField}
             />
-          </Section>
-        ) : (
-          <ClickToEditField
-            startEditingField={readonly ? undefined : startEditingField}
-            kind={field.type}
-            fieldKey={field.key}
-          >
-            <span>{content}</span>
-            {readonly ? null : (
-              <span className="hover-edit-button">
-                <Icon icon="edit" />
-              </span>
-            )}
-          </ClickToEditField>
-        )}
-        {extra}
-      </>
-    );
-  } else {
-    const Wrapper = field.type === "field" ? Fragment : SeeMoreContainer;
-    return isBeingEdited ? (
-      <Section className="commit-info-field-section">
-        <SmallCapsTitle>
-          <Icon icon={field.icon} />
-          {field.key}
-        </SmallCapsTitle>
-        {field.type === "field" ? (
-          <CommitInfoTextField
-            name={field.key}
-            autoFocus={autofocus ?? false}
-            editedMessage={editedFieldContent}
-            setEditedCommitMessage={setEditedField}
-            typeaheadKind={field.typeaheadKind}
-          />
-        ) : (
-          <CommitInfoTextArea
-            kind={field.type}
-            name={field.key}
-            autoFocus={autofocus ?? false}
-            editedMessage={editedFieldContent}
-            setEditedCommitMessage={setEditedField}
-          />
-        )}
-      </Section>
-    ) : (
-      <Section>
-        <Wrapper>
-          <ClickToEditField
-            startEditingField={readonly ? undefined : startEditingField}
-            kind={field.type}
-            fieldKey={field.key}
-          >
-            <SmallCapsTitle>
-              <Icon icon={field.icon} />
-              <>{field.key}</>
-              {readonly ? null : (
-                <span className="hover-edit-button">
-                  <Icon icon="edit" />
+          )}
+        </Section>
+      ) : (
+        <Section>
+          <Wrapper>
+            <ClickToEditField
+              startEditingField={readonly ? undefined : startEditingField}
+              kind={field.type}
+              fieldKey={field.key}
+            >
+              <SmallCapsTitle>
+                <Icon icon={field.icon} />
+                <>{field.key}</>
+                {readonly ? null : (
+                  <span className="hover-edit-button">
+                    <Icon icon="edit" />
+                  </span>
+                )}
+              </SmallCapsTitle>
+              {content && content !== "" ? (
+                <div>{content}</div>
+              ) : (
+                <span className="empty-description subtle">
+                  {readonly ? (
+                    <>
+                      <> No {field.key}</>
+                    </>
+                  ) : (
+                    <>
+                      <Icon icon="add" />
+                      <> Click to add {field.key}</>
+                    </>
+                  )}
                 </span>
               )}
-            </SmallCapsTitle>
-            {content ? (
-              <div>{content}</div>
-            ) : (
-              <span className="empty-description subtle">
-                {readonly ? (
-                  <>
-                    <> No {field.key}</>
-                  </>
-                ) : (
-                  <>
-                    <Icon icon="add" />
-                    <> Click to add {field.key}</>
-                  </>
-                )}
-              </span>
-            )}
-          </ClickToEditField>
-        </Wrapper>
-      </Section>
-    );
+            </ClickToEditField>
+          </Wrapper>
+        </Section>
+      );
+    }
   }
-}
+);
 
 function ClickToEditField({
   children,
