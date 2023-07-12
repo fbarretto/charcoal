@@ -46,6 +46,10 @@ export async function showSurvey(
   survey: SurveyT,
   context: TContext
 ): Promise<void> {
+  if (process.env.GRAPHITE_INTERACTIVE) {
+    return;
+  }
+
   const responses: TSurveyResponse = {
     timestamp: Date.now(),
     responses: [],

@@ -87,6 +87,7 @@ async function graphiteInternal(
         meta: {
           user: contextLite.userEmail ?? 'NotFound',
           version: version,
+          gtInteractive: process.env.GRAPHITE_INTERACTIVE ? 'true' : 'false',
           processArgv: process.argv.join(' '),
         },
       },

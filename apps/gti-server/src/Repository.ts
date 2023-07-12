@@ -867,6 +867,7 @@ function getExecParams(
       // override any custom aliases a user has defined.
       GT_AUTOMATION: "true",
       EDITOR: undefined,
+      GRAPHITE_INTERACTIVE: "true",
     },
     cwd,
   };
