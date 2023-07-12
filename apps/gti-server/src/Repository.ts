@@ -31,7 +31,6 @@ import { TypedEventEmitter } from "@withgraphite/gti-shared";
 import { notEmpty, unwrap } from "@withgraphite/gti-shared";
 import { CommandRunner } from "@withgraphite/gti-shared";
 import execa from "execa";
-import os from "os";
 import path from "path";
 import type { ServerSideTracker } from "./analytics/serverSideTracker";
 import {
@@ -49,7 +48,7 @@ export const COMMIT_END_MARK = "<<COMMIT_END_MARK>>";
 export const NULL_CHAR = "\0";
 const MAX_SIMULTANEOUS_CAT_CALLS = 4;
 
-const MIN_REQUIRED_CLI_VERSION = "0.20.21";
+const MIN_REQUIRED_CLI_VERSION = "0.20.23";
 
 type ConflictFileData = {
   contents: string;
