@@ -528,16 +528,32 @@ export default class ServerToClientAPI {
         break;
       }
       case "fetchRepoMessage": {
-        const diff: Promise<Result<string>> = repo
+        const repoMessage: Promise<Result<string>> = repo
           .runCommand(["interactive", "repo-message"])
           .then((o) => ({ value: o.stdout }))
           .catch((error) => {
             logger?.error("error fetching repo message", error.toString());
             return { error };
           });
-        void diff.then((data) =>
+        void repoMessage.then((data) =>
           this.postMessage({
             type: "fetchedRepoMessage",
+            message: data.value || "",
+          })
+        );
+        break;
+      }
+      case "fetchUpgradePrompt": {
+        const upgradePrompt: Promise<Result<string>> = repo
+          .runCommand(["interactive", "upgrade-prompt"])
+          .then((o) => ({ value: o.stdout }))
+          .catch((error) => {
+            logger?.error("error fetching upgrade prompt", error.toString());
+            return { error };
+          });
+        void upgradePrompt.then((data) =>
+          this.postMessage({
+            type: "fetchedUpgradePrompt",
             message: data.value || "",
           })
         );

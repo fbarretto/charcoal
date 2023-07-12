@@ -32,6 +32,7 @@ import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 import { observer } from "mobx-react-lite";
 import "./CommitTreeList.scss";
 import { BannerNotice } from "./BannerNotice";
+import { repoMessage } from "./repoMessage";
 
 export const CommitTreeList = observer(() => {
   useMarkOperationsCompleted();
@@ -40,13 +41,14 @@ export const CommitTreeList = observer(() => {
 
   const { trees } = treeWithPreviews.get();
   const fetchError = commitFetchError.get();
+  const repoMessageValue = repoMessage.get();
   return fetchError == null && trees.length === 0 ? (
     <Center>
       <LargeSpinner />
     </Center>
   ) : (
     <>
-      <BannerNotice title={"Hello"} />
+      {repoMessageValue ? <BannerNotice title={repoMessageValue} /> : null}
       {fetchError ? <CommitFetchError error={fetchError} /> : null}
       <div
         className="commit-tree-root commit-group with-vertical-line"

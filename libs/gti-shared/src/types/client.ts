@@ -338,6 +338,9 @@ export type ClientToServerMessage =
   | {
       type: "fetchRepoMessage";
     }
+  | {
+      type: "fetchUpgradePrompt";
+    }
   | { type: "getConfig"; name: ConfigName }
   | { type: "setConfig"; name: ConfigName; value: string }
   | { type: "changeCwd"; cwd: string }
@@ -402,6 +405,10 @@ export type ServerToClientMessage =
     }
   | {
       type: "fetchedRepoMessage";
+      message: string;
+    }
+  | {
+      type: "fetchedUpgradePrompt";
       message: string;
     }
   | { type: "uploadFileResult"; id: string; result: Result<string> }

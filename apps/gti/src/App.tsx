@@ -30,6 +30,8 @@ import { action } from "mobx";
 import { observer } from "mobx-react-lite";
 import "./index.scss";
 import { gtiDrawerState } from "./drawerState";
+import { upgradePrompt } from "./upgradePrompt";
+import { BannerNotice } from "./BannerNotice";
 
 export default function App() {
   return (
@@ -85,6 +87,7 @@ const GTIDrawers = observer(() => {
 
 const MainContent = observer(() => {
   const repoInfo = repositoryInfo.get();
+  const upgradePromptValue = upgradePrompt.get();
 
   const ref = useMainContentWidth();
 
@@ -92,6 +95,7 @@ const MainContent = observer(() => {
     <div className="main-content-area" ref={ref}>
       <TopBar />
       <TopLevelErrors />
+      {upgradePromptValue ? <BannerNotice title={upgradePromptValue} /> : null}
       {repoInfo != null && repoInfo.type !== "success" ? (
         <GTINullState repoError={repoInfo} />
       ) : (
