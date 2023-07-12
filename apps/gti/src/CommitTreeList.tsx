@@ -31,6 +31,7 @@ import { DOCUMENTATION_DELAY, Tooltip } from "./Tooltip";
 import type { BranchName } from "@withgraphite/gti-cli-shared-types";
 import { observer } from "mobx-react-lite";
 import "./CommitTreeList.scss";
+import { BannerNotice } from "./BannerNotice";
 
 export const CommitTreeList = observer(() => {
   useMarkOperationsCompleted();
@@ -45,6 +46,7 @@ export const CommitTreeList = observer(() => {
     </Center>
   ) : (
     <>
+      <BannerNotice title={"Hello"} />
       {fetchError ? <CommitFetchError error={fetchError} /> : null}
       <div
         className="commit-tree-root commit-group with-vertical-line"

@@ -527,6 +527,22 @@ export default class ServerToClientAPI {
           });
         break;
       }
+      case "fetchRepoMessage": {
+        const diff: Promise<Result<string>> = repo
+          .runCommand(["interactive", "repo-message"])
+          .then((o) => ({ value: o.stdout }))
+          .catch((error) => {
+            logger?.error("error fetching repo message", error.toString());
+            return { error };
+          });
+        void diff.then((data) =>
+          this.postMessage({
+            type: "fetchedRepoMessage",
+            message: data.value || "",
+          })
+        );
+        break;
+      }
       case "setConfig": {
         logger.info("set config", data.name, data.value);
         repo.setConfig("user", data.name, data.value).catch((err) => {

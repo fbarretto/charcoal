@@ -335,6 +335,9 @@ export type ClientToServerMessage =
   | {
       type: "refresh";
     }
+  | {
+      type: "fetchRepoMessage";
+    }
   | { type: "getConfig"; name: ConfigName }
   | { type: "setConfig"; name: ConfigName; value: string }
   | { type: "changeCwd"; cwd: string }
@@ -396,6 +399,10 @@ export type ServerToClientMessage =
   | {
       type: "fetchedDiffSummaries";
       summaries: Result<Map<PRNumber, DiffSummary>>;
+    }
+  | {
+      type: "fetchedRepoMessage";
+      message: string;
     }
   | { type: "uploadFileResult"; id: string; result: Result<string> }
   | { type: "comparison"; comparison: Comparison; data: ComparisonData }
