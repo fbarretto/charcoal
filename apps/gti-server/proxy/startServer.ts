@@ -15,7 +15,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
-const DEFAULT_PORT = "3001";
+export const DEFAULT_PORT = "3001";
 
 const HELP_MESSAGE = `\
 usage: gti [--port PORT]

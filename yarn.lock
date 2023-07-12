@@ -4601,6 +4601,7 @@ __metadata:
     "@typescript-eslint/parser": ^5.27.1
     "@withgraphite/graphite-cli-routes": ^0.24.0
     "@withgraphite/gti-cli-shared-types": "workspace:*"
+    "@withgraphite/gti-server": "workspace:*"
     "@withgraphite/retype": ^0.3.11
     "@withgraphite/retyped-routes": ^0.3.1
     chai: ^4.3.6
@@ -4640,7 +4641,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@withgraphite/gti-server@workspace:apps/gti-server":
+"@withgraphite/gti-server@workspace:*, @withgraphite/gti-server@workspace:apps/gti-server":
   version: 0.0.0-use.local
   resolution: "@withgraphite/gti-server@workspace:apps/gti-server"
   dependencies:

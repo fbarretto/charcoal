@@ -6,6 +6,8 @@ import { fileLogger, stdoutLogger } from "./logger";
 import { browserServerPlatform } from "./serverPlatform";
 import ServerToClientAPI from "./ServerToClientAPI";
 
+export { DEFAULT_PORT, runProxyMain } from "../proxy/startServer";
+
 export interface ClientConnection {
   /**
    * Used to send a message from the server to the client.

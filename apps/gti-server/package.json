@@ -2,7 +2,8 @@
   "name": "@withgraphite/gti-server",
   "version": "0.0.0",
   "description": "gti-server",
-  "main": "dist/gti-server/src/index.js",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "private": true,
   "devDependencies": {
     "@types/fb-watchman": "^2.0.1",
