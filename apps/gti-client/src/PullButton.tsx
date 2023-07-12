@@ -104,12 +104,7 @@ export const PullButton = observer(() => {
           onClick={() => runOperation(currentChoice.getOperation())}
           onChangeSelected={(choice) => pullButtonChoiceKey.set(choice.id)}
           selected={currentChoice}
-          icon={
-            <Icon
-              slot="start"
-              icon={isRunningPull ? "loading" : "cloud-download"}
-            />
-          }
+          icon={<Icon slot="start" icon={isRunningPull ? "loading" : "repo"} />}
         />
         {lastSync && <RelativeDate date={lastSync} useShortVariant />}
       </div>

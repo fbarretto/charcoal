@@ -16,6 +16,7 @@ import { Icon } from "./Icon";
 
 import "./TopBar.scss";
 import { observer } from "mobx-react-lite";
+import { DownloadCommitsTooltipButton } from "./DownloadCommitsMenu";
 
 export const TopBar = observer(() => {
   const loaded = haveCommitsLoadedYet.get();
@@ -28,6 +29,7 @@ export const TopBar = observer(() => {
       <span className="button-group">
         {canPush && <PullButton />}
         <CwdSelector />
+        <DownloadCommitsTooltipButton />
         <FetchingDataIndicator />
       </span>
       <span className="button-group">

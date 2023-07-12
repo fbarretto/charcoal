@@ -20,6 +20,7 @@ export type TrackEventName =
   | "CreateEmptyInitialCommit"
   | "DeleteBranchOperation"
   | "DiscardOperation"
+  | "DownstackGetOperation"
   | "DownstackSubmitOperation"
   | "ForgetOperation"
   | "GettingStartedInteraction"
