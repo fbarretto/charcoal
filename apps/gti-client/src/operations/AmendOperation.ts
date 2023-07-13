@@ -20,7 +20,7 @@ export class AmendOperation extends Operation {
 
   getArgs() {
     if (this.method === "commit") {
-      return ["commit", "create", "-m", this.message || ""];
+      return ["commit", "create", "-m", this.message || "Untitled commit"];
     }
 
     return [
