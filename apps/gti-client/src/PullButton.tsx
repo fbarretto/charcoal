@@ -15,16 +15,43 @@ import type { Operation } from "./operations/Operation";
 import { VSCodeButtonDropdown } from "./VSCodeButtonDropdown";
 import { observableConfig } from "./config_observable";
 
-const DEFAULT_PULL_BUTTON = {
-  id: "pull",
-  label: <>Pull</>,
-  getOperation: () => new PullOperation(),
-  isRunning: (op: Operation) => op instanceof PullOperation,
-  tooltip: "Fetch latest repository and branch information from remote.",
-};
+const PULL_OPTIONS = [
+  {
+    id: "pull",
+    label: <>Pull</>,
+    getOperation: () =>
+      new PullOperation({ restack: false, deleteBranches: false }),
+    isRunning: (op: Operation) => op instanceof PullOperation,
+    tooltip: "Fetch latest repository and branch information from remote.",
+  },
+  {
+    id: "pr",
+    label: <>Pull and restack</>,
+    getOperation: () =>
+      new PullOperation({ restack: true, deleteBranches: false }),
+    isRunning: (op: Operation) => op instanceof PullOperation,
+    tooltip: "Fetch latest repository and branch information from remote.",
+  },
+  {
+    id: "pd",
+    label: <>Pull and delete merged/closed branches</>,
+    getOperation: () =>
+      new PullOperation({ restack: false, deleteBranches: true }),
+    isRunning: (op: Operation) => op instanceof PullOperation,
+    tooltip: "Fetch latest repository and branch information from remote.",
+  },
+  {
+    id: "prd",
+    label: <>Pull, restack, and delete merged/closed branches</>,
+    getOperation: () =>
+      new PullOperation({ restack: true, deleteBranches: true }),
+    isRunning: (op: Operation) => op instanceof PullOperation,
+    tooltip: "Fetch latest repository and branch information from remote.",
+  },
+];
 const pullButtonChoiceKey = observableConfig({
   config: "gti.pull-button-choice",
-  default: DEFAULT_PULL_BUTTON.id,
+  default: PULL_OPTIONS[0].id,
 });
 
 export type PullButtonOption = {
@@ -49,13 +76,9 @@ export const PullButton = observer(() => {
 
   const hasUncommittedChanges = latestUncommittedChanges.get().length > 0;
 
-  const pullButtonOptions: Array<PullButtonOption> = [];
-  pullButtonOptions.push(DEFAULT_PULL_BUTTON);
-
   const currentChoice =
-    pullButtonOptions.find(
-      (option) => option.id === pullButtonChoiceKey.get()
-    ) ?? pullButtonOptions[0];
+    PULL_OPTIONS.find((option) => option.id === pullButtonChoiceKey.get()) ??
+    PULL_OPTIONS[0];
 
   let tooltip =
     currentChoice.tooltip +
@@ -77,7 +100,7 @@ export const PullButton = observer(() => {
         <VSCodeButtonDropdown
           appearance="secondary"
           buttonDisabled={!!isRunningPull || hasUncommittedChanges}
-          options={pullButtonOptions}
+          options={PULL_OPTIONS}
           onClick={() => runOperation(currentChoice.getOperation())}
           onChangeSelected={(choice) => pullButtonChoiceKey.set(choice.id)}
           selected={currentChoice}
