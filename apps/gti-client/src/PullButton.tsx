@@ -6,12 +6,34 @@ import {
   latestUncommittedChanges,
   useRunOperation,
 } from "./serverAPIState";
-import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { Icon } from "./Icon";
 
 import "./PullButton.scss";
 import { observer } from "mobx-react-lite";
-import { useIsOperationRunningOrQueued } from "./previews";
+import { useMostRecentPendingOperation } from "./previews";
+import type { Operation } from "./operations/Operation";
+import { VSCodeButtonDropdown } from "./VSCodeButtonDropdown";
+import { observableConfig } from "./config_observable";
+
+const DEFAULT_PULL_BUTTON = {
+  id: "pull",
+  label: <>Pull</>,
+  getOperation: () => new PullOperation(),
+  isRunning: (op: Operation) => op instanceof PullOperation,
+  tooltip: "Fetch latest repository and branch information from remote.",
+};
+const pullButtonChoiceKey = observableConfig({
+  config: "gti.pull-button-choice",
+  default: DEFAULT_PULL_BUTTON.id,
+});
+
+export type PullButtonOption = {
+  id: string;
+  label: React.ReactNode;
+  getOperation: () => Operation;
+  isRunning: (op: Operation) => boolean;
+  tooltip: string;
+};
 
 export const PullButton = observer(() => {
   const runOperation = useRunOperation();
@@ -25,38 +47,47 @@ export const PullButton = observer(() => {
           ...latestCommits.map((commit) => new Date(commit.info.date).valueOf())
         );
 
-  let title =
-    "Pull trunk branch from remote." +
+  const hasUncommittedChanges = latestUncommittedChanges.get().length > 0;
+
+  const pullButtonOptions: Array<PullButtonOption> = [];
+  pullButtonOptions.push(DEFAULT_PULL_BUTTON);
+
+  const currentChoice =
+    pullButtonOptions.find(
+      (option) => option.id === pullButtonChoiceKey.get()
+    ) ?? pullButtonOptions[0];
+
+  let tooltip =
+    currentChoice.tooltip +
     "\n\n" +
     (lastSync == null
       ? ""
       : `Latest fetched commit is ${relativeDate(lastSync, {})} old`);
 
-  const isRunningPull = useIsOperationRunningOrQueued(PullOperation);
-  if (isRunningPull === "queued") {
-    title += "\n\n" + "Pull is currently running.";
-  } else if (isRunningPull === "running") {
-    title += "\n\n" + "Pull is already scheduled.";
+  const pendingOperation = useMostRecentPendingOperation();
+  const isRunningPull =
+    pendingOperation != null && currentChoice.isRunning(pendingOperation);
+  if (isRunningPull) {
+    tooltip += "\n\n" + "Pull is already running.";
   }
 
-  const hasUncommittedChanges = latestUncommittedChanges.get().length > 0;
-
   return (
-    <Tooltip placement="bottom" delayMs={DOCUMENTATION_DELAY} title={title}>
+    <Tooltip placement="bottom" delayMs={DOCUMENTATION_DELAY} title={tooltip}>
       <div className="pull-info">
-        <VSCodeButton
+        <VSCodeButtonDropdown
           appearance="secondary"
-          disabled={!!isRunningPull || hasUncommittedChanges}
-          onClick={() => {
-            runOperation(new PullOperation());
-          }}
-        >
-          <Icon
-            slot="start"
-            icon={isRunningPull ? "loading" : "cloud-download"}
-          />
-          <>Pull</>
-        </VSCodeButton>
+          buttonDisabled={!!isRunningPull || hasUncommittedChanges}
+          options={pullButtonOptions}
+          onClick={() => runOperation(currentChoice.getOperation())}
+          onChangeSelected={(choice) => pullButtonChoiceKey.set(choice.id)}
+          selected={currentChoice}
+          icon={
+            <Icon
+              slot="start"
+              icon={isRunningPull ? "loading" : "cloud-download"}
+            />
+          }
+        />
         {lastSync && <RelativeDate date={lastSync} useShortVariant />}
       </div>
     </Tooltip>

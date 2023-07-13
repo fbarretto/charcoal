@@ -3,7 +3,6 @@ import type {
   BranchName,
   ChangedFiles,
   ChangedFile,
-  PRNumber,
   RepoRelativePath,
 } from "@withgraphite/gti-cli-shared-types";
 
@@ -342,6 +341,7 @@ export type ConfigName =
   | "gti.changedFilesDisplayType"
   | "gti.hasShownGettingStarted"
   // sapling config prefers foo-bar naming.
+  | "gti.pull-button-choice"
   | "gti.experimental-features";
 
 export type ClientToServerMessage =
