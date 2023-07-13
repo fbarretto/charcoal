@@ -25,11 +25,20 @@ type TSubmittedPR = {
 export async function submitPullRequest(
   args: {
     submissionInfo: TPRSubmissionInfo;
+    mergeWhenReady: boolean;
+    trunkBranchName: string;
     cliAuthToken: string;
   },
   context: TContext
 ): Promise<void> {
-  const pr = (await requestServerToSubmitPRs(args.submissionInfo, context))[0];
+  const pr = (
+    await requestServerToSubmitPRs({
+      submissionInfo: args.submissionInfo,
+      mergeWhenReady: args.mergeWhenReady,
+      trunkBranchName: args.trunkBranchName,
+      context,
+    })
+  )[0];
 
   if (pr.response.status === 'error') {
     throw new ExitFailedError(
@@ -74,16 +83,25 @@ const UNAUTHORIZED_RESPONSE_CODE = 401;
 
 // This endpoint is plural for legacy reasons.
 // Leaving the function plural in case we want to revert.
-async function requestServerToSubmitPRs(
-  submissionInfo: TPRSubmissionInfo,
-  context: TContext
-): Promise<TSubmittedPR[]> {
+async function requestServerToSubmitPRs({
+  submissionInfo,
+  mergeWhenReady,
+  trunkBranchName,
+  context,
+}: {
+  submissionInfo: TPRSubmissionInfo;
+  mergeWhenReady: boolean;
+  trunkBranchName: string;
+  context: TContext;
+}): Promise<TSubmittedPR[]> {
   const response = await requestWithArgs(
     context.userConfig,
     API_ROUTES.submitPullRequests,
     {
       repoOwner: context.repoConfig.getRepoOwner(),
       repoName: context.repoConfig.getRepoName(),
+      mergeWhenReady,
+      trunkBranchName,
       prs: submissionInfo,
     }
   );

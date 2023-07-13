@@ -24,6 +24,7 @@ export const handler = async (argv: argsT): Promise<void> => {
         select: argv.select,
         always: argv.always,
         branch: argv.branch,
+        mergeWhenReady: argv['merge-when-ready'],
       },
       context
     );
