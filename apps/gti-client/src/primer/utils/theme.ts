@@ -48,7 +48,7 @@ function filterObject(obj: R, predicate: (value: string) => boolean) {
     }
 
     return acc;
-  }, {} as Record<string | number | symbol, unknown>);
+  }, {} as { [key: string]: R });
 }
 
 export function partitionColors(colors: R) {
@@ -59,7 +59,7 @@ export function partitionColors(colors: R) {
 }
 
 export function omitScale(
-  obj: ({ scale?: never } & string[]) | { scale?: unknown }
+  obj: { scale?: unknown } | ({ scale?: never } & string[])
 ) {
   const { scale, ...rest } = obj;
   void scale;

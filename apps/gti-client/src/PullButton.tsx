@@ -26,7 +26,7 @@ export const PullButton = observer(() => {
     "\n\n" +
     (lastSync == null
       ? ""
-      : `Last synced with remote: ${relativeDate(lastSync, {})}`);
+      : `Latest fetched commit is ${relativeDate(lastSync, {})} old`);
 
   const isRunningPull = useIsOperationRunningOrQueued(PullOperation);
   if (isRunningPull === "queued") {

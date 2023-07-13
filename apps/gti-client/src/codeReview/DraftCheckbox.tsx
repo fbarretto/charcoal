@@ -34,7 +34,7 @@ export const SubmitAsDraftCheckbox = observer(
       >
         <Tooltip
           title={
-            commitsToBeSubmit.length === 1
+            commitsToBeSubmit.length || 1 === 1
               ? "Whether to submit this diff as a draft"
               : `Whether to submit these ${commitsToBeSubmit.length} diffs as a drafts`
           }
