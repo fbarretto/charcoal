@@ -33,7 +33,7 @@ export class CommitOperation extends Operation {
       "branch",
       "create",
       "--message",
-      `${this.message}`,
+      `${this.message.split(/\n+/, 1)}`,
     ];
     return args;
   }
@@ -41,7 +41,6 @@ export class CommitOperation extends Operation {
   makeOptimisticApplier(
     context: PreviewContext
   ): ApplyPreviewsFuncType | undefined {
-    const optimistic_branch_name = this.message.toLocaleLowerCase();
     const head = context.headCommit;
     if (head?.branch !== this.originalHeadHash) {
       // commit succeeded when we no longer see the original head hash
@@ -50,6 +49,8 @@ export class CommitOperation extends Operation {
 
     const [title] = this.message.split(/\n+/, 1);
     const description = this.message.slice(title.length);
+
+    const optimistic_branch_name = title.toLocaleLowerCase();
 
     // TODO: we should include the files that will be in the commit.
     // These files are visible in the commit info view during optimistic state.
