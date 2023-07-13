@@ -4597,13 +4597,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@withgraphite/graphite-cli-routes@npm:^0.29.0":
-  version: 0.29.0
-  resolution: "@withgraphite/graphite-cli-routes@npm:0.29.0"
+"@withgraphite/graphite-cli-routes@npm:^0.31.0":
+  version: 0.31.0
+  resolution: "@withgraphite/graphite-cli-routes@npm:0.31.0"
   dependencies:
     "@withgraphite/retype": ^0.3.15
     "@withgraphite/retyped-routes": ^0.3.7
-  checksum: 389ce0351efbf48c60ec54b45695c8b500503121ccc484709f1c6a40ece7edfc046e7b75c2c006d387fe8adef0c461cfad96f9ff57c5d3daed81b4c3e82b2b00
+  checksum: d8d83c2066a795a371d2235b9305b81cb1a71f66b76582f66512c9a5993aa35058d59ad2c5d06f3417e6da5e7be381306c20cd51b4f0f79a1a989789f652d36d
   languageName: node
   linkType: hard
 
@@ -4623,7 +4623,7 @@ __metadata:
     "@types/yargs": ^17.0.10
     "@typescript-eslint/eslint-plugin": ^5.27.1
     "@typescript-eslint/parser": ^5.27.1
-    "@withgraphite/graphite-cli-routes": ^0.29.0
+    "@withgraphite/graphite-cli-routes": ^0.31.0
     "@withgraphite/gti-cli-shared-types": "workspace:*"
     "@withgraphite/gti-server": "workspace:*"
     "@withgraphite/retype": ^0.3.11
