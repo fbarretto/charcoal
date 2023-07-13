@@ -1,6 +1,6 @@
-import { useTheme } from "@primer/react";
 import { observer } from "mobx-react-lite";
 import React from "react";
+import { useTheme } from "../primer/ThemeProvider";
 
 /**
  * React component that dynamically generates a <style> element using values

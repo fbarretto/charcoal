@@ -3,7 +3,8 @@ import type { Context } from "./types";
 
 import { Icon } from "../Icon";
 import { ChevronDownIcon, ChevronUpIcon } from "@primer/octicons-react";
-import { Box, Text } from "@primer/react";
+import Box from "../primer/Box";
+import Text from "../primer/Text";
 
 export function FileHeader<Id>({
   ctx,

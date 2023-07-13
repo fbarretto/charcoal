@@ -7,7 +7,7 @@ import type { Context } from "./types";
 import { DiffType } from "@withgraphite/gti-shared";
 import { FileHeader } from "./SplitDiffFileHeader";
 import { SplitDiffTable } from "./SplitDiffHunk";
-import { Box } from "@primer/react";
+import Box from "../primer/Box";
 
 export function SplitDiffView<Id>({
   ctx,

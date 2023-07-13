@@ -10,7 +10,6 @@ import platform from "../platform";
 import { latestHeadCommit } from "../serverAPIState";
 import { themeState } from "../theme";
 import { currentComparisonMode } from "./atoms";
-import { ThemeProvider, BaseStyles } from "@primer/react";
 import {
   VSCodeButton,
   VSCodeDropdown,
@@ -31,6 +30,8 @@ import stringify from "fast-json-stable-stringify";
 import { observer } from "mobx-react-lite";
 import { fromPromise } from "mobx-utils";
 import type { LineRangeParams } from "../SplitDiffView/types";
+import ThemeProvider from "../primer/ThemeProvider";
+import BaseStyles from "../primer/BaseStyles";
 
 /**
  * Transform Result<T> to Result<U> by applying `fn` on result.value.

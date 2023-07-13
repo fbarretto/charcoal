@@ -1,4 +1,4 @@
-import { Box } from "@primer/react";
+import Box from "../primer/Box";
 import type { OneIndexedLineNumber } from "@withgraphite/gti-shared";
 
 type Props = {
