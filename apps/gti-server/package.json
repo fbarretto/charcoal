@@ -1,6 +1,6 @@
 {
   "name": "@withgraphite/gti-server",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "gti-server",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",

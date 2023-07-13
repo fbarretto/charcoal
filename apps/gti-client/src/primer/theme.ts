@@ -93,12 +93,12 @@ type SchemeValue = Record<
 const colorSchemes: Record<Scheme, SchemeValue> = Object.entries(
   primitives.colors
 ).reduce((acc, [name, variables]) => {
-  const { colors, shadows } = partitionColors(variables as any);
+  const { colors, shadows } = partitionColors(variables);
   return {
     ...acc,
     [name]: {
-      colors: omitScale(colors as any),
-      shadows: omitScale(shadows as any),
+      colors: omitScale(colors),
+      shadows: omitScale(shadows),
     },
   };
 }, {} as Record<Scheme, SchemeValue>);

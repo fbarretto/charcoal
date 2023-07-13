@@ -13,7 +13,7 @@ export function fontStack(fonts: string[]) {
 // Eventually, we will push these structural changes upstream to primer/primitives so this data manipulation
 // will not be needed.
 
-function isShadowValue(value: unknown) {
+function isShadowValue(value: string) {
   return (
     typeof value === "string" &&
     /(inset\s|)([0-9.]+(\w*)\s){1,4}(rgb[a]?\(.*\)|\w+)/.test(value)
@@ -28,9 +28,9 @@ function isColorValue(value: string) {
   return false;
 }
 
-type R = { [key: string]: string | R } | string;
+type R = { [key: string]: R } | string | string[];
 
-function filterObject(obj: R, predicate: (value: R) => boolean) {
+function filterObject(obj: R, predicate: (value: string) => boolean) {
   if (Array.isArray(obj)) {
     return obj.filter(predicate);
   }
@@ -51,14 +51,16 @@ function filterObject(obj: R, predicate: (value: R) => boolean) {
   }, {} as Record<string | number | symbol, unknown>);
 }
 
-export function partitionColors(colors: Record<string, string>) {
+export function partitionColors(colors: R) {
   return {
-    colors: filterObject(colors, (value) => isColorValue(value as string)),
+    colors: filterObject(colors, (value) => isColorValue(value)),
     shadows: filterObject(colors, (value) => isShadowValue(value)),
   };
 }
 
-export function omitScale(obj: { scale?: unknown }) {
+export function omitScale(
+  obj: ({ scale?: never } & string[]) | { scale?: unknown }
+) {
   const { scale, ...rest } = obj;
   void scale;
   return rest;
