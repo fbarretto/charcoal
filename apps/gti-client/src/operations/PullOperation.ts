@@ -8,6 +8,6 @@ export class PullOperation extends Operation {
   }
 
   getArgs() {
-    return ["internal-only", "pulltrunk"];
+    return ["repo", "sync", "--no-delete"];
   }
 }

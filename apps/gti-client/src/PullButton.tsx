@@ -1,7 +1,11 @@
 import { DOCUMENTATION_DELAY, Tooltip } from "./Tooltip";
 import { PullOperation } from "./operations/PullOperation";
 import { relativeDate, RelativeDate } from "./relativeDate";
-import { latestCommitTree, useRunOperation } from "./serverAPIState";
+import {
+  latestCommitTree,
+  latestUncommittedChanges,
+  useRunOperation,
+} from "./serverAPIState";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 import { Icon } from "./Icon";
 
@@ -35,12 +39,14 @@ export const PullButton = observer(() => {
     title += "\n\n" + "Pull is already scheduled.";
   }
 
+  const hasUncommittedChanges = latestUncommittedChanges.get().length > 0;
+
   return (
     <Tooltip placement="bottom" delayMs={DOCUMENTATION_DELAY} title={title}>
       <div className="pull-info">
         <VSCodeButton
           appearance="secondary"
-          disabled={!!isRunningPull}
+          disabled={!!isRunningPull || hasUncommittedChanges}
           onClick={() => {
             runOperation(new PullOperation());
           }}
