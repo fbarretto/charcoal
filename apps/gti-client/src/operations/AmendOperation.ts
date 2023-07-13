@@ -23,7 +23,11 @@ export class AmendOperation extends Operation {
       return ["commit", "create", "-m", this.message || ""];
     }
 
-    return ["commit", "amend", "-m", this.message || ""];
+    return [
+      "commit",
+      "amend",
+      ...(this.message ? ["-m", this.message] : ["-n"]),
+    ];
   }
 
   makeOptimisticUncommittedChangesApplier?(
