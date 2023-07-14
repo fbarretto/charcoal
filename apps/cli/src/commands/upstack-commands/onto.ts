@@ -12,6 +12,13 @@ const args = {
     hidden: true,
     type: 'string',
   },
+  source: {
+    describe: `Optional branch to rebase (defaults to current branch).`,
+    demandOption: false,
+    positional: false,
+    type: 'string',
+    aliases: ['s'],
+  },
 } as const;
 
 export const command = 'onto [branch]';
@@ -23,18 +30,25 @@ export const builder = args;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
-    currentBranchOnto(
+    const originalBranch = argv.source
+      ? context.engine.currentBranch
+      : undefined;
+    argv.source && context.engine.checkoutBranch(argv.source);
+
+    const dest =
       argv.branch ??
-        (await interactiveBranchSelection(
-          {
-            message: `Choose a new base for ${chalk.yellow(
-              context.engine.currentBranchPrecondition
-            )} (autocomplete or arrow keys)`,
-            omitCurrentBranch: true,
-          },
-          context
-        )),
-      context
-    );
+      (await interactiveBranchSelection(
+        {
+          message: `Choose a new base for ${chalk.yellow(
+            context.engine.currentBranchPrecondition
+          )} (autocomplete or arrow keys)`,
+          omitCurrentBranch: true,
+        },
+        context
+      ));
+
+    currentBranchOnto(dest, context);
+
+    originalBranch && context.engine.checkoutBranch(originalBranch);
   });
 };

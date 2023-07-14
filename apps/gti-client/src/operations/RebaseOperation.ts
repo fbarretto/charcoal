@@ -13,14 +13,7 @@ export class RebaseOperation extends Operation {
   static opName = "Rebase";
 
   getArgs() {
-    return [
-      "internal-only",
-      "rebase",
-      "--source",
-      this.source,
-      "--dest",
-      this.destination,
-    ];
+    return ["upstack", "onto", this.destination, "--source", this.source];
   }
 
   makePreviewApplier(
