@@ -1,3 +1,9 @@
+# NOTE (7/14/23)
+
+The Graphite CLI team has decided that in order to build the ideal integrated Graphite experience, *we will be developing v1.0 of the Graphite CLI within our monorepo and leaving the public repository archived as an artifact*.  As we begin the next round of development on our CLI and the rollout of GTI, our graphical interface for branch management, this will allow us to iterate quickly and give our users the best possible experience.  We’re excited to show you what we’re working on!
+
+# README
+
 ## What is Graphite?
 
 [Graphite](https://graphite.dev) is a **fast, simple code review platform** designed for engineers who want to **write and review smaller pull requests, stay unblocked, and ship faster**.  Anyone can start using Graphite individually without needing their coworkers to change tools - we'll seamlessly sync your code changes and reviews.  We built Graphite because we missed internal code review tools like Phabricator (at Facebook) and Critique (Google) that help engineers create, approve, and ship small, incremental changes, and long-term we’re passionate about creating products & workflows that help fast-moving eng teams achieve more.
