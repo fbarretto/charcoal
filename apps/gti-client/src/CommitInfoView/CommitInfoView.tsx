@@ -518,9 +518,9 @@ const ActionsBar = observer(
         data-testid="commit-info-actions-bar"
       >
         <div className="commit-info-actions-bar-left">
-          <SubmitAsDraftCheckbox
-            commitsToBeSubmit={isCommitMode ? [] : [commit]}
-          />
+          {isCommitMode ? null : (
+            <SubmitAsDraftCheckbox commitsToBeSubmit={[commit]} />
+          )}
         </div>
         <div className="commit-info-actions-bar-right">
           {isAnythingBeingEdited && !isCommitMode ? (
