@@ -979,6 +979,16 @@ function callbackForFileCheckbox(file: ChangedFile): {
       "UNTRACKED_REMOVE",
       "UNTRACKED_COPY",
       "UNTRACKED_RENAME",
+    ].includes(file.status)
+  ) {
+    return {
+      tooltip: "Stage changes",
+      operation: () => new AddOperation(file.path),
+    };
+  }
+
+  if (
+    [
       "PARTIALLY_TRACKED_ADD",
       "PARTIALLY_TRACKED_MODIFY",
       "PARTIALLY_TRACKED_REMOVE",
@@ -987,7 +997,7 @@ function callbackForFileCheckbox(file: ChangedFile): {
     ].includes(file.status)
   ) {
     return {
-      tooltip: "Add changes",
+      tooltip: "Stage all changes",
       operation: () => new AddOperation(file.path),
     };
   }
@@ -1003,15 +1013,15 @@ function callbackForFileCheckbox(file: ChangedFile): {
 
   if (file.status === "TRACKED_ADD") {
     return {
-      tooltip: "Forget file",
+      tooltip: "Unstage addition",
       operation: () => new SoftResetOperation(file.path),
     };
   }
 
   if (file.status === "TRACKED_REMOVE") {
     return {
-      tooltip: "Restore file",
-      operation: () => new RevertOperation(file.path),
+      tooltip: "Unstage removal",
+      operation: () => new SoftResetOperation(file.path),
     };
   }
 
