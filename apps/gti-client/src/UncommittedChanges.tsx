@@ -44,7 +44,7 @@ import {
 } from "./CommitInfoView/CommitInfoState";
 import {
   allFieldsBeingEdited,
-  commitMessageFieldsSchema,
+  emptyCommitMessageFields,
 } from "./CommitInfoView/CommitMessageFields";
 import { OpenComparisonViewButton } from "./ComparisonView/OpenComparisonViewButton";
 import { gtiDrawerState } from "./drawerState";
@@ -410,7 +410,6 @@ export const UncommittedChanges = observer(function ({
   const error = uncommittedChangesFetchError.get();
   // TODO: use treeWithPreviews instead, and update CommitOperation
   const headCommit = latestHeadCommit.get();
-  const schema = commitMessageFieldsSchema.get();
   const repoInfo = repositoryInfo.get();
 
   const conflicts = optimisticMergeConflicts.get();
@@ -435,7 +434,7 @@ export const UncommittedChanges = observer(function ({
       // Start editing fields when amending so you can go right into typing.
       if (which === "amend") {
         commitFieldsBeingEdited.set({
-          ...allFieldsBeingEdited(schema),
+          ...allFieldsBeingEdited(),
           // we have to explicitly keep this change to fieldsBeingEdited because otherwise it would be reset by effects.
           forceWhileOnHead: true,
         });
@@ -450,7 +449,11 @@ export const UncommittedChanges = observer(function ({
         const value = editedCommitMessages("head").get();
         editedCommitMessages("head").set({
           ...value,
-          fields: { ...value.fields, Title: quickCommitTyped },
+          fields: {
+            ...emptyCommitMessageFields(),
+            ...value.fields,
+            title: quickCommitTyped,
+          },
         });
         // delete what was written in the quick commit form
         commitTitleRef.current != null && (commitTitleRef.current.value = "");
@@ -641,7 +644,7 @@ export const UncommittedChanges = observer(function ({
                       ?.value || "Temporary Commit";
                   runOperation(
                     new CommitOperation(
-                      title, // just the title, no description / other fields
+                      { ...emptyCommitMessageFields(), title }, // just the title, no description / other fields
                       headCommit?.branch ?? ""
                     )
                   );

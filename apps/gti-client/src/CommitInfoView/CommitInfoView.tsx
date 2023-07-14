@@ -1,9 +1,5 @@
 import { useCallback } from "react";
 
-import type {
-  CommitMessageFields,
-  FieldsBeingEdited,
-} from "@withgraphite/gti-shared";
 import {
   CommitInfoMode,
   EditedMessage,
@@ -18,7 +14,7 @@ import {
   VSCodeRadio,
   VSCodeRadioGroup,
 } from "@vscode/webview-ui-toolkit/react";
-import { ComparisonType } from "@withgraphite/gti-shared";
+import { ComparisonType, FieldConfig } from "@withgraphite/gti-shared";
 import { useEffect } from "react";
 import {
   allDiffSummariesByBranchName,
@@ -63,11 +59,11 @@ import {
 } from "./CommitInfoState";
 import {
   allFieldsBeingEdited,
-  commitMessageFieldsSchema,
-  commitMessageFieldsToString,
   findFieldsBeingEdited,
   noFieldsBeingEdited,
-  parseCommitMessageFields,
+  CommitMessageFields,
+  CommitFieldSchema,
+  FieldsBeingEdited,
 } from "./CommitMessageFields";
 import {
   CommitTitleByline,
@@ -198,7 +194,6 @@ export const CommitInfoDetails = observer(
     );
     const editedMessage = editedMessageState.get();
     const uncommittedChanges = uncommittedChangesWithPreviews.get();
-    const schema = commitMessageFieldsSchema.get();
 
     const isPublic = mode === "amend" && commit.partOfTrunk;
 
@@ -212,11 +207,10 @@ export const CommitInfoDetails = observer(
       commitFieldsBeingEdited.set({ ...fieldsBeingEdited, [field]: true });
     };
 
-    const parsedFields = parseCommitMessageFields(
-      schema,
-      commit.title,
-      commit.description
-    );
+    const parsedFields = {
+      title: commit.title,
+      description: commit.description,
+    };
 
     useEffect(() => {
       if (editedMessage.type === "optimistic") {
@@ -227,7 +221,7 @@ export const CommitInfoDetails = observer(
         );
 
         // no fields are edited during optimistic state
-        commitFieldsBeingEdited.set(noFieldsBeingEdited(schema));
+        commitFieldsBeingEdited.set(noFieldsBeingEdited());
         return;
       }
       if (fieldsBeingEdited.forceWhileOnHead && commit.isHead) {
@@ -240,8 +234,8 @@ export const CommitInfoDetails = observer(
       // except for fields that are being edited on this commit, too
       commitFieldsBeingEdited.set(
         isCommitMode
-          ? allFieldsBeingEdited(schema)
-          : findFieldsBeingEdited(schema, editedMessage.fields, parsedFields)
+          ? allFieldsBeingEdited()
+          : findFieldsBeingEdited(editedMessage.fields, parsedFields)
       );
 
       // We only want to recompute this when the commit/mode changes.
@@ -258,7 +252,7 @@ export const CommitInfoDetails = observer(
       });
     }, [commit.date]);
 
-    const topmostEditedField = getTopmostEditedField(schema, fieldsBeingEdited);
+    const topmostEditedField = getTopmostEditedField(fieldsBeingEdited);
 
     return (
       <div className="commit-info-view" data-testid="commit-info-view">
@@ -298,36 +292,47 @@ export const CommitInfoDetails = observer(
           // remount this if we change to commit mode
           key={mode}
         >
-          {schema.map((field) => (
-            <CommitInfoField
-              key={field.key}
-              field={field}
-              content={parsedFields[field.key as keyof CommitMessageFields]}
-              autofocus={topmostEditedField === field.key}
-              readonly={editedMessage.type === "optimistic" || isPublic}
-              isBeingEdited={fieldsBeingEdited[field.key]}
-              startEditingField={() => startEditingField(field.key)}
-              editedField={editedMessage.fields?.[field.key]}
-              setEditedField={(newVal: string) =>
-                editedMessageState.set(
-                  editedMessage.type === "optimistic"
-                    ? editedMessage
-                    : {
-                        fields: {
-                          ...editedMessage.fields,
-                          [field.key]:
-                            field.type === "field" ? [newVal] : newVal,
-                        },
-                      }
-                )
-              }
-              extra={
-                mode !== "commit" && field.key === "Title" ? (
-                  <CommitTitleByline commit={commit} />
-                ) : undefined
-              }
-            />
-          ))}
+          {Object.entries(CommitFieldSchema).map(([fieldKey, field]) =>
+            fieldKey !== "title" && mode === "commit" ? null : (
+              <CommitInfoField
+                key={fieldKey}
+                fieldKey={fieldKey}
+                field={field}
+                content={parsedFields[fieldKey as keyof CommitMessageFields]}
+                autofocus={topmostEditedField === fieldKey}
+                readonly={editedMessage.type === "optimistic" || isPublic}
+                isBeingEdited={
+                  fieldsBeingEdited[fieldKey as keyof typeof CommitFieldSchema]
+                }
+                startEditingField={() => startEditingField(fieldKey)}
+                editedField={
+                  editedMessage.fields?.[
+                    fieldKey as keyof typeof CommitFieldSchema
+                  ]
+                }
+                setEditedField={(newVal: string) =>
+                  editedMessageState.set(
+                    editedMessage.type === "optimistic"
+                      ? editedMessage
+                      : {
+                          fields: {
+                            ...editedMessage.fields,
+                            [fieldKey]:
+                              (field as FieldConfig).type === "field"
+                                ? [newVal]
+                                : newVal,
+                          },
+                        }
+                  )
+                }
+                extra={
+                  mode !== "commit" && fieldKey === "title" ? (
+                    <CommitTitleByline commit={commit} />
+                  ) : undefined
+                }
+              />
+            )
+          )}
           <VSCodeDivider />
           {commit.isHead && !isPublic ? (
             <Section data-testid="changes-to-amend">
@@ -419,7 +424,6 @@ const ActionsBar = observer(
     const diffSummaries = allDiffSummariesByBranchName.get();
     const allCommits = latestCommitsByBranchName.get();
     const shouldSubmitAsDraft = submitAsDraft.get();
-    const schema = commitMessageFieldsSchema.get();
 
     // after committing/amending, if you've previously selected the head commit,
     // we should show you the newly amended/committed commit instead of the old one.
@@ -463,10 +467,7 @@ const ActionsBar = observer(
       []
     );
     const doAmendOrCommit = () => {
-      const message = commitMessageFieldsToString(
-        schema,
-        assertNonOptimistic(editedMessage).fields
-      );
+      const message = assertNonOptimistic(editedMessage).fields;
 
       const operation = isCommitMode
         ? new CommitOperation(message, commit.branch)
@@ -577,10 +578,7 @@ const ActionsBar = observer(
                 runOperation={() => {
                   const operation = new AmendMessageOperation(
                     commit.branch,
-                    commitMessageFieldsToString(
-                      schema,
-                      assertNonOptimistic(editedMessage).fields
-                    )
+                    assertNonOptimistic(editedMessage).fields
                   );
                   void clearEditedCommitMessage(/* skip confirmation */ true);
                   return operation;

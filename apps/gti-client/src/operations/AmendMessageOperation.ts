@@ -3,9 +3,13 @@ import type { ApplyPreviewsFuncType, PreviewContext } from "../previews";
 import type { CommandArg } from "@withgraphite/gti-shared";
 
 import { Operation } from "./Operation";
+import type { CommitMessageFields } from "../CommitInfoView/CommitMessageFields";
 
 export class AmendMessageOperation extends Operation {
-  constructor(private branch: BranchName, private message: string) {
+  constructor(
+    private branch: BranchName,
+    private message: CommitMessageFields
+  ) {
     super("AmendMessageOperation");
   }
 
@@ -17,7 +21,7 @@ export class AmendMessageOperation extends Operation {
       "metaedit",
       this.branch,
       "--title",
-      this.message,
+      this.message.title,
     ];
     return args;
   }
@@ -32,8 +36,7 @@ export class AmendMessageOperation extends Operation {
       return undefined;
     }
 
-    const [title] = this.message.split(/\n+/, 1);
-    const description = this.message.slice(title.length);
+    const { title, description } = this.message;
 
     const func: ApplyPreviewsFuncType = (tree, _previewType) => {
       if (tree.info.branch === this.branch) {

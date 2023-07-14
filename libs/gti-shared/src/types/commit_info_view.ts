@@ -1,6 +1,3 @@
-/** Values for each field key,  */
-export type CommitMessageFields = Record<string, string | Array<string>>;
-
 export type TypeaheadKind =
   | "meta-user"
   | "meta-task"
@@ -24,24 +21,6 @@ export type TypeaheadResult = {
 };
 
 /**
- * Which fields of the message should display as editors instead of rendered values.
- * This can be controlled outside of the commit info view, but it gets updated in an effect as well when commits are changed.
- * `forceWhileOnHead` can be used to prevent auto-updating when in amend mode to bypass this effect.
- * This value is removed whenever the next real update to the value is given.
- *
- * ```
- * {
- *   title: boolean,
- *   description: boolean,
- *   ...
- * }
- * ```
- */
-export type FieldsBeingEdited = Record<string, boolean> & {
-  forceWhileOnHead?: boolean;
-};
-
-/**
  * Dynamic configuration for a single field in a commit message
  */
 export type FieldConfig = {
@@ -52,7 +31,7 @@ export type FieldConfig = {
    *   'Title' -> we don't look for "title: foo", we assume first line is the title always.
    *   'Description' -> we don't look for "description: foo", description is handled as the entire message
    */
-  key: "Title" | string;
+  label: "Title" | string;
   /** Codicon to show next to this field */
   icon: string;
 } & (

@@ -12,6 +12,7 @@ import { observer } from "mobx-react-lite";
 export const CommitInfoField = observer(
   ({
     field,
+    fieldKey,
     isBeingEdited,
     readonly,
     content,
@@ -22,6 +23,7 @@ export const CommitInfoField = observer(
     autofocus,
   }: {
     field: FieldConfig;
+    fieldKey: string;
     isBeingEdited: boolean;
     readonly: boolean;
     startEditingField: () => void;
@@ -44,11 +46,11 @@ export const CommitInfoField = observer(
             <Section className="commit-info-title-field-section">
               <SmallCapsTitle>
                 <Icon icon="milestone" />
-                <>{field.key}</>
+                <>{field.label}</>
               </SmallCapsTitle>
               <CommitInfoTextArea
                 kind={field.type}
-                name={field.key}
+                name={fieldKey}
                 autoFocus={autofocus ?? false}
                 editedMessage={editedFieldContent}
                 setEditedCommitMessage={setEditedField}
@@ -58,7 +60,7 @@ export const CommitInfoField = observer(
             <ClickToEditField
               startEditingField={readonly ? undefined : startEditingField}
               kind={field.type}
-              fieldKey={field.key}
+              fieldKey={fieldKey}
             >
               <span>{content || <span className="subtle">Untitled</span>}</span>
               {readonly ? null : (
@@ -77,11 +79,11 @@ export const CommitInfoField = observer(
         <Section className="commit-info-field-section">
           <SmallCapsTitle>
             <Icon icon={field.icon} />
-            {field.key}
+            {field.label}
           </SmallCapsTitle>
           {field.type === "field" ? (
             <CommitInfoTextField
-              name={field.key}
+              name={field.label}
               autoFocus={autofocus ?? false}
               editedMessage={editedFieldContent}
               setEditedCommitMessage={setEditedField}
@@ -90,7 +92,7 @@ export const CommitInfoField = observer(
           ) : (
             <CommitInfoTextArea
               kind={field.type}
-              name={field.key}
+              name={field.label}
               autoFocus={autofocus ?? false}
               editedMessage={editedFieldContent}
               setEditedCommitMessage={setEditedField}
@@ -103,11 +105,11 @@ export const CommitInfoField = observer(
             <ClickToEditField
               startEditingField={readonly ? undefined : startEditingField}
               kind={field.type}
-              fieldKey={field.key}
+              fieldKey={fieldKey}
             >
               <SmallCapsTitle>
                 <Icon icon={field.icon} />
-                <>{field.key}</>
+                <>{field.label}</>
                 {readonly ? null : (
                   <span className="hover-edit-button">
                     <Icon icon="edit" />
@@ -120,12 +122,12 @@ export const CommitInfoField = observer(
                 <span className="empty-description subtle">
                   {readonly ? (
                     <>
-                      <> No {field.key}</>
+                      <> No {field.label}</>
                     </>
                   ) : (
                     <>
                       <Icon icon="add" />
-                      <> Click to add {field.key}</>
+                      <> Click to add {field.label}</>
                     </>
                   )}
                 </span>

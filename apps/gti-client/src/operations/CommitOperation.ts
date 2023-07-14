@@ -1,4 +1,5 @@
 import type { BranchName } from "@withgraphite/gti-cli-shared-types";
+import type { CommandArg } from "@withgraphite/gti-shared";
 import type { CommitTree } from "../getCommitTree";
 import type {
   ApplyPreviewsFuncType,
@@ -6,8 +7,8 @@ import type {
   PreviewContext,
   UncommittedChangesPreviewContext,
 } from "../previews";
-import type { CommandArg } from "@withgraphite/gti-shared";
 
+import type { CommitMessageFields } from "../CommitInfoView/CommitMessageFields";
 import { Operation } from "./Operation";
 
 export class CommitOperation extends Operation {
@@ -20,7 +21,7 @@ export class CommitOperation extends Operation {
     /**
      * description is currently ignored
      */
-    private message: string,
+    private message: CommitMessageFields,
     private originalHeadHash: BranchName
   ) {
     super("CommitOperation");
@@ -33,7 +34,7 @@ export class CommitOperation extends Operation {
       "branch",
       "create",
       "--message",
-      `${this.message.split(/\n+/, 1)}`,
+      `${this.message.title.split(/\n+/, 1)}`,
     ];
     return args;
   }
@@ -47,8 +48,8 @@ export class CommitOperation extends Operation {
       return undefined;
     }
 
-    const [title] = this.message.split(/\n+/, 1);
-    const description = this.message.slice(title.length);
+    const title = this.message.title;
+    const description = this.message.description;
 
     const optimistic_branch_name = title.toLocaleLowerCase();
 

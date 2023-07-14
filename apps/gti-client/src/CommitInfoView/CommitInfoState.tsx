@@ -3,19 +3,13 @@ import { computed, observable } from "mobx";
 import { family } from "../lib/mobx-recoil/family";
 import { latestCommitTreeMap } from "../serverAPIState";
 
-import type {
-  CommitMessageFields,
-  FieldsBeingEdited,
-} from "@withgraphite/gti-shared";
-
 import type { ChangedFiles } from "@withgraphite/gti-cli-shared-types";
 import serverAPI from "../ClientToServerAPI";
 import { observableBoxWithInitializers } from "../lib/mobx-recoil/observable_box_with_init";
 import {
-  commitMessageFieldsSchema,
-  emptyCommitMessageFields,
+  CommitMessageFields,
+  FieldsBeingEdited,
   findFieldsBeingEdited,
-  parseCommitMessageFields,
 } from "./CommitMessageFields";
 
 export type EditedMessage = { fields: CommitMessageFields };
@@ -91,12 +85,15 @@ const editedCommitMessagesDefaults = family({
         return templateEntries.length === 1
           ? {
               fields: {
-                Title: "",
-                Description: templateEntries[0][1],
+                title: "",
+                description: templateEntries[0][1],
               },
             }
           : {
-              fields: emptyCommitMessageFields(commitMessageFieldsSchema.get()),
+              fields: {
+                title: "",
+                description: "",
+              },
             };
       }
       // TODO: is there a better way we should derive `isOptimistic`
@@ -106,12 +103,12 @@ const editedCommitMessagesDefaults = family({
       if (info == null) {
         return { type: "optimistic" as const };
       }
-      const fields = parseCommitMessageFields(
-        commitMessageFieldsSchema.get(),
-        info.title,
-        info.description
-      );
-      return { fields };
+      return {
+        fields: {
+          title: info.title,
+          description: info.description,
+        },
+      };
     });
   },
 });
@@ -135,16 +132,13 @@ export const hasUnsavedEditedCommitMessage = family({
       if (hash === "head") {
         return Object.values(edited).some(Boolean);
       }
-      // TODO: T149536695 use treeWithPreviews so this indicator is accurate on top of previews
       const original = latestCommitTreeMap.get().get(hash)?.info;
-      const schema = commitMessageFieldsSchema.get();
-      const parsed = parseCommitMessageFields(
-        schema,
-        original?.title ?? "",
-        original?.description ?? ""
-      );
+
       return Object.values(
-        findFieldsBeingEdited(schema, edited.fields, parsed)
+        findFieldsBeingEdited(edited.fields, {
+          title: original?.title || "",
+          description: original?.description || "",
+        })
       ).some(Boolean);
     });
   },

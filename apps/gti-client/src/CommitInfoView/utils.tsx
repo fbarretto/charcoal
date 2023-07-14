@@ -1,9 +1,4 @@
 import type { BranchInfo } from "@withgraphite/gti-cli-shared-types";
-import type {
-  CommitMessageFields,
-  FieldConfig,
-  FieldsBeingEdited,
-} from "@withgraphite/gti-shared";
 import type { ReactNode } from "react";
 
 import { YouAreHere } from "../Commit";
@@ -11,6 +6,11 @@ import { InlineBadge } from "../InlineBadge";
 import { Subtle } from "../Subtle";
 import { Tooltip } from "../Tooltip";
 import { RelativeDate } from "../relativeDate";
+import {
+  CommitFieldSchema,
+  CommitMessageFields,
+  FieldsBeingEdited,
+} from "./CommitMessageFields";
 
 export function CommitTitleByline({ commit }: { commit: BranchInfo }) {
   const createdByInfo = (
@@ -84,12 +84,11 @@ export function Section({
 }
 
 export function getTopmostEditedField(
-  fields: Array<FieldConfig>,
   fieldsBeingEdited: FieldsBeingEdited
 ): keyof CommitMessageFields | undefined {
-  for (const field of fields) {
-    if (fieldsBeingEdited[field.key]) {
-      return field.key;
+  for (const key of Object.keys(CommitFieldSchema)) {
+    if (fieldsBeingEdited[key as keyof typeof CommitFieldSchema]) {
+      return key as keyof typeof CommitFieldSchema;
     }
   }
   return undefined;

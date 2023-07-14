@@ -1,3 +1,4 @@
+import type { CommitMessageFields } from "../CommitInfoView/CommitMessageFields";
 import type {
   ApplyPreviewsFuncType,
   ApplyUncommittedChangesPreviewsFuncType,
@@ -12,7 +13,10 @@ export class AmendOperation extends Operation {
    * @param filePathsToAmend if provided, only these file paths will be included in the amend operation. If undefined, ALL uncommitted changes are included. Paths should be relative to repo root.
    * @param message if provided, update commit description to use this title & description
    */
-  constructor(private method: "commit" | "amend", private message?: string) {
+  constructor(
+    private method: "commit" | "amend",
+    private message?: CommitMessageFields
+  ) {
     super("AmendOperation");
   }
 
@@ -20,14 +24,17 @@ export class AmendOperation extends Operation {
 
   getArgs() {
     if (this.method === "commit") {
-      return ["commit", "create", "-m", this.message || "Untitled commit"];
+      return [
+        "commit",
+        "create",
+        "-m",
+        this.message?.title || "Untitled commit",
+      ];
     }
 
-    return [
-      "commit",
-      "amend",
-      ...(this.message ? ["-m", this.message] : ["-n"]),
-    ];
+    const title = this.message?.title;
+
+    return ["commit", "amend", ...(title ? ["-m", title] : ["-n"])];
   }
 
   makeOptimisticUncommittedChangesApplier?(
@@ -52,8 +59,7 @@ export class AmendOperation extends Operation {
     if (this.message == null) {
       return undefined;
     }
-    const [title] = this.message.split(/\n+/, 1);
-    const description = this.message.slice(title.length);
+    const { title, description } = this.message;
     if (head?.title === title && head?.description === description) {
       // amend succeeded when the message is what we asked for
       return undefined;
