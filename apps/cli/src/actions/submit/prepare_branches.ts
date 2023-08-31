@@ -6,6 +6,8 @@ import { getPRDraftStatus } from './pr_draft';
 import { getPRTitle } from './pr_title';
 import { getReviewers } from './reviewers';
 import { TPRSubmissionInfo } from './submit_prs';
+import { PreconditionsFailedError } from '../../lib/errors';
+import { getGithubAuthorizationStatus } from '../../commands/auth';
 
 type TPRSubmissionAction = { branchName: string } & (
   | { update: false }
@@ -63,7 +65,7 @@ export async function getPRInfoForBranches(
       action.branchName
     );
 
-    const isGithubAuthPresent = false;
+    const isGithubAuthPresent = cliAuthPrecondition(context);
 
     const prCreationInfo = isGithubAuthPresent
       ? await getPRCreationInfo(
@@ -322,4 +324,19 @@ async function getReviewersMaybeInteractively(
   }
 
   return getReviewers(reviewers);
+}
+
+function cliAuthPrecondition(context: TContext): boolean {
+  const isGhAuthorized = getGithubAuthorizationStatus();
+
+  const isGithubIntegrationEnabled =
+    context.repoConfig.getIsGithubIntegrationEnabled();
+
+  if (isGithubIntegrationEnabled && !isGhAuthorized) {
+    throw new PreconditionsFailedError(
+      `Please authenticate your CLI with Github by running gt auth and then retry. To ignore this message in the future and use Graphite without Github integration, run gt repo disable-github.`
+    );
+  }
+
+  return isGhAuthorized;
 }
