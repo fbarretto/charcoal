@@ -67,23 +67,24 @@ export async function getPRInfoForBranches(
 
     const isGithubAuthPresent = cliAuthPrecondition(context);
 
-    const prCreationInfo = isGithubAuthPresent
-      ? await getPRCreationInfo(
-          {
-            branchName: action.branchName,
-            editPRFieldsInline: args.editPRFieldsInline,
-            draft: args.draft,
-            publish: args.publish,
-            reviewers: args.reviewers,
-          },
-          context
-        )
-      : {
-          title: '',
-          body: '',
-          reviewers: [],
-          draft: false,
-        };
+    const prCreationInfo =
+      isGithubAuthPresent && !action.update
+        ? await getPRCreationInfo(
+            {
+              branchName: action.branchName,
+              editPRFieldsInline: args.editPRFieldsInline,
+              draft: args.draft,
+              publish: args.publish,
+              reviewers: args.reviewers,
+            },
+            context
+          )
+        : {
+            title: '',
+            body: '',
+            reviewers: [],
+            draft: false,
+          };
 
     submissionInfo.push({
       head: action.branchName,
