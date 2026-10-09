@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import { githubRepoSlug } from '../lib/api/github_repo';
+import { findStackForPr, prNumbersOf } from '../lib/api/gh_stacks';
 import { openPrInBrowser } from '../lib/api/pr_info';
 import { TContext } from '../lib/context';
 import { ExitFailedError } from '../lib/errors';
@@ -33,6 +34,10 @@ function resolvePrNumbers(
       `${chalk.yellow(branchName)} is neither a branch nor a PR number.`
     );
   }
+  const ghStack = opts.stack && githubStackPrs(branchName, context);
+  if (ghStack) {
+    return ghStack;
+  }
   const branches = opts.stack
     ? context.engine
         .getRelativeStack(branchName, {
@@ -59,4 +64,21 @@ function resolvePrNumbers(
     );
   }
   return prs.flatMap((pr) => (pr.number === undefined ? [] : [pr.number]));
+}
+
+// The PRs of the GitHub stack the branch's PR belongs to, if any.
+function githubStackPrs(
+  branchName: string,
+  context: TContext
+): number[] | undefined {
+  const prNumber = context.engine.getPrInfo(branchName)?.number;
+  if (prNumber === undefined || !context.repoConfig.getGithubStacks()) {
+    return undefined;
+  }
+  try {
+    const stack = findStackForPr(githubRepoSlug(context), prNumber);
+    return stack ? prNumbersOf(stack) : undefined;
+  } catch {
+    return undefined; // no stacks API: fall back to the local stack
+  }
 }
