@@ -44,12 +44,12 @@ export async function absorbAction(
   try {
     runAbsorb(['--force-detach', '--base', base]);
   } catch (e) {
-    context.engine.checkoutBranch(current);
+    reattach(current);
     throw e;
   }
   const unabsorbed = stagedHunkCount();
   if (git(['rev-parse', 'HEAD']) === original) {
-    context.engine.checkoutBranch(current);
+    reattach(current);
     context.splog.info('Nothing could be absorbed.');
     return;
   }
@@ -58,7 +58,7 @@ export async function absorbAction(
   withChangesSetAside('ALL', context, () => {
     const after = squashFixups(base, original, before.length);
     if (!after) {
-      context.engine.checkoutBranch(current);
+      reattach(current);
       throw new ExitFailedError(
         'The absorbed changes did not squash cleanly into the stack; nothing was changed and they are staged again.'
       );
@@ -70,7 +70,7 @@ export async function absorbAction(
         i === 0 ? base : context.engine.getRevision(downstack[i - 1])
       )
     );
-    context.engine.checkoutBranch(current);
+    reattach(current);
     restackBranches(
       context.engine.getRelativeStack(downstack[0], SCOPE.UPSTACK_EXCLUSIVE),
       context
@@ -86,6 +86,12 @@ export async function absorbAction(
       } not absorbed and left uncommitted.`
     );
   }
+}
+
+// detachAt bypasses the engine, which still believes `current` is checked out
+// and would treat engine.checkoutBranch(current) as a no-op.
+function reattach(branch: string): void {
+  git(['switch', '-q', branch]);
 }
 
 function stagedHunkCount(): number {

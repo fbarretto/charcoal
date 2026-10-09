@@ -174,6 +174,24 @@ for (const scene of allScenes) {
       expect(refs()).to.deep.equal(before);
     });
 
+    it('Stays on the current branch when it has no upstack to restack', () => {
+      // Move the pending changes from b to the top of the stack, c.
+      scene.repo.runGitCommand([`stash`]);
+      scene.repo.checkoutBranch('c');
+      scene.repo.runGitCommand([`stash`, `pop`]);
+
+      scene.repo.runCliCommand([`absorb`, `-f`, `-a`]);
+      expect(scene.repo.currentBranchName()).to.equal('c');
+      expect(show('a:a_test.txt')).to.equal('a2');
+    });
+
+    it('Stays on the current branch when nothing can be absorbed', () => {
+      scene.repo.runGitCommand([`reset`, `--hard`]);
+      scene.repo.createChange('new', 'new');
+      scene.repo.runCliCommand([`absorb`, `-f`]);
+      expect(scene.repo.currentBranchName()).to.equal('b');
+    });
+
     it('Can be undone', () => {
       const before = refs();
       scene.repo.runCliCommand([`absorb`, `-f`]);
