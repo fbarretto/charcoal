@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import tmp from 'tmp';
 import { TContext } from '../lib/context';
-import { SCOPE, TScopeSpec } from '../lib/engine/scope_spec';
+import { TScopeSpec } from '../lib/engine/scope_spec';
 
 type TTestStatus =
   | '[pending]'
@@ -28,7 +28,7 @@ export function testStack(
   const currentBranch = context.engine.currentBranchPrecondition;
   // Get branches to test.
   const branches = context.engine
-    .getRelativeStack(currentBranch, SCOPE.STACK)
+    .getRelativeStack(currentBranch, opts.scope)
     .filter((branch) => opts.includeTrunk || !context.engine.isTrunk(branch));
 
   // Initialize state to print out.
@@ -40,20 +40,22 @@ export function testStack(
   // Create a tmp output directory for debugging.
   const tmpDirName = tmp.dirSync().name;
 
-  // Kick off the testing.
-  logState(state, false, context);
+  // Redraw the table in place only on a TTY; otherwise print it once at the end.
+  const live = !!process.stdout.isTTY;
+  if (live) {
+    logState(state, false, context);
+  }
   branches.forEach((branchName) =>
     testBranch(
-      { command: opts.command, branchName, tmpDirName, state },
+      { command: opts.command, branchName, tmpDirName, state, live },
       context
     )
   );
+  if (!live) {
+    logState(state, false, context);
+  }
 
-  context.splog.info(
-    `Output files: ${chalk.gray(
-      `/var/folders/gg/xctw127s4hs8gzlcdtghgzdr0000gn/T/tmp-31480-L1GLB4ngiQkT/`
-    )}`
-  );
+  context.splog.info(`Output files: ${chalk.gray(tmpDirName)}`);
 
   // Finish off.
   context.engine.checkoutBranch(currentBranch);
@@ -65,6 +67,7 @@ function testBranch(
     branchName: string;
     command: string;
     tmpDirName: string;
+    live: boolean;
   },
   context: TContext
 ) {
@@ -77,7 +80,9 @@ function testBranch(
 
   // Mark the branch as running.
   opts.state[opts.branchName].status = '[running]';
-  logState(opts.state, true, context);
+  if (opts.live) {
+    logState(opts.state, true, context);
+  }
 
   const startTime = Date.now();
 
@@ -100,8 +105,9 @@ function testBranch(
   opts.state[opts.branchName].duration = Date.now() - startTime;
   opts.state[opts.branchName].outfile = outputPath;
 
-  // Write output to the output file.
-  logState(opts.state, true, context);
+  if (opts.live) {
+    logState(opts.state, true, context);
+  }
 }
 
 function logState(state: TTestState, refresh: boolean, context: TContext) {
@@ -122,7 +128,9 @@ function logState(state: TTestState, refresh: boolean, context: TContext) {
     const durationString: string | undefined = duration
       ? new Date(duration).toISOString().split(/T/)[1].replace(/\..+/, '')
       : undefined;
-    process.stdout.clearLine(0);
+    if (refresh) {
+      process.stdout.clearLine(0);
+    }
     // Example:
     // - [success]: tr--Track_CLI_and_Graphite_user_assoicat (00:00:22)
     context.splog.info(
