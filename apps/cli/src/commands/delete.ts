@@ -10,11 +10,11 @@ const args = {
     demandOption: false,
     optional: true,
     describe:
-      'The name of the branch to delete. Defaults to the current branch.',
+      'The name of the branch to delete. If no branch is provided, opens an interactive selector.',
     hidden: true,
   },
   force: {
-    describe: `Delete the branch even if it is not merged or closed.`,
+    describe: `Delete the branch even if it is not merged or closed, without prompting.`,
     demandOption: false,
     type: 'boolean',
     alias: 'f',
@@ -45,7 +45,7 @@ export const aliases = ['dl'];
 export const command = 'delete [name]';
 export const canonical = 'delete';
 export const description =
-  'Delete a branch (optionally with its upstack or downstack) and its corresponding Charcoal metadata.';
+  'Delete a branch (optionally with its upstack or downstack) and its corresponding Charcoal metadata. Prompts for confirmation if a branch is not merged or closed. If no branch is provided, opens an interactive selector.';
 export const builder = args;
 export const handler = async (argv: argsT): Promise<void> =>
   graphite(argv, canonical, async (context) =>
