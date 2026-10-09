@@ -6,6 +6,7 @@ import { SCOPE, TScopeSpec } from '../lib/engine/scope_spec';
 import { ExitFailedError } from '../lib/errors';
 import { interactiveBranchSelection } from './log';
 import { restackBranches } from './restack';
+import { unstackPrs } from './submit/link_gh_stack';
 
 export function deleteBranchAction(
   args: {
@@ -49,7 +50,7 @@ export async function deleteStackAction(
 
   const prNumbers = args.close ? openPrNumbers(branchNames, context) : [];
   deleteBranches(branchNames, context);
-  prNumbers.forEach((prNumber) => closePr(prNumber, context));
+  closePrs(prNumbers, context);
 }
 
 async function selectBranchToDelete(context: TContext): Promise<string> {
@@ -170,7 +171,31 @@ export function openPrNumbers(
   });
 }
 
-export function closePr(prNumber: number, context: TContext): void {
+// Closes the PRs, then dissolves the GitHub stacks that held them: GitHub
+// keeps closed PRs listed in a stack. The next submit relinks the rest.
+export function closePrs(prNumbers: number[], context: TContext): void {
+  prNumbers.forEach((prNumber) => closePr(prNumber, context));
+  if (!prNumbers.length || !context.repoConfig.getGithubStacks()) {
+    return;
+  }
+  try {
+    unstackPrs(prNumbers, context).forEach((n) =>
+      context.splog.info(
+        `Dissolved GitHub stack #${n}, which held a closed PR; ${chalk.cyan(
+          'ch submit --stack'
+        )} relinks the rest.`
+      )
+    );
+  } catch (err) {
+    context.splog.warn(
+      `Could not update the GitHub stack: ${
+        err instanceof Error ? err.message : String(err)
+      }`
+    );
+  }
+}
+
+function closePr(prNumber: number, context: TContext): void {
   try {
     execFileSync(
       'gh',

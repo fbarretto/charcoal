@@ -3,7 +3,7 @@ import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
 import { ExitFailedError, PreconditionsFailedError } from '../lib/errors';
 import { uncommittedTrackedChangesPrecondition } from '../lib/preconditions';
-import { closePr, openPrNumbers } from './delete_branch';
+import { closePrs, openPrNumbers } from './delete_branch';
 import { restackBranches } from './restack';
 
 export async function foldAction(
@@ -40,7 +40,7 @@ export async function foldAction(
       `To keep the name of the current branch, use the \`--keep\` flag.`
     );
   }
-  prNumbers.forEach((prNumber) => closePr(prNumber, context));
+  closePrs(prNumbers, context);
   restackBranches(
     context.engine.getRelativeStack(retained, SCOPE.UPSTACK_EXCLUSIVE),
     context

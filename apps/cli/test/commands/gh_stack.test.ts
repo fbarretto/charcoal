@@ -33,10 +33,15 @@ if (args[0] === 'pr' && args[1] === 'create') {
   console.log(url(n));
   process.exit(0);
 }
+if (args[0] === 'pr' && args[1] === 'close') {
+  Object.values(st.prs).find((p) => String(p.number) === args[2]).state = 'CLOSED';
+  save();
+  process.exit(0);
+}
 if (args[0] === 'pr' && args[1] === 'edit') {
   if (args.includes('--base')) {
     const pr = Object.values(st.prs).find((p) => p.headRefName === args[2] || String(p.number) === args[2]);
-    if (st.stacks.some((s) => s.prs.includes(pr.number))) {
+    if (st.stacks.some((s) => s.open !== false && s.prs.includes(pr.number))) {
       fail('GraphQL: Cannot change the base branch because the pull request is part of a stack. (updatePullRequest)');
     }
     pr.baseRefName = flag('--base');
@@ -51,7 +56,7 @@ if (args[0] === 'api') {
   if (st.status) fail('gh: Server Error (HTTP ' + st.status + ')');
   const body = input ? JSON.parse(input) : {};
   const done = (n) => ['MERGED', 'CLOSED'].includes(Object.values(st.prs).find((p) => p.number === n)?.state);
-  const view = (s) => ({ number: s.number, open: true, pull_requests: s.prs.map((number) => ({ number, state: done(number) ? 'closed' : 'open' })) });
+  const view = (s) => ({ number: s.number, open: s.open ?? true, pull_requests: s.prs.map((number) => ({ number, state: done(number) ? 'closed' : 'open' })) });
   const [p, query] = args[1].split('?');
   const find = (n) => st.stacks.find((s) => s.number === Number(n));
   let m;
@@ -70,8 +75,10 @@ if (args[0] === 'api') {
     const kept = find(m[1]).prs.filter((n) => st.queued.includes(n) || done(n));
     st.stacks = st.stacks.filter((s) => s.number !== Number(m[1]));
     if (kept.length) {
-      st.stacks.push({ number: Number(m[1]), prs: kept });
-      out(view({ number: Number(m[1]), prs: kept }));
+      // Only queued PRs keep the stack open; merged/closed ones close it.
+      const kept_ = { number: Number(m[1]), prs: kept, open: kept.some((n) => st.queued.includes(n)) };
+      st.stacks.push(kept_);
+      out(view(kept_));
     }
   }
   save();
@@ -83,7 +90,7 @@ fail('fake gh: unexpected ' + args.join(' '));
 type TState = {
   prs: Record<string, { number: number; baseRefName?: string; state?: string }>;
   nextPr: number;
-  stacks: { number: number; prs: number[] }[];
+  stacks: { number: number; prs: number[]; open?: boolean }[];
   nextStack: number;
   queued: number[];
   status?: number;
@@ -260,6 +267,32 @@ for (const scene of [new CloneScene()]) {
         CREATE([1, 2]),
       ]);
       expect(output).not.to.contain('queued for merge');
+    });
+
+    it('removes a PR closed by `delete --close` from its GitHub stack', () => {
+      createBranches(['c']);
+      submit();
+      fs.rmSync(logPath, { force: true });
+      const output = scene.repo.runCliCommandAndGetOutput([
+        `delete`,
+        `c`,
+        `--close`,
+        `-f`,
+      ]);
+      expect(readState().prs['c'].state).to.equal('CLOSED');
+      expect(apiCalls()).to.deep.equal([
+        GET(3),
+        'api repos/owner/name/stacks/100/unstack --method POST',
+      ]);
+      expect(output).to.contain('Dissolved GitHub stack #100');
+      expect(scene.repo.runCliCommandAndGetOutput([`ls`])).not.to.contain(
+        'stack #'
+      );
+      submit();
+      expect(readState().stacks.find((s) => s.open !== false)).to.deep.equal({
+        number: 101,
+        prs: [1, 2],
+      });
     });
 
     it('makes no call for a single-PR chain', () => {
