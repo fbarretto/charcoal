@@ -197,10 +197,14 @@ Switch to a branch. With no argument, opens an interactive selector.
 | --- | --- |
 | `[branch]` | Positional: branch to switch to. |
 | `-u`, `--show-untracked` | Include untracked branches in the interactive selector. |
+| `-s`, `--stack` | Only show ancestors and descendants of the current branch in the interactive selector. |
+| `-t`, `--trunk` | Check out the trunk. |
 
 ```
 ch co            # interactive
+ch co -s         # interactive, current stack only
 ch co my-branch
+ch co -t
 ```
 
 ### `up` (alias `u`)
