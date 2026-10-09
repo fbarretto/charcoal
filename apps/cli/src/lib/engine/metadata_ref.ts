@@ -23,6 +23,8 @@ export const prInfoSchema = t.shape({
     ])
   ),
   isDraft: t.optional(t.boolean),
+  // GitHub stack number, cached on the bottom branch of a linked chain.
+  ghStackNumber: t.optional(t.number),
 });
 export type TBranchPRInfo = t.TypeOf<typeof prInfoSchema>;
 

@@ -7,6 +7,7 @@ import { CommandFailedError } from '../../lib/git/runner';
 import { getPRInfoForBranches } from './prepare_branches';
 import { validateBranchesToSubmit } from './validate_branches';
 import { submitPullRequest } from './submit_prs';
+import { linkGithubStack } from './link_gh_stack';
 import {
   createPrBodyFooter,
   footerFooter,
@@ -29,6 +30,7 @@ export async function submitAction(
     select: boolean;
     always: boolean;
     branch: string | undefined;
+    ghStack?: boolean;
   },
   context: TContext
 ): Promise<void> {
@@ -63,8 +65,14 @@ export async function submitAction(
     context.splog.newline();
   }
 
+  const currentBranch = context.engine.currentBranchPrecondition;
+  const linkStack = () => {
+    if (args.ghStack ?? context.repoConfig.getGithubStacks()) {
+      linkGithubStack(currentBranch, context);
+    }
+  };
   const allBranchNames = context.engine
-    .getRelativeStack(context.engine.currentBranchPrecondition, args.scope)
+    .getRelativeStack(currentBranch, args.scope)
     .filter((branchName) => !context.engine.isTrunk(branchName))
     .filter((branchName) => {
       const frozen = context.engine.isBranchFrozen(branchName);
@@ -113,6 +121,9 @@ export async function submitAction(
       context
     )
   ) {
+    if (!args.dryRun) {
+      linkStack(); // PRs may be up to date but not yet linked
+    }
     return;
   }
 
@@ -189,9 +200,7 @@ export async function submitAction(
     }
   }
 
-  if (!context.interactive) {
-    return;
-  }
+  linkStack();
 }
 
 export function updatePrBodyFooter(

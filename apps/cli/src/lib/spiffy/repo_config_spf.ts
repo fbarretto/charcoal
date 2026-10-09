@@ -11,6 +11,7 @@ const schema = t.shape({
   remote: t.optional(t.string),
   lastFetchedPRInfoMs: t.optional(t.number),
   isGithubIntegrationEnabled: t.optional(t.boolean),
+  githubStacks: t.optional(t.boolean),
 });
 
 export const repoConfigFactory = spiffy({
@@ -42,6 +43,12 @@ export const repoConfigFactory = spiffy({
 
       getIsGithubIntegrationEnabled: (): boolean =>
         data.isGithubIntegrationEnabled ?? true,
+
+      getGithubStacks: (): boolean => data.githubStacks ?? true,
+
+      setGithubStacks: (enabled: boolean) => {
+        update((data) => (data.githubStacks = enabled));
+      },
 
       graphiteInitialized: (): boolean => !!data.trunk,
 

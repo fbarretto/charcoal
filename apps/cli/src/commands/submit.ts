@@ -82,6 +82,11 @@ const args = {
     type: 'boolean',
     default: false,
   },
+  'gh-stack': {
+    describe:
+      'Link the submitted PRs as a GitHub stack (default: the `repo github-stacks` setting, on by default). Pass --no-gh-stack to skip.',
+    type: 'boolean',
+  },
   branch: {
     describe: 'Which branch to run this command from (default: current branch)',
     type: 'string',
@@ -110,6 +115,7 @@ export const handler = async (argv: argsT): Promise<void> => {
         select: argv.select,
         always: argv.always,
         branch: argv.branch,
+        ghStack: argv['gh-stack'],
       },
       context
     );
