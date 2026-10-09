@@ -14,7 +14,10 @@ import {
   treeWithIndexInfo,
 } from '../lib/git/plumbing';
 import { uncommittedTrackedChangesPrecondition } from '../lib/preconditions';
-import { replaceUnsupportedCharacters } from '../lib/utils/branch_name';
+import {
+  newBranchName,
+  replaceUnsupportedCharacters,
+} from '../lib/utils/branch_name';
 import { clearPromptResultLine } from '../lib/utils/prompts_helpers';
 import { restackBranches } from './restack';
 import { trackBranch } from './track_branch';
@@ -58,7 +61,7 @@ export async function splitCurrentBranch(
   }
 
   // If user did not select a style, prompt unless there is only one commit
-  const style: 'hunk' | 'commit' | 'abort' =
+  const style: 'hunk' | 'commit' | 'file' | 'abort' =
     args.style ??
     (context.engine.getAllCommits(branchToSplit, 'SHA').length > 1
       ? (
@@ -75,11 +78,20 @@ export async function splitCurrentBranch(
                 title: 'By hunk - split into new single-commit branches.',
                 value: 'hunk',
               },
+              {
+                title:
+                  'By file - split files matching a pathspec into a new parent branch.',
+                value: 'file',
+              },
               { title: 'Cancel this command (Ctrl+C).', value: 'abort' },
             ],
           })
         ).value
       : 'hunk');
+
+  if (style === 'file') {
+    return splitByFile(await promptPathspecs(context), context);
+  }
 
   const actions = {
     commit: splitByCommit,
@@ -94,6 +106,17 @@ export async function splitCurrentBranch(
     await actions[style](branchToSplit, context),
     context
   );
+}
+
+async function promptPathspecs(context: TContext): Promise<string[]> {
+  const { value } = await context.prompts({
+    type: 'text',
+    name: 'value',
+    message:
+      'Pathspecs of the files to split into a new parent branch (space-separated)',
+    validate: (v: string) => (v.trim() ? true : 'Enter at least one pathspec.'),
+  });
+  return (value as string).trim().split(/\s+/);
 }
 
 function applySplit(branchToSplit: string, split: TSplit, context: TContext) {
@@ -216,6 +239,7 @@ async function splitByCommit(
     branchToSplit,
     'READABLE'
   );
+  const subjects = context.engine.getAllCommits(branchToSplit, 'SUBJECT');
   const numChildren = context.engine.getChildren(branchToSplit).length;
   const parentBranchName = context.engine.getParentPrecondition(branchToSplit);
 
@@ -238,8 +262,14 @@ async function splitByCommit(
         .join('\n')
     );
     context.splog.newline();
+    // The oldest commit of this branch's slice names it, as with `ch create`.
+    const oldest =
+      (branchPoints[branchPoints.length - i] ?? readableCommits.length) - 1;
     branchNames.push(
-      await promptNextBranchName({ branchNames, branchToSplit }, context)
+      await promptNextBranchName(
+        { branchNames, branchToSplit, subject: subjects[oldest] },
+        context
+      )
     );
   }
 
@@ -395,9 +425,17 @@ async function splitByHunk(
         message: defaultCommitMessage,
         edit: true,
         patch: true,
+        noVerify: true,
       });
       branchNames.push(
-        await promptNextBranchName({ branchNames, branchToSplit }, context)
+        await promptNextBranchName(
+          {
+            branchNames,
+            branchToSplit,
+            subject: context.engine.getAllCommits(branchToSplit, 'SUBJECT')[0],
+          },
+          context
+        )
       );
     }
   } catch (e) {
@@ -449,9 +487,11 @@ async function promptNextBranchName(
   {
     branchToSplit,
     branchNames,
+    subject,
   }: {
     branchToSplit: string;
     branchNames: string[];
+    subject?: string;
   },
   context: TContext
 ): Promise<string> {
@@ -459,18 +499,51 @@ async function promptNextBranchName(
     type: 'text',
     name: 'branchName',
     message: `Choose a name for branch ${branchNames.length + 1}`,
-    initial: getInitialNextBranchName(branchToSplit, branchNames),
+    initial: suggestSplitBranchName(
+      { branchToSplit, branchNames, subject },
+      context
+    ),
     validate: (name) => {
       const calculatedName = replaceUnsupportedCharacters(name, context);
-      return branchNames.includes(calculatedName) ||
-        (calculatedName !== branchToSplit &&
-          context.engine.allBranchNames.includes(calculatedName))
+      return isNameTaken(
+        calculatedName,
+        { branchToSplit, branchNames },
+        context
+      )
         ? 'Branch name is already in use, choose a different name.'
         : true;
     },
   });
   context.splog.newline();
   return replaceUnsupportedCharacters(branchName, context);
+}
+
+function isNameTaken(
+  name: string,
+  {
+    branchToSplit,
+    branchNames,
+  }: { branchToSplit: string; branchNames: string[] },
+  context: TContext
+): boolean {
+  return (
+    branchNames.includes(name) ||
+    (name !== branchToSplit && context.engine.allBranchNames.includes(name))
+  );
+}
+
+// Named from the commit message like `ch create`, falling back to the
+// original branch name (then `<name>_split`, ...) if that is taken.
+export function suggestSplitBranchName(
+  args: { branchToSplit: string; branchNames: string[]; subject?: string },
+  context: TContext
+): string {
+  const fromMessage = args.subject
+    ? newBranchName(undefined, args.subject, context)
+    : undefined;
+  return fromMessage && !isNameTaken(fromMessage, args, context)
+    ? fromMessage
+    : getInitialNextBranchName(args.branchToSplit, args.branchNames);
 }
 
 function getInitialNextBranchName(
