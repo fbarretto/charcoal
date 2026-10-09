@@ -32,6 +32,7 @@ const MUTATING_COMMANDS = new Set([
   'squash',
   'sync',
   'track',
+  'unlink',
   'untrack',
 ]);
 
