@@ -22,6 +22,10 @@ for (const scene of allScenes) {
       expect(output).to.contain('[success]: b');
       expect(output).not.to.contain('[pending]');
       expect(scene.repo.currentBranchName()).to.equal('a');
+      expect(() =>
+        scene.repo.runCliCommand(['test', 'test -f b_test.txt'])
+      ).to.throw();
+      scene.repo.runCliCommand(['test', 'test -f a_test.txt']);
     });
 
     it('Limits the run to the current branch and its descendants with --upstack', () => {

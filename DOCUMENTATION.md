@@ -337,7 +337,7 @@ ch untrack feature-x
 ```
 
 ### `test`
-Run a command on each branch in the current stack and aggregate the results. Use scope flags to limit which branches run.
+Run a command on each branch in the current stack and aggregate the results. Exits non-zero, naming the branches, if the command failed on any branch. Use scope flags to limit which branches run.
 
 | Flag | Description |
 | --- | --- |
