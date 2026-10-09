@@ -8,6 +8,7 @@ import {
   RebaseConflictError,
 } from '../../lib/errors';
 import { assertUnreachable } from '../../lib/utils/assert_unreachable';
+import { branchesInOtherWorktrees } from '../../lib/git/worktrees';
 import { persistContinuation } from '../persist_continuation';
 import { printConflictStatus } from '../print_conflict_status';
 import { findStackForPr } from '../../lib/api/gh_stacks';
@@ -15,6 +16,7 @@ import { SCOPE } from '../../lib/engine/scope_spec';
 import { syncPrInfo } from '../sync_pr_info';
 import { cleanBranches } from './clean_branches';
 import { restackWithoutConflicts } from './sync';
+import { skippedInWorktreeMessage } from '../restack';
 
 type TGetArgs = {
   branchName: string | undefined;
@@ -279,12 +281,16 @@ export async function getBranchesFromRemote(
   },
   context: TContext
 ): Promise<void> {
+  const otherWorktrees = branchesInOtherWorktrees();
   for (const [index, { branch: branchName, parent: parentBranchName }] of [
     ...args.branches.entries(),
   ]) {
     const isNew = !context.engine.branchExists(branchName);
     context.engine.fetchBranch(branchName, parentBranchName);
-    if (args.force || isNew) {
+    const worktree = otherWorktrees.get(branchName);
+    if (worktree && !isNew) {
+      context.splog.info(skippedInWorktreeMessage(branchName, worktree));
+    } else if (args.force || isNew) {
       context.engine.checkoutBranchFromFetched(branchName, parentBranchName);
       context.splog.info(`Synced ${chalk.cyan(branchName)} from remote.`);
     } else if (!context.engine.isBranchTracked(branchName)) {

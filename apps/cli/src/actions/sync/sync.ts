@@ -2,7 +2,9 @@ import chalk from 'chalk';
 import { TContext } from '../../lib/context';
 import { SCOPE } from '../../lib/engine/scope_spec';
 import { KilledError } from '../../lib/errors';
+import { branchesInOtherWorktrees } from '../../lib/git/worktrees';
 import { uncommittedTrackedChangesPrecondition } from '../../lib/preconditions';
+import { skippedInWorktreeMessage } from '../restack';
 import { cleanBranches } from './clean_branches';
 import { syncPrInfo } from '../sync_pr_info';
 
@@ -112,11 +114,17 @@ export function restackWithoutConflicts(
   context: TContext
 ): string[] {
   const conflicted: string[] = [];
+  const otherWorktrees = branchesInOtherWorktrees();
   for (const branchName of branchNames) {
     if (
       context.engine.isTrunk(branchName) ||
       context.engine.isBranchFrozen(branchName)
     ) {
+      continue;
+    }
+    const worktree = otherWorktrees.get(branchName);
+    if (worktree) {
+      context.splog.info(skippedInWorktreeMessage(branchName, worktree));
       continue;
     }
     const result = context.engine.restackBranch(branchName).result;

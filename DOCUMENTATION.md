@@ -15,6 +15,8 @@ Charcoal is an open-source fork of the Graphite CLI for working with stacked bra
 
 When a command "restacks", it rebases each affected branch onto its parent so the stack stays consistent.
 
+**Multiple worktrees.** Charcoal does not modify a branch checked out in another worktree of the same repo. `restack` (and every command that restacks), `sync` and `get` skip such branches with a message, except trunk, which `sync`/`get` may still update; run the command in that worktree to update them. `ch log` shows the worktree path next to those branches. Undo history and halted-command state are per worktree: `ch undo`, `ch continue` and `ch abort` only see commands run from the current worktree, and `ch undo` refuses to modify or check out a branch checked out elsewhere.
+
 ---
 
 ## Global options
@@ -368,7 +370,7 @@ ch continue -a
 ```
 
 ### `undo`
-Undo the most recent Charcoal mutation (e.g. `create`, `modify`, `restack`, `delete`, `sync`) by restoring every local branch, its Charcoal metadata, and the previously checked-out branch. Prints what will change and asks for confirmation. Run it again to step further back (the last 10 mutations are kept). Only local state is restored: remote branches and PRs are not touched, and `submit` is not undoable. Refuses while a rebase is in progress or with uncommitted tracked changes.
+Undo the most recent Charcoal mutation run from this worktree (e.g. `create`, `modify`, `restack`, `delete`, `sync`) by restoring every local branch, its Charcoal metadata, and the previously checked-out branch. Prints what will change and asks for confirmation. Run it again to step further back (the last 10 mutations are kept). Only local state is restored: remote branches and PRs are not touched, and `submit` is not undoable. Refuses while a rebase is in progress, with uncommitted tracked changes, or when it would modify or check out a branch checked out in another worktree.
 
 | Flag | Description |
 | --- | --- |

@@ -16,7 +16,7 @@ export const undoStackFactory = spiffy({
   defaultLocations: [
     {
       relativePath: '.graphite_undo',
-      relativeTo: 'REPO',
+      relativeTo: 'WORKTREE',
     },
   ],
   initialize: () => {

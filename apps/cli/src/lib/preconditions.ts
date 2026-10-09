@@ -103,6 +103,19 @@ export function getRepoRootPathPrecondition(): string {
   return repoRootPath;
 }
 
+// The current worktree's own git dir (equals the common dir in the main one).
+export function getWorktreeGitDirPrecondition(): string {
+  const gitDir = runGitCommand({
+    args: [`rev-parse`, `--absolute-git-dir`],
+    onError: 'ignore',
+    resource: 'getWorktreeGitDirPrecondition',
+  });
+  if (!gitDir) {
+    throw new PreconditionsFailedError('No .git repository found.');
+  }
+  return gitDir;
+}
+
 export function uncommittedTrackedChangesPrecondition(): void {
   if (trackedUncommittedChanges()) {
     throw new PreconditionsFailedError(

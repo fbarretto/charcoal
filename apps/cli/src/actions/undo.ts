@@ -4,6 +4,7 @@ import { getMetadataRefList } from '../lib/engine/metadata_ref';
 import { PreconditionsFailedError } from '../lib/errors';
 import { runGitCommand } from '../lib/git/runner';
 import { getBranchNamesAndRevisions } from '../lib/git/sorted_branch_names';
+import { branchesInOtherWorktrees } from '../lib/git/worktrees';
 import { uncommittedTrackedChangesPrecondition } from '../lib/preconditions';
 import { TUndoSnapshot, undoStackFactory } from '../lib/spiffy/undo_spf';
 
@@ -164,6 +165,32 @@ async function shouldProceed(
   );
 }
 
+// Refuses (before changing anything) when restoring would move, delete or
+// check out a branch that another worktree has checked out.
+function assertNoOtherWorktreeBranches(
+  branchChanges: TRefChange[],
+  checkout: string | undefined
+): void {
+  const otherWorktrees = branchesInOtherWorktrees();
+  const blocked = [
+    ...new Set([
+      ...branchChanges.map((c) => c.name),
+      ...(checkout ? [checkout] : []),
+    ]),
+  ].filter((b) => otherWorktrees.has(b));
+  if (blocked.length) {
+    throw new PreconditionsFailedError(
+      [
+        `Cannot undo: it would need to modify or check out branches checked out in another worktree:`,
+        ...blocked.map(
+          (b) => `  ${chalk.yellow(b)} (${otherWorktrees.get(b)})`
+        ),
+        `Switch that worktree to a different branch, then retry.`,
+      ].join('\n')
+    );
+  }
+}
+
 type TRestorePlan = {
   branchChanges: TRefChange[];
   metadataChanges: TRefChange[];
@@ -180,6 +207,7 @@ function planRestore(snapshot: TUndoSnapshot): TRestorePlan {
         ? snapshot.currentBranch
         : undefined,
   };
+  assertNoOtherWorktreeBranches(plan.branchChanges, plan.checkout);
   return plan;
 }
 
