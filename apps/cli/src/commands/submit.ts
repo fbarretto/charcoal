@@ -96,6 +96,7 @@ type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
 export const command = 'submit';
 export const canonical = 'submit';
+export const aliases = ['s'];
 export const description =
   'Idempotently force push all branches from trunk to the current branch to GitHub, creating or updating distinct pull requests for each. Pass --stack to also submit descendants of the current branch.';
 export const builder = args;
