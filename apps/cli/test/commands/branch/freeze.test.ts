@@ -82,6 +82,29 @@ for (const scene of allScenes) {
       expect(scene.repo.currentBranchName()).to.equal('c');
     });
 
+    it('Refuses `modify -a`/`-u` on a frozen branch before staging anything', () => {
+      scene.repo.runCliCommand([`freeze`, `b`]);
+      scene.repo.checkoutBranch('b');
+      scene.repo.createChange('change', 'b', true);
+      for (const cmd of [
+        [`modify`, `-a`],
+        [`modify`, `-u`],
+        [`modify`, `-c`, `-a`, `-m`, `x`],
+      ]) {
+        expect(() => scene.repo.runCliCommand(cmd), cmd.join(' ')).to.throw(
+          /ch unfreeze b/
+        );
+        expect(
+          scene.repo.runGitCommandAndGetOutput([
+            `diff`,
+            `--cached`,
+            `--name-only`,
+          ]),
+          cmd.join(' ')
+        ).to.equal('');
+      }
+    });
+
     it('Restack skips frozen branches and restacks the ones above them', () => {
       scene.repo.runCliCommand([`freeze`, `a`]);
       scene.repo.checkoutBranch('main');

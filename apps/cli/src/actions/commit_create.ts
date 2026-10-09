@@ -16,6 +16,8 @@ export async function commitCreateAction(
     throw new BlockedDuringRebaseError();
   }
 
+  // Refuse before staging, or the staged changes ride into the next commit.
+  context.engine.assertNotFrozen(context.engine.currentBranchPrecondition);
   await stageChanges(opts, context);
   ensureSomeStagedChangesPrecondition(context);
   context.engine.commit({ message: opts.message, verbose: opts.verbose });
