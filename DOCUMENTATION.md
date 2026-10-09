@@ -273,6 +273,8 @@ Ensure each branch in the current stack is based on its parent, rebasing if nece
 | `-m`, `--merge-when-ready` | Enable auto-merge (`gh pr merge --auto --squash`) on every submitted PR. |
 | `--rerequest-review` | Re-request review from the current reviewers of every updated PR. |
 | `-v`, `--view` | Open the PR in the browser after submitting. |
+| `--restack` | Restack the branches before submitting. Branches that would conflict are left unrestacked and listed (the submit then stops on them). |
+| `--ignore-out-of-sync-trunk` | Submit even if trunk differs from its remote. Otherwise submit warns, then asks (or, with `--no-interactive`, fails). |
 | `--cli` | Accepted for gt compatibility; Charcoal always edits PR metadata in the CLI. |
 | `--branch` | Submit as if `<branch>` were checked out (default: current branch). |
 | `-d`, `--downstack` | Only restack this branch and its ancestors. |
@@ -413,6 +415,8 @@ Idempotently force-push all branches from trunk to the current branch to GitHub,
 | `-m`, `--merge-when-ready` | Enable auto-merge (`gh pr merge --auto --squash`) on every submitted PR. |
 | `--rerequest-review` | Re-request review from the current reviewers of every updated PR. |
 | `-v`, `--view` | Open the PR in the browser after submitting. |
+| `--restack` | Restack the branches before submitting. Branches that would conflict are left unrestacked and listed (the submit then stops on them). |
+| `--ignore-out-of-sync-trunk` | Submit even if trunk differs from its remote. Otherwise submit warns, then asks (or, with `--no-interactive`, fails). |
 | `--cli` | Accepted for gt compatibility; Charcoal always edits PR metadata in the CLI. |
 | `--branch` | Submit as if `<branch>` were checked out (default: current branch). |
 | `--gh-stack` / `--no-gh-stack` | Link (or don't link) the PRs as a GitHub stack. Defaults to the `repo github-stacks` setting (on). |

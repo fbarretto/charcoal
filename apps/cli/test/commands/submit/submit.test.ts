@@ -151,6 +151,29 @@ for (const scene of [new CloneScene()]) {
       ).to.deep.equal(['pr edit 2 --repo owner/name --add-reviewer alice,bob']);
     });
 
+    it('--restack restacks before submitting', () => {
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChange('a2', 'a2');
+      scene.repo.runGitCommand([`add`, `-A`]);
+      scene.repo.runGitCommand([`commit`, `-q`, `--amend`, `--no-edit`]);
+      scene.repo.checkoutBranch('b');
+      expect(() =>
+        scene.repo.runCliCommand([`submit`, `--no-interactive`])
+      ).to.throw(/has not been restacked/);
+      submit(`--restack`);
+      expect(created()).to.deep.equal(['a', 'b']);
+    });
+
+    it('refuses to submit when trunk is out of sync with remote', () => {
+      scene.originRepo.createChangeAndCommit('remote', 'remote');
+      expect(() =>
+        scene.repo.runCliCommand([`submit`, `--no-interactive`])
+      ).to.throw(/out of sync/);
+      expect(created()).to.deep.equal([]);
+      submit(`--ignore-out-of-sync-trunk`);
+      expect(created()).to.deep.equal(['a', 'b']);
+    });
+
     it('is aliased as `s`', () => {
       scene.repo.runCliCommand([`s`, `--no-interactive`]);
       expect(created()).to.deep.equal(['a', 'b']);
