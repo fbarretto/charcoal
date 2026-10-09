@@ -7,7 +7,8 @@ import { printConflictStatus } from './print_conflict_status';
 
 export function restackBranches(
   branchNames: string[],
-  context: TContext
+  context: TContext,
+  pendingParents: Record<string, string> = {}
 ): void {
   context.splog.debug(
     branchNames.reduce((acc, curr) => `${acc}\n${curr}`, 'RESTACKING:')
@@ -20,6 +21,11 @@ export function restackBranches(
         `${chalk.cyan(branchName)} does not need to be restacked.`
       );
       continue;
+    }
+
+    if (branchName in pendingParents) {
+      context.engine.setParent(branchName, pendingParents[branchName]);
+      delete pendingParents[branchName];
     }
 
     const result = context.engine.restackBranch(branchName);
@@ -37,6 +43,7 @@ export function restackBranches(
         persistContinuation(
           {
             branchesToRestack: branchNames,
+            pendingParents,
             rebasedBranchBase: result.rebasedBranchBase,
           },
           context

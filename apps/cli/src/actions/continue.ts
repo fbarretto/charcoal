@@ -21,6 +21,9 @@ export async function continueAction(
   const rebasedBranchBase = context.continueConfig.data.rebasedBranchBase;
   const branchesToSync = context.continueConfig.data?.branchesToSync;
   const branchesToRestack = context.continueConfig.data?.branchesToRestack;
+  const pendingParents = Object.fromEntries(
+    context.continueConfig.data?.pendingParents ?? []
+  );
 
   if (!rebasedBranchBase) {
     clearContinuation(context);
@@ -30,7 +33,7 @@ export async function continueAction(
   const cont = context.engine.continueRebase(rebasedBranchBase);
   if (cont.result === 'REBASE_CONFLICT') {
     persistContinuation(
-      { branchesToRestack: branchesToRestack, rebasedBranchBase },
+      { branchesToRestack, pendingParents, rebasedBranchBase },
       context
     );
     printConflictStatus(`Rebase conflict is not yet resolved.`, context);
@@ -53,7 +56,7 @@ export async function continueAction(
   }
 
   if (branchesToRestack) {
-    restackBranches(branchesToRestack, context);
+    restackBranches(branchesToRestack, context, pendingParents);
   }
   clearContinuation(context);
 }

@@ -13,10 +13,14 @@ import { spiffy } from './spiffy';
  * We also store the Graphite current branch, so that we can switch back to it.
  * We need to keep track of the new parentBranchRevision for the branch that
  * hit a merge conflict, as we cannot pull this information from Git.
+ * pendingParents holds queued branches whose new parent must not be written
+ * until just before they restack: once a branch's new parent is already in
+ * its history, the cache loader would silently "fix" its parentBranchRevision.
  */
 const ContinueSchema = t.shape({
   branchesToSync: t.array(t.string),
   branchesToRestack: t.array(t.string),
+  pendingParents: t.optional(t.array(t.tuple([t.string, t.string] as const))),
   currentBranchOverride: t.optional(t.string),
   rebasedBranchBase: t.optional(t.string),
 });
