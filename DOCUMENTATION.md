@@ -64,18 +64,22 @@ ch create fix -m "Fix typo" --onto main
 ```
 
 ### `modify` (alias `m`)
-Modify the current branch by amending its commit (or creating a new one with `--commit`) and restack upstack branches. **Amends by default.**
+Modify the current branch by amending its commit (or creating a new one with `--commit`) and restack upstack branches. **Amends by default, without opening an editor** (pass `-e` to edit the message). A branch with no commits always gets a new commit. If nothing is staged but there are unstaged changes, and no staging flag is passed, it asks whether to stage them (see `create`).
 
 | Flag | Description |
 | --- | --- |
-| `-a`, `--all` | Stage all changes before committing. |
-| `-c`, `--commit` | Create a new commit instead of amending the current one. |
-| `-m`, `--message` | The message for the commit. |
-| `--edit` / `-n`, `--no-edit` | Whether to edit the existing message when amending (`--no-edit` takes precedence). |
+| `-a`, `--all` | Stage all changes, including untracked files, before committing. |
+| `-u`, `--update` | Stage all updates to tracked files before committing. |
 | `-p`, `--patch` | Pick hunks to stage before committing. |
-| `--into <branch>` | Commit the staged changes into another tracked branch instead of the current one. |
+| `-c`, `--commit` | Create a new commit instead of amending the current one. |
+| `-m`, `--message` | The message for the new or amended commit; no editor opens. Repeat it to add paragraphs. |
+| `-e`, `--edit` | Open an editor to edit the message when amending. `-n`, `--no-edit` (Charcoal-only) turns it off and takes precedence. |
+| `-v`, `--verbose` | Show the diff in the commit message template; `-vv` also shows unstaged changes. |
+| `--reset-author` | Set the author of the commit to the current user when amending. |
+| `--interactive-rebase` | Ignore all other flags and start a git interactive rebase on the branch's commits, then restack (same as `ch edit`). |
+| `--into <branch>` | Commit the staged changes into a branch downstack of the current one instead. |
 
-With `--into`, the target branch is never checked out: the new commit is built from the target's tree plus the staged diff, and the command fails without changing anything if that diff doesn't apply cleanly. It amends the target's last commit (keeping its message unless `-m` is given) or, with `-c`, adds a new commit (which requires `-m`). Then everything upstack of the target is restacked and you stay on the current branch. Unstaged changes are kept; the staged ones leave the working tree, so they only reappear if the current branch is upstack of the target. If a restack conflict interrupts the command, the uncommitted changes are saved in a stash commit whose sha is printed (`git stash apply <sha>` after `ch continue`). `--patch` is not supported with `--into`; stage hunks with `git add -p` first. `--into` naming the current branch is a plain `modify`.
+With `--into`, the target must be downstack of the current branch (not trunk) and not checked out in another worktree. It is never checked out: the new commit is built from the target's tree plus the staged diff, and the command fails without changing anything if that diff doesn't apply cleanly. It amends the target's last commit (keeping its message unless `-m` is given) or, with `-c`, adds a new commit (which requires `-m`). `--reset-author` makes the current user the author of the amended commit. Then everything upstack of the target is restacked and you stay on the current branch. Unstaged changes are kept. If a restack conflict interrupts the command, the uncommitted changes are saved in a stash commit whose sha is printed (`git stash apply <sha>` after `ch continue`). `--into` naming the current branch is a plain `modify`.
 
 ```
 ch modify -a            # amend current commit with all changes
@@ -113,7 +117,7 @@ ch squash -m "Implement feature"
 ```
 
 ### `edit` (alias `e`)
-Run an interactive rebase on the current branch's commits and restack upstack branches.
+Run an interactive rebase on the current branch's commits and restack upstack branches. Charcoal-only shorthand for `ch modify --interactive-rebase` (gt dropped its `edit` command for that flag).
 
 ```
 ch edit

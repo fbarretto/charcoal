@@ -13,39 +13,44 @@ import {
   getTree,
   treeWithPatch,
 } from '../lib/git/plumbing';
+import { runGitCommand } from '../lib/git/runner';
+import { stageChanges, TStageOpts } from '../lib/preconditions';
 import { restackBranches, withChangesSetAside } from './restack';
 
 // Commits the staged changes into another branch without checking it out:
 // the new commit is built from the target's tree in a throwaway index.
-export function modifyIntoAction(
-  opts: {
+export async function modifyIntoAction(
+  opts: TStageOpts & {
     into: string;
-    addAll: boolean;
-    patch: boolean;
     commit: boolean;
     message?: string;
+    resetAuthor?: boolean;
   },
   context: TContext
-): void {
+): Promise<void> {
   const target = opts.into;
   if (context.engine.rebaseInProgress()) {
     throw new BlockedDuringRebaseError();
   }
   if (
-    !context.engine.isBranchTracked(target) ||
-    context.engine.isTrunk(target)
+    !context.engine
+      .getRelativeStack(
+        context.engine.currentBranchPrecondition,
+        SCOPE.DOWNSTACK
+      )
+      .includes(target)
   ) {
     throw new PreconditionsFailedError(
-      `${chalk.yellow(target)} is not a tracked branch other than trunk.`
+      `${chalk.yellow(target)} is not downstack of the current branch.`
+    );
+  }
+  if (isCheckedOutInAnotherWorktree(target)) {
+    throw new PreconditionsFailedError(
+      `${chalk.yellow(target)} is checked out in another worktree.`
     );
   }
   // setBranchRevision would refuse too, but only after the working tree reset.
   context.engine.assertNotFrozen(target);
-  if (opts.patch) {
-    throw new PreconditionsFailedError(
-      'Stage hunks with `git add -p` before `--into`; `--patch` is not supported.'
-    );
-  }
   if (opts.commit && !opts.message) {
     throw new PreconditionsFailedError(
       'Pass a message with `-m` when using `--commit` with `--into`.'
@@ -56,9 +61,7 @@ export function modifyIntoAction(
       `No commits in ${chalk.yellow(target)} to amend.`
     );
   }
-  if (opts.addAll) {
-    context.engine.addAll();
-  }
+  await stageChanges(opts, context);
 
   const staged = getStagedPatch();
   if (!staged && (opts.commit || !opts.message)) {
@@ -85,7 +88,7 @@ export function modifyIntoAction(
 function buildCommit(
   target: string,
   staged: string,
-  opts: { commit: boolean; message?: string }
+  opts: { commit: boolean; message?: string; resetAuthor?: boolean }
 ): string {
   const tip = `refs/heads/${target}`;
   let tree: string;
@@ -102,6 +105,17 @@ function buildCommit(
         tree,
         parents: [`${tip}~`],
         message: opts.message ?? getCommitMessage(tip),
-        authorEnv: getCommitAuthorEnv(tip),
+        authorEnv: opts.resetAuthor ? undefined : getCommitAuthorEnv(tip),
       });
+}
+
+// ponytail: local until WP1's shared lib/git/worktrees.ts lands.
+function isCheckedOutInAnotherWorktree(branch: string): boolean {
+  return runGitCommand({
+    args: ['worktree', 'list', '--porcelain'],
+    onError: 'throw',
+    resource: 'isCheckedOutInAnotherWorktree',
+  })
+    .split('\n')
+    .includes(`branch refs/heads/${branch}`);
 }
