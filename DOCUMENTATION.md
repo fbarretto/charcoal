@@ -473,7 +473,7 @@ Authenticate with the GitHub CLI so Charcoal can create and manage PRs.
 
 | Flag | Description |
 | --- | --- |
-| `-t`, `--token` | Authenticate with the GitHub API using an OAuth token. |
+| `-t`, `--token` | Store this GitHub token with `gh auth login --with-token` (the token is passed on stdin and never printed). |
 
 ```
 ch auth
