@@ -90,6 +90,41 @@ for (const scene of allScenes) {
       expect(scene.repo.currentBranchName()).to.equal('b');
     });
 
+    it('Refuses a target that is not downstack', () => {
+      setUpStack();
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChange('a2', 'a');
+      expect(() =>
+        scene.repo.runCliCommand([`modify`, `--into`, `b`])
+      ).to.throw();
+      scene.repo.runCliCommand([`create`, `d`, `-m`, `d`]);
+      scene.repo.createChange('d2', 'd');
+      expect(() =>
+        scene.repo.runCliCommand([`modify`, `--into`, `b`])
+      ).to.throw();
+      expect(show('b:b_test.txt')).to.equal('b');
+    });
+
+    it('Refuses a target checked out in another worktree', () => {
+      setUpStack();
+      scene.repo.checkoutBranch('c');
+      scene.repo.runGitCommand([`worktree`, `add`, `${scene.dir}-wt`, `a`]);
+      try {
+        scene.repo.createChange('a2', 'a');
+        expect(() =>
+          scene.repo.runCliCommand([`modify`, `--into`, `a`])
+        ).to.throw(/another worktree/);
+        expect(show('a:a_test.txt')).to.equal('a');
+      } finally {
+        scene.repo.runGitCommand([
+          `worktree`,
+          `remove`,
+          `--force`,
+          `${scene.dir}-wt`,
+        ]);
+      }
+    });
+
     // c adds x_test.txt, which the staged change adds to a, so restacking c
     // conflicts while b_test.txt carries an unstaged edit.
     function conflictOnRestack(): void {
