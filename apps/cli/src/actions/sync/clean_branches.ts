@@ -198,7 +198,7 @@ async function shouldDeleteBranch(
     return false;
   }
 
-  if (args.force) {
+  if (args.force || context.userConfig.data.syncAutoDelete) {
     return true;
   }
 

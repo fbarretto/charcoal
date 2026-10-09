@@ -660,6 +660,8 @@ ch trunk
 ### `config`
 Interactive front end over the settings managed by `ch user` and `ch repo`. Lists every setting with its current value, lets you pick one, and prompts for the new value. Repo settings are only shown inside a repo. With `--no-interactive`, prints the current settings and exits.
 
+One setting lives only here: `user sync-auto-delete` makes `ch sync` delete merged/closed branches without asking (as if `-f` was passed for deletion), also in non-interactive mode.
+
 ```
 ch config
 ch config --no-interactive

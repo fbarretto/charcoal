@@ -91,6 +91,11 @@ function userSettings(context: TContextLite): TSetting[] {
       (v) => user.update((d) => (d.submitIncludeCommitMessages = v))
     ),
     toggle(
+      'user sync-auto-delete',
+      () => user.data.syncAutoDelete,
+      (v) => user.update((d) => (d.syncAutoDelete = v))
+    ),
+    toggle(
       'user tips',
       () => user.data.tips,
       (v) => user.update((d) => (d.tips = v))
