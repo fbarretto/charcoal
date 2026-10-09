@@ -294,7 +294,7 @@ ch track -p main
 ch track --downstack
 ```
 
-### `untrack` (alias `ut`)
+### `untrack` (aliases `utr`, `ut`)
 Stop tracking a branch with Charcoal. If it has children, they are also untracked. Defaults to the current branch.
 
 | Flag | Description |
