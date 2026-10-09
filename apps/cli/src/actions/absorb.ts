@@ -101,6 +101,7 @@ function absorbPreconditions(context: TContext): string[] {
     throw new PreconditionsFailedError('Cannot absorb into trunk.');
   }
   const downstack = context.engine.getRelativeStack(current, SCOPE.DOWNSTACK);
+  downstack.forEach((b) => context.engine.assertNotFrozen(b));
   const unfixed = downstack.filter((b) => !context.engine.isBranchFixed(b));
   if (unfixed.length > 0) {
     throw new PreconditionsFailedError(
