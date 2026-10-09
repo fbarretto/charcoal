@@ -287,7 +287,12 @@ function getBranchLines(
         args.noStyleBranchName || context.engine.isBranchFixed(args.branchName)
           ? ''
           : ` ${chalk.reset(`(needs restack)`)}`
-      }${context.engine.isBranchFrozen(args.branchName) ? ' (frozen)' : ''}${
+      }${
+        context.engine.isBranchFrozen(args.branchName) &&
+        !args.noStyleBranchName
+          ? ' (frozen)'
+          : ''
+      }${
         ghStackNumber && !args.noStyleBranchName
           ? ` (stack #${ghStackNumber})`
           : ''
