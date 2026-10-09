@@ -478,7 +478,7 @@ ch auth -t <token>
 ```
 
 ### `pr`
-Open a PR page in the browser (via `gh pr view --web`). Defaults to the current branch's PR. A numeric argument that isn't a branch name is treated as a PR number. Errors if a branch has no PR.
+Open a PR page in the browser (via `gh pr view --web`) and print its URL. Defaults to the current branch's PR. A numeric argument that isn't a branch name is treated as a PR number. Errors if a branch has no PR.
 
 | Flag | Description |
 | --- | --- |

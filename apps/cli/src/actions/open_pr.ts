@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { githubRepoSlug } from '../lib/api/github_repo';
 import { findStackForPr, prNumbersOf } from '../lib/api/gh_stacks';
-import { openPrInBrowser } from '../lib/api/pr_info';
+import { getPrUrl, openPrInBrowser } from '../lib/api/pr_info';
 import { TContext } from '../lib/context';
 import { ExitFailedError } from '../lib/errors';
 
@@ -11,6 +11,7 @@ export async function openPrAction(
 ): Promise<void> {
   const repo = githubRepoSlug(context);
   for (const prNumber of resolvePrNumbers(opts, context)) {
+    context.splog.info(await getPrUrl(prNumber, repo)); // for agents without a browser
     await openPrInBrowser(prNumber, repo);
   }
 }

@@ -103,6 +103,18 @@ export async function getPrInfoForBranches(
   });
 }
 
+export async function getPrUrl(
+  prNumber: number,
+  repo: string
+): Promise<string> {
+  return JSON.parse(
+    await gh(
+      ['pr', 'view', `${prNumber}`, '--repo', repo, '--json', 'url'],
+      `Failed to find pull request #${prNumber}`
+    )
+  ).url;
+}
+
 export async function openPrInBrowser(
   prNumber: number,
   repo: string

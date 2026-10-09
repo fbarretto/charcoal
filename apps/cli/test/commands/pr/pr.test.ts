@@ -24,7 +24,11 @@ for (const scene of allScenes) {
       ghLog = path.join(binDir, 'gh.log');
       fs.writeFileSync(
         path.join(binDir, 'gh'),
-        `#!/bin/sh\necho "$@" >> "${ghLog}"\n`,
+        [
+          '#!/bin/sh',
+          `echo "$@" >> "${ghLog}"`,
+          `case "$*" in *--json*) echo '{"url":"https://github.com/owner/name/pull/'$3'"}';; esac`,
+        ].join('\n'),
         { mode: 0o755 }
       );
       originalPath = process.env.PATH;
@@ -53,7 +57,7 @@ for (const scene of allScenes) {
             .readFileSync(ghLog, 'utf-8')
             .trim()
             .split('\n')
-            .filter((c) => !c.startsWith('api '))
+            .filter((c) => !c.startsWith('api ') && !c.includes('--json'))
         : [];
 
     it('Errors when the current branch has no PR', () => {
@@ -74,7 +78,9 @@ for (const scene of allScenes) {
     it('Opens the PR of the current branch, a named branch, or a number', () => {
       setPrNumber('a', 1);
       setPrNumber('b', 2);
-      scene.repo.runCliCommand([`pr`]);
+      expect(scene.repo.runCliCommandAndGetOutput([`pr`])).to.equal(
+        'https://github.com/owner/name/pull/2'
+      );
       scene.repo.runCliCommand([`pr`, `a`]);
       scene.repo.runCliCommand([`pr`, `42`]);
       expect(ghCalls()).to.deep.equal([
@@ -125,7 +131,9 @@ for (const scene of allScenes) {
         scene.dir
       );
 
-      scene.repo.runCliCommand([`pr`, `--stack`]);
+      expect(scene.repo.runCliCommandAndGetOutput([`pr`, `--stack`])).to.equal(
+        'https://github.com/owner/name/pull/1\nhttps://github.com/owner/name/pull/7'
+      );
       expect(gh.calls().filter((c) => c.endsWith('--web'))).to.deep.equal([
         'pr view 1 --repo owner/name --web',
         'pr view 7 --repo owner/name --web',
