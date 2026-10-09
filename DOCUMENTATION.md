@@ -432,7 +432,7 @@ Branches whose restack would conflict are left where they were and listed at the
 
 | Flag | Description |
 | --- | --- |
-| `-d`, `--delete-all` | Delete all merged or closed branches without prompting. |
+| `-d`, `--delete-all` | Delete all merged or closed branches without prompting. With `--no-interactive` and without this flag, merged and closed branches are kept, and sync names each one it kept. |
 | `-f`, `--force` | Don't prompt before deleting a branch or resetting trunk to remote. |
 | `--restack` / `--no-restack` | Restack branches after syncing (default on). |
 | `--pull` / `--no-pull` | Pull the trunk branch from remote (default on). |

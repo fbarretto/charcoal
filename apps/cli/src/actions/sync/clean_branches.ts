@@ -211,6 +211,11 @@ async function shouldDeleteBranch(
   }
 
   if (!context.interactive) {
+    context.splog.info(
+      `${shouldDelete.reason}; kept it. Pass ${chalk.cyan(
+        '--delete-all'
+      )} to delete it without asking.`
+    );
     return false;
   }
 
