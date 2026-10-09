@@ -40,11 +40,21 @@ export async function getPRInfoForBranches(
     updateOnly: boolean;
     dryRun: boolean;
     reviewers: string | undefined;
+    teamReviewers?: string[];
+    reviewersForExisting?: boolean;
     select: boolean;
     always: boolean;
   },
   context: TContext
 ): Promise<TPRSubmissionInfo> {
+  const reviewers = (forExisting: boolean) =>
+    forExisting && args.reviewersForExisting === false
+      ? Promise.resolve([])
+      : getReviewersMaybeInteractively(
+          args.reviewers,
+          args.teamReviewers ?? [],
+          context
+        );
   const submissionInfo: TPRSubmissionInfo = [];
   for await (const branchName of args.branchNames) {
     const action = await getPRAction(
@@ -78,7 +88,7 @@ export async function getPRInfoForBranches(
               editPRFieldsInline: args.editPRFieldsInline,
               draft: args.draft,
               publish: args.publish,
-              reviewers: args.reviewers,
+              reviewers: () => reviewers(false),
             },
             context
           )
@@ -104,7 +114,7 @@ export async function getPRInfoForBranches(
                 editPRFieldsInline: args.editPRFieldsInline,
                 draft: args.draft,
                 publish: args.publish,
-                reviewers: args.reviewers,
+                reviewers: () => reviewers(true),
               },
               context
             )),
@@ -187,7 +197,7 @@ async function getPRCreationInfo(
     editPRFieldsInline: boolean | undefined;
     draft: boolean;
     publish: boolean;
-    reviewers: string | undefined;
+    reviewers: () => Promise<string[]>;
   },
   context: TContext
 ): Promise<{
@@ -230,10 +240,7 @@ async function getPRCreationInfo(
     context.engine.upsertPrInfo(args.branchName, submitInfo);
   }
 
-  const reviewers = await getReviewersMaybeInteractively(
-    args.reviewers,
-    context
-  );
+  const reviewers = await args.reviewers();
 
   const createAsDraft = args.publish
     ? false
@@ -255,7 +262,7 @@ async function getPRUpdateInfo(
     editPRFieldsInline: boolean | undefined;
     draft: boolean;
     publish: boolean;
-    reviewers: string | undefined;
+    reviewers: () => Promise<string[]>;
   },
   context: TContext
 ): Promise<{
@@ -298,10 +305,7 @@ async function getPRUpdateInfo(
     }
   }
 
-  const reviewers = await getReviewersMaybeInteractively(
-    args.reviewers,
-    context
-  );
+  const reviewers = await args.reviewers();
 
   const draft = args.draft ? true : args.publish ? false : undefined;
 
@@ -315,6 +319,7 @@ async function getPRUpdateInfo(
 
 async function getReviewersMaybeInteractively(
   reviewers: string | undefined,
+  teamReviewers: string[],
   context: TContext
 ): Promise<string[]> {
   if (reviewers === '') {
@@ -324,10 +329,10 @@ async function getReviewersMaybeInteractively(
       message: 'Reviewers (comma-separated GitHub usernames)',
       separator: ',',
     });
-    return response.reviewers;
+    return [...response.reviewers, ...teamReviewers];
   }
 
-  return getReviewers(reviewers);
+  return [...(await getReviewers(reviewers)), ...teamReviewers];
 }
 
 function cliAuthPrecondition(context: TContext): boolean {

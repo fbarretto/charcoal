@@ -44,6 +44,12 @@ const args = {
     type: 'string',
     alias: 'r',
   },
+  'team-reviewers': {
+    describe:
+      'Comma separated list of team slugs (or org/slug). Opens the reviewers prompt if set without an argument.',
+    type: 'string',
+    alias: 't',
+  },
   'dry-run': {
     describe:
       'Reports the PRs that would be submitted and terminates. No branches are pushed and no PRs are opened or updated.',
@@ -111,6 +117,7 @@ export const handler = async (argv: argsT): Promise<void> => {
         dryRun: argv['dry-run'],
         updateOnly: argv['update-only'],
         reviewers: argv.reviewers,
+        teamReviewers: argv['team-reviewers'],
         confirm: argv.confirm,
         forcePush: argv.force,
         select: argv.select,
