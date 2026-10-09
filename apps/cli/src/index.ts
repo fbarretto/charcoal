@@ -152,6 +152,7 @@ void cli
   // node.
   .scriptName('ch')
   .help()
+  .showHidden('show-hidden', 'Show hidden options too (`--help --all`).')
   // Pin to the bundled version; yargs' default resolves package.json relative
   // to the cwd, which is wrong in the single-file binary / outside apps/cli.
   .version(version)
