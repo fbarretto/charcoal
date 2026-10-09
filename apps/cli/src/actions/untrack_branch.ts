@@ -50,18 +50,24 @@ async function shouldUntrackBranchWithChildren(
       .join('\n')}`
   );
 
+  if (!force && !context.interactive) {
+    throw new ExitFailedError(
+      `Pass ${chalk.cyan('--force')} to untrack ${chalk.yellow(
+        branchName
+      )} and its children without confirmation.`
+    );
+  }
   return (
     force ||
-    (context.interactive &&
-      (
-        await context.prompts({
-          type: 'confirm',
-          name: 'value',
-          message: `Are you sure you want to untrack ${chalk.yellow(
-            branchName
-          )} and all of its upstack branches?`,
-          initial: false,
-        })
-      ).value)
+    (
+      await context.prompts({
+        type: 'confirm',
+        name: 'value',
+        message: `Are you sure you want to untrack ${chalk.yellow(
+          branchName
+        )} and all of its upstack branches?`,
+        initial: false,
+      })
+    ).value
   );
 }
