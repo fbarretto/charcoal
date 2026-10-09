@@ -18,6 +18,18 @@ for (const scene of allScenes) {
       expectCommits(scene.repo, '3, 1');
     });
 
+    it('Accepts the target as -o/--onto', () => {
+      scene.repo.createChange('2', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `2`]);
+      scene.repo.createChange('3', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `3`]);
+
+      scene.repo.runCliCommand([`move`, `-o`, `main`]);
+      expectCommits(scene.repo, '3, 1');
+      scene.repo.runCliCommand([`move`, `--onto`, `a`]);
+      expectCommits(scene.repo, '3, 2, 1');
+    });
+
     it('Can catch a merge conflict on first rebase', () => {
       scene.repo.createChange('2', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `2`]);
