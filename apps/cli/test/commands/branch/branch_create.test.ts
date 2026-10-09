@@ -239,6 +239,23 @@ for (const scene of allScenes) {
       ).to.equal('tracked_test.txt');
     });
 
+    it('Warns that the message was not used when nothing is staged', () => {
+      scene.repo.createChange('wip', 'wip', true);
+      const output = scene.repo.runCliCommandAndGetOutput([
+        `create`,
+        `x`,
+        `-m`,
+        `my message`,
+      ]);
+      expect(scene.repo.currentBranchName()).to.equal('x');
+      expect(scene.repo.getRef('refs/heads/x')).to.equal(
+        scene.repo.getRef('refs/heads/main')
+      );
+      expect(output).to.contain('WARNING');
+      expect(output).to.contain('"my message" was not used');
+      expect(output).to.contain('--all');
+    });
+
     it('Asks for a name when creating an empty branch without one', async () => {
       prompts.inject(['empty']);
       await createBranchAction({}, scene.getContext(true));
