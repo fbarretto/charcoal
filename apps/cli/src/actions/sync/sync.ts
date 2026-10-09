@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { TContext } from '../../lib/context';
 import { SCOPE } from '../../lib/engine/scope_spec';
-import { KilledError } from '../../lib/errors';
+import { ExitFailedError, KilledError } from '../../lib/errors';
 import { branchesInOtherWorktrees } from '../../lib/git/worktrees';
 import { uncommittedTrackedChangesPrecondition } from '../../lib/preconditions';
 import { skippedInWorktreeMessage } from '../restack';
@@ -79,6 +79,15 @@ export async function pullTrunk(
   }
 
   // If trunk cannot be fast-forwarded, prompt the user to reset to remote
+  if (!force && !context.interactive) {
+    throw new ExitFailedError(
+      `${chalk.blueBright(
+        context.engine.trunk
+      )} could not be fast-forwarded. Pass ${chalk.cyan(
+        '--force'
+      )} to overwrite it with the version from remote.`
+    );
+  }
   context.splog.warn(
     `${chalk.blueBright(context.engine.trunk)} could not be fast-forwarded.`
   );

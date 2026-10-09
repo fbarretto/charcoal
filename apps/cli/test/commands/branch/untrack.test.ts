@@ -40,6 +40,20 @@ for (const scene of allScenes) {
       expect(() => scene.repo.runCliCommand([`down`])).to.throw();
     });
 
+    it('Fails with a --force hint when the branch has children and it cannot prompt', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+
+      expect(() => scene.repo.runCliCommand([`untrack`, `a`])).to.throw(
+        '--force'
+      );
+      scene.repo.checkoutBranch('b');
+      scene.repo.runCliCommand([`down`]);
+      expect(scene.repo.currentBranchName()).to.equal('a');
+    });
+
     it('Can untrack a tracked branch with children', () => {
       // Create our branches
       scene.repo.createChange('a', 'a');
