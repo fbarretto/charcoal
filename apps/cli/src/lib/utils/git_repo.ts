@@ -74,34 +74,34 @@ export class GitRepo {
   }
 
   runCliCommandAndGetOutput(args: string[]): string {
-    return (
-      spawnSync(
-        process.argv[0],
-        [
-          path.join(
-            __dirname,
-            `..`,
-            `..`,
-            `..`,
-            `..`,
-            `dist`,
-            `src`,
-            `index.js`
-          ),
-          ...args,
-        ],
-        {
-          encoding: 'utf-8',
-          cwd: this.dir,
-          env: {
-            ...process.env,
-            [USER_CONFIG_OVERRIDE_ENV]: this.userConfigPath,
-            GRAPHITE_DISABLE_TELEMETRY: '1',
-            GRAPHITE_DISABLE_UPGRADE_PROMPT: '1',
-          },
-        }
-      ).stdout?.trim() ?? ''
+    return this.runCliCommandAndGetStreams(args).stdout;
+  }
+
+  runCliCommandAndGetStreams(args: string[]): {
+    stdout: string;
+    stderr: string;
+  } {
+    const result = spawnSync(
+      process.argv[0],
+      [
+        path.join(__dirname, `..`, `..`, `..`, `..`, `dist`, `src`, `index.js`),
+        ...args,
+      ],
+      {
+        encoding: 'utf-8',
+        cwd: this.dir,
+        env: {
+          ...process.env,
+          [USER_CONFIG_OVERRIDE_ENV]: this.userConfigPath,
+          GRAPHITE_DISABLE_TELEMETRY: '1',
+          GRAPHITE_DISABLE_UPGRADE_PROMPT: '1',
+        },
+      }
     );
+    return {
+      stdout: result.stdout?.trim() ?? '',
+      stderr: result.stderr?.trim() ?? '',
+    };
   }
 
   createChange(textValue: string, prefix?: string, unstaged?: boolean): void {
