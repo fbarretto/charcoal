@@ -139,15 +139,18 @@ ch split --by-commit
 ch split --by-file 'docs/**' -f README.md
 ```
 
-### `fold`
-Fold a branch's changes into its parent, update descendants' dependencies, and restack.
+### `fold` (alias `f`)
+Fold a branch's changes into its parent, update descendants' dependencies, and restack. Nothing happens on GitHub unless you pass `--close`.
 
 | Flag | Description |
 | --- | --- |
 | `-k`, `--keep` | Keep the current branch's name instead of the parent's name. |
+| `-c`, `--close` | Close the open pull requests of the branches folded away (via `gh pr close`). |
+| `--stack` | Fold the whole stack — from the bottom branch through the top (`ch top`'s pick; it asks at a fork) — into one branch: the bottom one, or the current one with `--keep`. Every branch in it must already be restacked. Branches hanging off the stack become children of the retained branch and are restacked. |
 
 ```
 ch fold
+ch fold --stack -c
 ```
 
 ### `rename` (alias `rn`)
