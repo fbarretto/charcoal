@@ -4,7 +4,7 @@ import { TBranchPRInfo } from '../lib/engine/metadata_ref';
 
 export async function showBranchInfo(
   branchName: string,
-  opts: { patch: boolean; diff: boolean; body: boolean },
+  opts: { patch: boolean; diff: boolean; body: boolean; stat?: boolean },
   context: TContext
 ): Promise<void> {
   const output = getBranchInfo({ branchName }, context);
@@ -17,7 +17,7 @@ export async function showBranchInfo(
   const children = context.engine.getChildren(branchName);
   if (children.length) {
     output.push(`${chalk.cyan('Children')}:`);
-    output.concat(children.map((c) => `▸ ${c}`));
+    output.push(...children.map((c) => `▸ ${c}`));
   }
 
   const body = opts.body && context.engine.getPrInfo(branchName)?.body;
@@ -26,12 +26,16 @@ export async function showBranchInfo(
     output.push(body);
   }
 
+  // --stat modifies --patch/--diff, and implies --diff when neither is passed.
+  const diff = opts.diff || (opts.stat && !opts.patch);
   output.push('');
-  output.push(context.engine.showCommits(branchName, opts.patch && !opts.diff));
+  output.push(
+    context.engine.showCommits(branchName, opts.patch && !diff, opts.stat)
+  );
 
-  if (opts.diff) {
+  if (diff) {
     output.push('');
-    output.push(context.engine.showDiff(branchName));
+    output.push(context.engine.showDiff(branchName, opts.stat));
   }
 
   context.splog.page(output.join('\n'));
