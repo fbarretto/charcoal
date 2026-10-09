@@ -98,9 +98,13 @@ Split the current branch into multiple single-commit branches.
 | --- | --- |
 | `-c`, `--by-commit`, `--commit` | Split by commit — slice up the branch's history. |
 | `-h`, `--by-hunk`, `--hunk` | Split by hunk into new single-commit branches. |
+| `-f`, `--by-file <pathspec>` | Move the changes to files matching the pathspec into a new branch inserted **below** the current one. Repeatable. |
+
+`--by-file` doesn't need interactive mode: the new parent branch is named via a prompt (default `<branch>_split`), or automatically with `--no-interactive`. It gets one commit holding the matched files' final contents. The current branch keeps its commits minus those files (commits left empty are dropped), ends at the same tree it started with, and keeps its PR. Children are restacked. Refuses if no changes match, or if every change matches (nothing would remain).
 
 ```
 ch split --by-commit
+ch split --by-file 'docs/**' -f README.md
 ```
 
 ### `fold`
