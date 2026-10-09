@@ -169,6 +169,18 @@ export async function getPrMergeState(
   );
 }
 
+export async function getPrBase(
+  prNumber: number,
+  repo: string
+): Promise<string> {
+  return JSON.parse(
+    await gh(
+      ['pr', 'view', `${prNumber}`, '--repo', repo, '--json', 'baseRefName'],
+      `Failed to read the base of pull request #${prNumber}`
+    )
+  ).baseRefName;
+}
+
 export async function setPrBase(
   prNumber: number,
   repo: string,
