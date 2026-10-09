@@ -269,6 +269,9 @@ function getBranchLines(
 
   // `ch log short` case
   if (args.short) {
+    const ghStackNumber = context.engine.getPrInfo(
+      args.branchName
+    )?.ghStackNumber;
     return [
       `${'│ '.repeat(args.indentLevel)}${'◯'}${
         args.skipBranchingLine || numChildren <= 2
@@ -284,7 +287,11 @@ function getBranchLines(
         args.noStyleBranchName || context.engine.isBranchFixed(args.branchName)
           ? ''
           : ` ${chalk.reset(`(needs restack)`)}`
-      }${context.engine.isBranchFrozen(args.branchName) ? ' (frozen)' : ''}`,
+      }${context.engine.isBranchFrozen(args.branchName) ? ' (frozen)' : ''}${
+        ghStackNumber && !args.noStyleBranchName
+          ? ` (stack #${ghStackNumber})`
+          : ''
+      }`,
     ];
   }
 

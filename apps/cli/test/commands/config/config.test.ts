@@ -17,6 +17,7 @@ for (const scene of [new BasicScene()]) {
       expect(output).to.contain('user tips: disabled');
       expect(output).to.contain('repo remote: upstream');
       expect(output).to.contain('repo github: disabled');
+      expect(output).to.contain('repo github-stacks: enabled');
     });
   });
 }
