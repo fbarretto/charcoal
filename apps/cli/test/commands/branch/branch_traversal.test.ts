@@ -85,6 +85,58 @@ for (const scene of allScenes) {
       expect(scene.repo.currentBranchName()).to.equal('a');
     });
 
+    it('up exits non-zero at the top of the stack', () => {
+      setupStack(scene);
+      expect(() =>
+        scene.repo.runCliCommand([`up`, `--no-interactive`])
+      ).to.throw();
+      expect(scene.repo.currentBranchName()).to.equal('c');
+    });
+
+    it('down exits non-zero on trunk', () => {
+      scene.repo.checkoutBranch('main');
+      expect(() =>
+        scene.repo.runCliCommand([`down`, `--no-interactive`])
+      ).to.throw();
+      expect(scene.repo.currentBranchName()).to.equal('main');
+    });
+
+    it('top and bottom stay a no-op when already there', () => {
+      setupStack(scene);
+      scene.repo.runCliCommand([`top`, `--no-interactive`]);
+      expect(scene.repo.currentBranchName()).to.equal('c');
+      scene.repo.checkoutBranch('a');
+      scene.repo.runCliCommand([`bottom`, `--no-interactive`]);
+      expect(scene.repo.currentBranchName()).to.equal('a');
+    });
+
+    it('up --to picks the child leading to the target', () => {
+      setupStack(scene);
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChange('d', 'd');
+      scene.repo.runCliCommand([`create`, `d`, `-m`, `d`]);
+      scene.repo.checkoutBranch('a');
+
+      expect(() =>
+        scene.repo.runCliCommand([`up`, `--no-interactive`])
+      ).to.throw();
+      scene.repo.runCliCommand([`up`, `--to`, `c`, `--no-interactive`]);
+      expect(scene.repo.currentBranchName()).to.equal('b');
+
+      scene.repo.checkoutBranch('a');
+      scene.repo.runCliCommand([`up`, `--to`, `d`, `--no-interactive`]);
+      expect(scene.repo.currentBranchName()).to.equal('d');
+    });
+
+    it('up --to rejects a branch that is not upstack', () => {
+      setupStack(scene);
+      scene.repo.checkoutBranch('b');
+      expect(() =>
+        scene.repo.runCliCommand([`up`, `--to`, `a`, `--no-interactive`])
+      ).to.throw();
+      expect(scene.repo.currentBranchName()).to.equal('b');
+    });
+
     it('branch up moves to next', () => {
       scene.repo.createChange('a', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
