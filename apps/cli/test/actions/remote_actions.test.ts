@@ -1,11 +1,22 @@
 import { expect, use } from 'chai';
 import { syncAction } from '../../src/actions/sync/sync';
 import { composeGit } from '../../src/lib/git/git';
+import { initContext, initContextLite } from '../../src/lib/context';
 import { CloneScene } from '../lib/scenes/clone_scene';
 import { configureTest } from '../lib/utils/configure_test';
 import chaiAsPromised from 'chai-as-promised';
 
 use(chaiAsPromised);
+
+// CloneScene.getContext() loads the origin repo; this one loads the clone.
+const cloneContext = () =>
+  initContext(
+    initContextLite({ interactive: false, quiet: true }),
+    composeGit(),
+    {
+      verify: false,
+    }
+  );
 
 for (const scene of [new CloneScene()]) {
   // eslint-disable-next-line max-lines-per-function
@@ -48,6 +59,17 @@ for (const scene of [new CloneScene()]) {
           forcePush: false,
         })
       ).to.throw();
+    });
+
+    it('refuses to push a frozen branch', () => {
+      scene.repo.createChange('1');
+      scene.repo.runCliCommand([`create`, `1`, `-am`, `1`]);
+      scene.repo.runCliCommand([`freeze`]);
+
+      expect(() => cloneContext().engine.pushBranch('1', false)).to.throw(
+        /frozen/
+      );
+      expect(scene.originRepo.getRef('refs/heads/1')).to.equal('');
     });
 
     it('can pull trunk from remote', async () => {
@@ -109,9 +131,7 @@ for (const scene of [new CloneScene()]) {
     it('get errors clearly when a branch cannot be traced to trunk', () => {
       // The test harness has no GitHub PRs, so PR-based stack resolution fails
       // gracefully (rather than silently no-op'ing like the old stub).
-      expect(() =>
-        scene.repo.runCliCommand([`get`, `nonexistent`])
-      ).to.throw();
+      expect(() => scene.repo.runCliCommand([`get`, `nonexistent`])).to.throw();
     });
   });
 }

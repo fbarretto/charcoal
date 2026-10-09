@@ -30,6 +30,7 @@ const metaSchema = t.shape({
   parentBranchName: t.optional(t.string),
   parentBranchRevision: t.optional(t.string),
   prInfo: t.optional(prInfoSchema),
+  frozen: t.optional(t.boolean),
 });
 export type TMeta = t.TypeOf<typeof metaSchema>;
 
