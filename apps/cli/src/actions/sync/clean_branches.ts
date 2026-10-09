@@ -1,6 +1,8 @@
 import { default as chalk } from 'chalk';
 import { TContext } from '../../lib/context';
+import { worktreeOf } from '../../lib/git/worktrees';
 import { deleteBranchAction, isSafeToDelete } from '../delete_branch';
+import { skippedInWorktreeMessage } from '../restack';
 
 /**
  * This method is assumed to be idempotent -- if a merge conflict interrupts
@@ -187,6 +189,12 @@ async function shouldDeleteBranch(
 ): Promise<boolean> {
   const shouldDelete = isSafeToDelete(args.branchName, context);
   if (!shouldDelete.result) {
+    return false;
+  }
+
+  const worktree = worktreeOf(args.branchName);
+  if (worktree) {
+    context.splog.info(skippedInWorktreeMessage(args.branchName, worktree));
     return false;
   }
 

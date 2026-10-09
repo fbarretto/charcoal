@@ -3,7 +3,10 @@ import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
 import { ExitFailedError } from '../errors';
-import { getRepoRootPathPrecondition } from '../preconditions';
+import {
+  getRepoRootPathPrecondition,
+  getWorktreeGitDirPrecondition,
+} from '../preconditions';
 import { cuteString } from '../utils/cute_string';
 
 /**
@@ -67,7 +70,7 @@ export function spiffy<TSpfData, THelperFunctions>(
 
 type TDefaultFileLocation = {
   relativePath: string;
-  relativeTo: 'USER_HOME' | 'REPO';
+  relativeTo: 'USER_HOME' | 'REPO' | 'WORKTREE';
 };
 
 type TSpfMutator<TSpfData> = (data: TSpfData) => void;
@@ -106,7 +109,11 @@ function spfAbsolutePaths(
   return (defaultPathOverride ? [defaultPathOverride] : []).concat(
     defaultLocations.map((l) =>
       path.join(
-        l.relativeTo === 'REPO' ? getRepoRootPathPrecondition() : os.homedir(),
+        l.relativeTo === 'REPO'
+          ? getRepoRootPathPrecondition()
+          : l.relativeTo === 'WORKTREE'
+          ? getWorktreeGitDirPrecondition()
+          : os.homedir(),
         l.relativePath
       )
     )
