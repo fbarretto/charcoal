@@ -1,5 +1,7 @@
 import { expect } from 'chai';
-import { execSync } from 'child_process';
+import { execSync, spawnSync } from 'child_process';
+import path from 'path';
+import { USER_CONFIG_OVERRIDE_ENV } from '../../../src/lib/context';
 import fs from 'fs-extra';
 import { TrailingProdScene } from '../../lib/scenes/trailing_prod_scene';
 import { configureTest } from '../../lib/utils/configure_test';
@@ -10,6 +12,27 @@ for (const scene of [new TrailingProdScene()]) {
 
     it('Can log short', () => {
       expect(() => scene.repo.runCliCommand([`ls`])).to.not.throw(Error);
+    });
+
+    it('Ends every log style with a newline, even through a pager', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      for (const args of [['ls'], ['log', 'short'], ['log'], ['ll']]) {
+        const out = spawnSync(
+          process.execPath,
+          [path.join(__dirname, '../../../src/index.js'), ...args],
+          {
+            cwd: scene.repo.dir,
+            encoding: 'utf-8',
+            env: {
+              ...process.env,
+              [USER_CONFIG_OVERRIDE_ENV]: scene.repo.userConfigPath,
+              GT_PAGER: 'cat',
+            },
+          }
+        ).stdout;
+        expect(out, args.join(' ')).to.contain('main').and.match(/\n$/);
+      }
     });
 
     it('`log --classic` matches `ls --classic`', () => {

@@ -48,13 +48,14 @@ export function composeSplog(
           )
         : () => void 0,
     page: (s: string) => {
-      if (!opts.pager) {
+      // Like git, only page to a terminal.
+      if (!opts.pager || !process.stdout.isTTY) {
         console.log(s);
         return;
       }
       try {
         execSync(`${opts.pager}`, {
-          input: s,
+          input: s.endsWith('\n') ? s : `${s}\n`,
           stdio: ['pipe', 'inherit', 'inherit'],
           encoding: 'utf-8',
           // match what git does for pager env vars
