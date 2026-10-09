@@ -35,6 +35,7 @@ import * as modify from './commands/modify';
 import * as move from './commands/move';
 import * as parent from './commands/parent';
 import * as pop from './commands/pop';
+import * as pr from './commands/pr';
 import * as rename from './commands/rename';
 import * as reorder from './commands/reorder';
 import * as repo from './commands/repo';
@@ -96,6 +97,7 @@ const commandModules = [
   move,
   parent,
   pop,
+  pr,
   rename,
   reorder,
   repo,
