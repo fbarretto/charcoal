@@ -1,0 +1,65 @@
+import { expect } from 'chai';
+import fs from 'fs-extra';
+import path from 'path';
+import { LEGACY_ALIASES } from '../../../src/lib/pre-yargs/aliases';
+import { BasicScene } from '../../lib/scenes/basic_scene';
+import { configureTest } from '../../lib/utils/configure_test';
+
+for (const scene of [new BasicScene()]) {
+  describe(`(${scene}): aliases`, function () {
+    configureTest(this, scene);
+
+    const aliasFile = () => path.join(scene.dir, '.git', '.graphite_aliases');
+
+    it('Expands an alias and appends the remaining arguments', () => {
+      fs.writeFileSync(aliasFile(), '# comment\nnb create --all\n');
+      scene.repo.createChange('a');
+      scene.repo.runCliCommand([`nb`, `a`, `-m`, `a`]);
+      expect(scene.repo.currentBranchName()).to.equal('a');
+    });
+
+    it('Ignores an alias that shadows a built-in command', () => {
+      fs.writeFileSync(aliasFile(), 'ls create shadowed -m x\n');
+      const output = scene.repo.runCliCommandAndGetOutput([`ls`]);
+      expect(output).to.contain('Ignoring alias "ls"');
+      expect(scene.repo.currentBranchName()).to.equal('main');
+    });
+
+    it('Prints, resets, and installs legacy aliases', () => {
+      fs.writeFileSync(aliasFile(), 'ss my-own-thing\n');
+      scene.repo.runCliCommand([`aliases`, `--legacy`]);
+      const printed = scene.repo.runCliCommandAndGetOutput([
+        `aliases`,
+        `--no-interactive`,
+      ]);
+      expect(printed).to.contain('ss my-own-thing');
+      expect(printed).not.to.contain('ss submit --stack');
+      expect(printed).to.contain('bc create');
+
+      scene.repo.runCliCommand([`aliases`, `--reset`]);
+      expect(
+        scene.repo.runCliCommandAndGetOutput([`aliases`, `--no-interactive`])
+      ).to.equal('');
+    });
+
+    it('Every legacy alias resolves to a command and shadows nothing', () => {
+      scene.repo.runCliCommand([`aliases`, `--legacy`]);
+      for (const line of LEGACY_ALIASES.split('\n')) {
+        const name = line.split(' ')[0];
+        const output = scene.repo.runCliCommandAndGetOutput([name, `--help`]);
+        expect(output, name).not.to.contain('Ignoring alias');
+        expect(output, name).to.contain(`ch ${line.split(' ')[1]}`);
+      }
+    });
+
+    it('Legacy navigation aliases work', () => {
+      scene.repo.runCliCommand([`aliases`, `--legacy`]);
+      scene.repo.createChange('a');
+      scene.repo.runCliCommand([`bc`, `a`, `-am`, `a`]);
+      scene.repo.runCliCommand([`bd`]);
+      expect(scene.repo.currentBranchName()).to.equal('main');
+      scene.repo.runCliCommand([`bu`]);
+      expect(scene.repo.currentBranchName()).to.equal('a');
+    });
+  });
+}

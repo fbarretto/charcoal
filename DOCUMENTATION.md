@@ -517,6 +517,21 @@ ch config
 ch config --no-interactive
 ```
 
+### `aliases`
+User-defined command aliases, kept in `.graphite_aliases` next to your user config (`~/.graphite_aliases` by default). One alias per line, `<alias> <expansion...>`; blank lines and `#` comments are ignored. When the first word you type matches an alias, Charcoal replaces it with the expansion and keeps the rest of your arguments (`ch ss -d` runs `ch submit --stack -d`). Aliases can't shadow built-in commands or git passthrough commands; such a line is ignored with a warning.
+
+`ch aliases` opens the file in your editor (prints it with `--no-interactive`).
+
+| Flag | Description |
+| --- | --- |
+| `--reset` | Remove all aliases. |
+| `--legacy` | Add the pre-v1.0 noun-verb shortcuts, mapped to the flat commands that replaced them (`bc` → `create`, `bco` → `checkout`, `bu`/`bd` → `up`/`down`, `ca` → `modify`, `cc` → `modify --commit`, `ss` → `submit --stack`, `dss` → `submit`, `sr` → `restack`, `br` → `restack --only`, `usr`/`dsr` → `restack --upstack`/`--downstack`, `uso` → `move`, `dse` → `reorder`, `dstr` → `track --downstack`, `rs` → `repo sync`, and the rest of the `b*`, `ds*`, `us*` family). Aliases you already defined are kept. Old shortcuts with no flat equivalent (`bs`, `uss`) are not included. |
+
+```
+ch aliases
+ch aliases --legacy
+```
+
 ### `repo`
 Read or write Charcoal's per-repo configuration. Sub-commands generally read the current value when run with no flag and write it with `-s`/`--set`.
 
