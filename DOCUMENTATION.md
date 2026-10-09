@@ -563,16 +563,19 @@ ch ll
 ```
 
 ### `info` (alias `i`)
-Display information about the current branch.
+Display information about the current (or provided) branch: its parent, children and commits.
 
 | Flag | Description |
 | --- | --- |
+| `[branch]` | Positional: branch to show. Defaults to the current branch. |
 | `-p`, `--patch` | Show the changes made by each commit. |
 | `-d`, `--diff` | Show the diff between this branch and its parent. Takes precedence over `--patch`. |
+| `-s`, `--stat` | Show a diffstat instead of a full diff. Modifies `--patch` or `--diff`; implies `--diff` if neither is passed. |
 | `-b`, `--body` | Show the PR body, if it exists. |
 
 ```
 ch info -d
+ch info feature-x -s
 ```
 
 ### `parent`
