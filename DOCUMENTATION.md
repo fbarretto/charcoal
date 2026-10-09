@@ -424,6 +424,30 @@ ch unlink feature-x
 
 ## Collaborate
 
+### `freeze`
+Freeze a branch and every branch downstack of it, down to trunk. Use it on branches that belong to someone else (for example a teammate's stack you are building on), so Charcoal never rewrites them. Defaults to the current branch.
+
+Charcoal refuses to modify, squash, split, fold, rename, move, pop, edit, push, or `modify --into` a frozen branch, and refuses to delete it unless it has been merged or closed (so `sync` still cleans it up). `restack` skips frozen branches and restacks the unfrozen branches above them onto their current tip; `submit` skips them and still submits the branches above. You can still `create` branches on top of a frozen branch. `log` and `ls` mark frozen branches with `(frozen)`.
+
+| Flag | Description |
+| --- | --- |
+| `[branch]` | Positional: branch to freeze. |
+
+```
+ch freeze teammate-branch
+```
+
+### `unfreeze`
+Unfreeze a branch and every branch upstack of it, so Charcoal can modify them again. Defaults to the current branch.
+
+| Flag | Description |
+| --- | --- |
+| `[branch]` | Positional: branch to unfreeze. |
+
+```
+ch unfreeze teammate-branch
+```
+
 ### `get` (alias `g`)
 Get branches from trunk to the specified branch from remote, prompting to resolve conflicts. With no argument, gets downstack from the current branch. Useful for pulling a teammate's stack.
 

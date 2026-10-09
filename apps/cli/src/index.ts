@@ -27,6 +27,7 @@ import * as edit from './commands/edit';
 import * as feedback from './commands/feedback';
 import * as fish from './commands/fish';
 import * as fold from './commands/fold';
+import * as freeze from './commands/freeze';
 import * as get from './commands/get';
 import * as info from './commands/info';
 import * as init from './commands/init';
@@ -52,6 +53,7 @@ import * as top from './commands/top';
 import * as track from './commands/track';
 import * as undo from './commands/undo';
 import * as trunk from './commands/trunk';
+import * as unfreeze from './commands/unfreeze';
 import * as unlink from './commands/unlink';
 import * as untrack from './commands/untrack';
 import * as up from './commands/up';
@@ -93,6 +95,7 @@ const commandModules = [
   feedback,
   fish,
   fold,
+  freeze,
   get,
   info,
   init,
@@ -118,6 +121,7 @@ const commandModules = [
   track,
   undo,
   trunk,
+  unfreeze,
   unlink,
   untrack,
   up,

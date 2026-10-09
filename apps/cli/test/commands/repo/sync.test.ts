@@ -52,6 +52,23 @@ for (const scene of allScenes) {
       expectBranches(scene.repo, 'main');
     });
 
+    it('Deletes a merged frozen branch and reparents its frozen child', async () => {
+      scene.repo.createChange('2', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('3', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.runCliCommand([`freeze`]);
+      const bBefore = scene.repo.getRef('refs/heads/b');
+
+      fakeGitSquashAndMerge(scene.repo, 'a', 'squash');
+      scene.repo.runCliCommand([`repo`, `sync`, `-f`, `--no-pull`]);
+
+      expectBranches(scene.repo, 'b, main');
+      expect(readMetadataRef('b', scene.dir).parentBranchName).to.equal('main');
+      expect(readMetadataRef('b', scene.dir).frozen).to.equal(true);
+      expect(scene.repo.getRef('refs/heads/b')).to.equal(bBefore);
+    });
+
     it('Can delete a branch marked as merged', async () => {
       scene.repo.createChange('2', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);

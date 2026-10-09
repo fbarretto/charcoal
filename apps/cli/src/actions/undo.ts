@@ -19,6 +19,7 @@ const MUTATING_COMMANDS = new Set([
   'delete',
   'edit',
   'fold',
+  'freeze',
   'get',
   'internal-only metaedit',
   'modify',
@@ -33,6 +34,7 @@ const MUTATING_COMMANDS = new Set([
   'squash',
   'sync',
   'track',
+  'unfreeze',
   'unlink',
   'untrack',
 ]);

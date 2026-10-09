@@ -34,6 +34,10 @@ export async function splitCurrentBranch(
   args: { style: 'hunk' | 'commit' | undefined; byFile?: string[] },
   context: TContext
 ): Promise<void> {
+  // Both split paths detach HEAD before the engine call that would refuse.
+  if (context.engine.currentBranch) {
+    context.engine.assertNotFrozen(context.engine.currentBranch);
+  }
   if (args.byFile?.length) {
     return splitByFile(args.byFile, context);
   }

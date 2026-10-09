@@ -97,7 +97,9 @@ export async function cleanBranches(
 
       // If the nearest ancestor is not already the parent, we make it so.
       if (newParentBranchName !== parentBranchName) {
-        context.engine.setParent(branchName, newParentBranchName);
+        context.engine.setParent(branchName, newParentBranchName, {
+          allowFrozen: true,
+        });
         context.splog.info(
           `Set parent of ${chalk.cyan(branchName)} to ${chalk.blueBright(
             newParentBranchName

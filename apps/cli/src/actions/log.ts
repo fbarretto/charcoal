@@ -284,7 +284,7 @@ function getBranchLines(
         args.noStyleBranchName || context.engine.isBranchFixed(args.branchName)
           ? ''
           : ` ${chalk.reset(`(needs restack)`)}`
-      }`,
+      }${context.engine.isBranchFrozen(args.branchName) ? ' (frozen)' : ''}`,
     ];
   }
 

@@ -53,6 +53,9 @@ function assertDeletable(
   if (branchNames.some((b) => context.engine.isTrunk(b))) {
     throw new ExitFailedError('Cannot delete trunk!');
   }
+  branchNames.forEach((b) =>
+    context.engine.assertNotFrozen(b, { allowLanded: true })
+  );
   const unsafe = force
     ? []
     : branchNames.filter((b) => !isSafeToDelete(b, context).result);

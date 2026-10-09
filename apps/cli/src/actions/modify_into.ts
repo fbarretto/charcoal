@@ -43,6 +43,8 @@ export function modifyIntoAction(
       `${chalk.yellow(target)} is not a tracked branch other than trunk.`
     );
   }
+  // setBranchRevision would refuse too, but only after the working tree reset.
+  context.engine.assertNotFrozen(target);
   if (opts.patch) {
     throw new PreconditionsFailedError(
       'Stage hunks with `git add -p` before `--into`; `--patch` is not supported.'

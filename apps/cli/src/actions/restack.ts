@@ -23,6 +23,11 @@ export function restackBranches(
       continue;
     }
 
+    if (context.engine.isBranchFrozen(branchName)) {
+      context.splog.info(`Skipped frozen branch ${chalk.cyan(branchName)}.`);
+      continue;
+    }
+
     if (branchName in pendingParents) {
       context.engine.setParent(branchName, pendingParents[branchName]);
       delete pendingParents[branchName];

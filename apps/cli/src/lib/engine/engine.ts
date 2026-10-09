@@ -78,7 +78,18 @@ export type TEngine = {
 
   getChildren: (branchName: string) => string[];
 
-  setParent: (branchName: string, parentBranchName: string) => void;
+  isBranchFrozen: (branchName: string) => boolean;
+  assertNotFrozen: (
+    branchName: string,
+    opts?: { allowLanded?: boolean }
+  ) => void;
+  setBranchFrozen: (branchName: string, frozen: boolean) => void;
+
+  setParent: (
+    branchName: string,
+    parentBranchName: string,
+    opts?: { allowFrozen?: boolean }
+  ) => void;
   getParent: (branchName: string) => string | undefined;
   getParentPrecondition: (branchName: string) => string;
 
@@ -203,6 +214,42 @@ export function composeEngine({
     return cache.currentBranch;
   };
 
+  const isBranchLanded = (branchName: string) => {
+    const meta = cache.branches[branchName];
+    const state =
+      meta?.validationResult === 'TRUNK' ? undefined : meta?.prInfo?.state;
+    return (
+      state === 'MERGED' ||
+      state === 'CLOSED' ||
+      git.isMerged({ branchName, trunkName: assertTrunk() })
+    );
+  };
+
+  const isBranchFrozen = (branchName: string) => {
+    const meta = cache.branches[branchName];
+    return meta?.validationResult !== 'TRUNK' && meta?.frozen === true;
+  };
+
+  // Every engine method that rewrites, moves, pushes, or deletes a branch calls
+  // this first; frozen branches belong to someone else (see `ch freeze`).
+  // `allowLanded` lets a frozen branch go once it is merged or closed, so
+  // `ch sync` can still clean up a teammate's landed branches.
+  const assertNotFrozen = (
+    branchName: string,
+    opts?: { allowLanded?: boolean }
+  ) => {
+    if (
+      isBranchFrozen(branchName) &&
+      !(opts?.allowLanded && isBranchLanded(branchName))
+    ) {
+      throw new PreconditionsFailedError(
+        `${chalk.yellow(
+          branchName
+        )} is frozen. Run \`ch unfreeze ${branchName}\` to modify it.`
+      );
+    }
+  };
+
   const assertBranchIsValidOrTrunkAndGetMeta = (branchName: string) => {
     assertBranch(branchName);
     const meta = cache.branches[branchName];
@@ -289,13 +336,20 @@ export function composeEngine({
     }
   };
 
-  const setParent = (branchName: string, parentBranchName: string) => {
+  const setParent = (
+    branchName: string,
+    parentBranchName: string,
+    opts?: { allowFrozen?: boolean }
+  ) => {
     validateNewParent(branchName, parentBranchName);
     const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
 
     const oldParentBranchName = cachedMeta.parentBranchName;
     if (oldParentBranchName === parentBranchName) {
       return;
+    }
+    if (!opts?.allowFrozen) {
+      assertNotFrozen(branchName);
     }
 
     assertBranchIsValidOrTrunkAndGetMeta(parentBranchName);
@@ -367,6 +421,7 @@ export function composeEngine({
       parentBranchName: newCachedMeta.parentBranchName,
       parentBranchRevision: newCachedMeta.parentBranchRevision,
       prInfo: newCachedMeta.prInfo,
+      frozen: newCachedMeta.frozen,
     });
 
     splog.debug(
@@ -615,6 +670,12 @@ export function composeEngine({
       });
     },
     getChildren,
+    isBranchFrozen,
+    assertNotFrozen,
+    setBranchFrozen: (branchName: string, frozen: boolean) => {
+      const meta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      updateMeta(branchName, { ...meta, frozen: frozen || undefined });
+    },
     setParent,
     getParent,
     getParentPrecondition: (branchName: string) =>
@@ -653,12 +714,13 @@ export function composeEngine({
       }
       const cachedMeta =
         assertBranchIsValidAndNotTrunkAndGetMeta(currentBranchName);
+      assertNotFrozen(currentBranchName);
 
       git.moveBranch(branchName);
       updateMeta(branchName, { ...cachedMeta, prInfo: {} });
 
       cachedMeta.children.forEach((childBranchName) =>
-        setParent(childBranchName, branchName)
+        setParent(childBranchName, branchName, { allowFrozen: true })
       );
 
       removeChild(cachedMeta.parentBranchName, currentBranchName);
@@ -674,6 +736,8 @@ export function composeEngine({
       const parentBranchName = cachedMeta.parentBranchName;
       const parentCachedMeta =
         assertBranchIsValidAndNotTrunkAndGetMeta(parentBranchName);
+      assertNotFrozen(currentBranchName);
+      assertNotFrozen(parentBranchName);
 
       if (keep) {
         updateMeta(currentBranchName, {
@@ -684,7 +748,7 @@ export function composeEngine({
         parentCachedMeta.children
           .filter((childBranchName) => childBranchName !== currentBranchName)
           .forEach((childBranchName) =>
-            setParent(childBranchName, currentBranchName)
+            setParent(childBranchName, currentBranchName, { allowFrozen: true })
           );
         deleteAllBranchData(parentBranchName);
       } else {
@@ -694,7 +758,7 @@ export function composeEngine({
           branchRevision: cachedMeta.branchRevision,
         });
         cachedMeta.children.forEach((childBranchName) =>
-          setParent(childBranchName, parentBranchName)
+          setParent(childBranchName, parentBranchName, { allowFrozen: true })
         );
         checkoutBranch(cachedMeta.parentBranchName);
         deleteAllBranchData(currentBranchName);
@@ -702,13 +766,16 @@ export function composeEngine({
     },
     deleteBranch: (branchName: string) => {
       const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      assertNotFrozen(branchName, { allowLanded: true });
 
       if (branchName === cache.currentBranch) {
         checkoutBranch(cachedMeta.parentBranchName);
       }
 
       cachedMeta.children.forEach((childBranchName) =>
-        setParent(childBranchName, cachedMeta.parentBranchName)
+        setParent(childBranchName, cachedMeta.parentBranchName, {
+          allowFrozen: true,
+        })
       );
 
       deleteAllBranchData(branchName);
@@ -716,6 +783,7 @@ export function composeEngine({
     commit: (opts: TCommitOpts) => {
       const branchName = getCurrentBranchOrThrow();
       const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      assertNotFrozen(branchName);
       git.commit({ ...opts, noVerify });
       cache.branches[branchName] = {
         ...cachedMeta,
@@ -725,6 +793,7 @@ export function composeEngine({
     squashCurrentBranch: (opts: Pick<TCommitOpts, 'message' | 'noEdit'>) => {
       const branchName = getCurrentBranchOrThrow();
       const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      assertNotFrozen(branchName);
       git.softReset(
         git
           .getCommitRange(
@@ -762,6 +831,7 @@ export function composeEngine({
     unbranch() {
       const branchName = getCurrentBranchOrThrow();
       const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      assertNotFrozen(branchName);
       git.switchBranch(cachedMeta.branchRevision, { detach: true });
       const parentBranchName = cachedMeta.parentBranchName;
       deleteAllBranchData(branchName);
@@ -771,6 +841,7 @@ export function composeEngine({
     detachAndResetBranchChanges() {
       const branchName = getCurrentBranchOrThrow();
       const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      assertNotFrozen(branchName);
       git.switchBranch(cachedMeta.branchRevision, { detach: true });
       git.trackedReset(cachedMeta.parentBranchRevision);
     },
@@ -790,6 +861,7 @@ export function composeEngine({
       }
       const cachedMeta =
         assertBranchIsValidAndNotTrunkAndGetMeta(branchToSplit);
+      assertNotFrozen(branchToSplit);
 
       const children = cachedMeta.children;
 
@@ -820,7 +892,7 @@ export function composeEngine({
       });
       if (lastBranch.name !== branchToSplit) {
         children.forEach((childBranchName) =>
-          setParent(childBranchName, lastBranch.name)
+          setParent(childBranchName, lastBranch.name, { allowFrozen: true })
         );
       }
       if (!branchNames.includes(branchToSplit)) {
@@ -831,6 +903,7 @@ export function composeEngine({
     },
     setBranchRevision: (branchName: string, sha: string) => {
       const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      assertNotFrozen(branchName);
       git.forceCreateBranch(branchName, sha);
       cache.branches[branchName] = { ...cachedMeta, branchRevision: sha };
     },
@@ -843,6 +916,7 @@ export function composeEngine({
         return { result: 'REBASE_UNNEEDED' };
       }
       assertCachedMetaIsNotTrunk(cachedMeta);
+      assertNotFrozen(branchName);
       assertBranch(cachedMeta.parentBranchName);
       const newBase =
         cache.branches[cachedMeta.parentBranchName].branchRevision;
@@ -865,6 +939,7 @@ export function composeEngine({
     },
     rebaseInteractive: (branchName: string) => {
       const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      assertNotFrozen(branchName);
 
       if (
         git.rebaseInteractive({
@@ -925,6 +1000,7 @@ export function composeEngine({
     },
     pushBranch: (branchName: string, forcePush: boolean) => {
       assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      assertNotFrozen(branchName);
       git.pushBranch({ remote, branchName, noVerify, forcePush });
     },
     pullTrunk: () => {
@@ -998,10 +1074,12 @@ export function composeEngine({
         head: git.readFetchHead(),
         base: git.readFetchBase(),
       };
+      const frozen = isBranchFrozen(branchName) || undefined;
       git.forceCheckoutNewBranch(branchName, head);
       git.setRemoteTracking({ remote, branchName, sha: head });
 
       updateMeta(branchName, {
+        frozen,
         validationResult: 'VALID',
         parentBranchName,
         parentBranchRevision: base,
@@ -1012,6 +1090,7 @@ export function composeEngine({
     },
     rebaseBranchOntoFetched: (branchName: string) => {
       const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      assertNotFrozen(branchName);
 
       const { head, base } = {
         head: git.readFetchHead(),
