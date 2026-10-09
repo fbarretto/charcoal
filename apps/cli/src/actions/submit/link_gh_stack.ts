@@ -135,7 +135,8 @@ function reconcile(
     throw err;
   }
 
-  const current = existing ? prNumbersOf(existing) : [];
+  // A merged bottom PR stays listed in its stack; compare open PRs only.
+  const current = existing ? openPrNumbersOf(existing) : [];
   const isPrefix = current.every((pr, i) => prs[i] === pr);
   const describe = (s: TGhStack) =>
     `GitHub stack ${chalk.cyan(`#${s.number}`)}: ${prNumbersOf(s)
@@ -154,11 +155,13 @@ function reconcile(
 
   if (existing) {
     const kept = unstack(repo, existing.number);
-    if (kept) {
+    forgetGhStack(existing.number, context);
+    const stuck = kept ? openPrNumbersOf(kept) : [];
+    if (stuck.length) {
       context.splog.warn(
-        `GitHub kept ${prNumbersOf(kept)
+        `GitHub kept ${stuck
           .map((n) => `#${n}`)
-          .join(', ')} stacked (queued for merge); not relinking.`
+          .join(', ')} stacked (queued for merge or auto-merge); not relinking.`
       );
       return undefined;
     }

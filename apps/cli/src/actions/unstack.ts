@@ -3,6 +3,7 @@ import { githubRepoSlug } from '../lib/api/github_repo';
 import {
   findStackForPr,
   GhApiError,
+  openPrNumbersOf,
   prNumbersOf,
   unstack,
 } from '../lib/api/gh_stacks';
@@ -56,10 +57,11 @@ export async function unstackAction(
 
   const kept = unstack(repo, stack.number);
   forgetGhStack(stack.number, context);
+  const stuck = kept ? openPrNumbersOf(kept) : []; // merged PRs stay listed
   context.splog.info(
-    kept
+    stuck.length
       ? `Unstacked GitHub stack #${stack.number}; GitHub kept ${prList(
-          prNumbersOf(kept)
+          stuck
         )} stacked (queued for merge or auto-merge).`
       : `Dissolved GitHub stack #${stack.number}.`
   );
