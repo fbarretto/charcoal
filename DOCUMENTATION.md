@@ -509,6 +509,14 @@ ch trunk
 
 ## Config
 
+### `config`
+Interactive front end over the settings managed by `ch user` and `ch repo`. Lists every setting with its current value, lets you pick one, and prompts for the new value. Repo settings are only shown inside a repo. With `--no-interactive`, prints the current settings and exits.
+
+```
+ch config
+ch config --no-interactive
+```
+
 ### `repo`
 Read or write Charcoal's per-repo configuration. Sub-commands generally read the current value when run with no flag and write it with `-s`/`--set`.
 

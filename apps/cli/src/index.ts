@@ -15,6 +15,7 @@ import * as auth from './commands/auth';
 import * as bottom from './commands/bottom';
 import * as checkout from './commands/checkout';
 import * as children from './commands/children';
+import * as config from './commands/config';
 import * as continueCmd from './commands/continue';
 import * as create from './commands/create';
 import * as deleteCmd from './commands/delete';
@@ -79,6 +80,7 @@ const commandModules = [
   bottom,
   checkout,
   children,
+  config,
   continueCmd,
   create,
   deleteCmd,
