@@ -8,6 +8,7 @@ export function squashCurrentBranch(
   context: TContext
 ): void {
   const branchName = context.engine.currentBranchPrecondition;
+  context.engine.assertNotFrozen(branchName);
   if (context.engine.getAllCommits(branchName, 'SHA').length < 2) {
     context.splog.info('Nothing to squash: the branch has at most one commit.');
     return;
