@@ -888,6 +888,11 @@ export function composeEngine({
     },
     abortRebase: () => {
       git.rebaseAbort();
+      // `git rebase --abort` returns to the branch being rebased, not the
+      // branch the halted Charcoal command started from.
+      if (cache.currentBranch && cache.currentBranch in cache.branches) {
+        git.switchBranch(cache.currentBranch);
+      }
     },
     isMergedIntoTrunk: (branchName: string) => {
       assertBranch(branchName);
