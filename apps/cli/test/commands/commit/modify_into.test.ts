@@ -89,5 +89,61 @@ for (const scene of allScenes) {
       ).to.deep.equal(before);
       expect(scene.repo.currentBranchName()).to.equal('b');
     });
+
+    // c adds x_test.txt, which the staged change adds to a, so restacking c
+    // conflicts while b_test.txt carries an unstaged edit.
+    function conflictOnRestack(): void {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.createChange('c', 'x');
+      scene.repo.runCliCommand([`create`, `c`, `-m`, `c`]);
+      scene.repo.checkoutBranch('b');
+      scene.repo.createChange('a2', 'x');
+      scene.repo.createChange('b-wip', 'b', true);
+
+      expect(() =>
+        scene.repo.runCliCommand([`modify`, `--into`, `a`])
+      ).to.throw();
+      expect(scene.repo.rebaseInProgress()).to.be.true;
+      expect(stashRefs()).not.to.equal('');
+    }
+
+    function stashRefs(): string {
+      return scene.repo.runGitCommandAndGetOutput([
+        `for-each-ref`,
+        `refs/charcoal/stash/`,
+      ]);
+    }
+
+    function expectUnstagedRestored(): void {
+      expect(scene.repo.rebaseInProgress()).to.be.false;
+      expect(scene.repo.currentBranchName()).to.equal('b');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`diff`, `--name-only`])
+      ).to.equal('b_test.txt');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`diff`, `--cached`, `--stat`])
+      ).to.equal('');
+      expect(stashRefs()).to.equal('');
+    }
+
+    it('Reapplies unstaged changes after continuing a restack conflict', () => {
+      conflictOnRestack();
+      scene.repo.resolveMergeConflicts();
+      scene.repo.markMergeConflictsAsResolved();
+      scene.repo.runCliCommand([`continue`]);
+
+      expectUnstagedRestored();
+      expect(show('b:x_test.txt')).to.equal('a2');
+    });
+
+    it('Reapplies unstaged changes after aborting a restack conflict', () => {
+      conflictOnRestack();
+      scene.repo.runCliCommand([`abort`, `-f`]);
+
+      expectUnstagedRestored();
+    });
   });
 }
