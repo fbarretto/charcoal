@@ -738,7 +738,7 @@ ch init --trunk main
 ```
 
 ### `completion`
-Print a yargs bash/zsh completion script to stdout. Append it to your shell profile to enable tab completion.
+Print a yargs bash/zsh completion script to stdout. Append it to your shell profile to enable tab completion. Branch names are completed for `checkout`, `delete`, `track`, `untrack`, `move`, `get`, `info`, `freeze`, `unfreeze`, `unlink` and `pr`.
 
 ```
 ch completion >> ~/.bashrc
