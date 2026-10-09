@@ -132,6 +132,31 @@ export async function mergePr(
   );
 }
 
+export type TPrMergeState = {
+  mergeable: 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN';
+  mergeStateStatus: string; // CLEAN, BLOCKED, BEHIND, DIRTY, UNSTABLE, UNKNOWN...
+};
+
+export async function getPrMergeState(
+  prNumber: number,
+  repo: string
+): Promise<TPrMergeState> {
+  return JSON.parse(
+    await gh(
+      [
+        'pr',
+        'view',
+        `${prNumber}`,
+        '--repo',
+        repo,
+        '--json',
+        'mergeable,mergeStateStatus',
+      ],
+      `Failed to read the merge state of pull request #${prNumber}`
+    )
+  );
+}
+
 export async function setPrBase(
   prNumber: number,
   repo: string,

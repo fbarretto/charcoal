@@ -9,7 +9,7 @@ import {
   TGhStack,
 } from '../lib/api/gh_stacks';
 import { githubRepoSlug } from '../lib/api/github_repo';
-import { mergePr, setPrBase } from '../lib/api/pr_info';
+import { getPrMergeState, mergePr, setPrBase } from '../lib/api/pr_info';
 import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
 import {
@@ -96,6 +96,9 @@ export async function mergeAction(
       context.engine.pushBranch(branch, false);
     }
     try {
+      if (i > 0) {
+        await waitUntilMergeable(number, repo);
+      }
       await mergePr(number, repo, {
         method: opts.method,
         auto: opts.auto,
@@ -215,6 +218,32 @@ async function mergeStack(
   }
 }
 
+// Right after a retarget and push GitHub reports mergeability as UNKNOWN
+// while it recomputes, and refuses to merge until it knows.
+async function waitUntilMergeable(number: number, repo: string): Promise<void> {
+  const state = await poll(
+    () => getPrMergeState(number, repo),
+    (s) => s.mergeable !== 'UNKNOWN' && s.mergeStateStatus !== 'UNKNOWN',
+    MERGEABLE_TIMEOUT_MS
+  );
+  if (state.mergeable === 'UNKNOWN' || state.mergeStateStatus === 'UNKNOWN') {
+    throw new ExitFailedError(
+      `GitHub was still computing whether #${number} is mergeable after ${
+        MERGEABLE_TIMEOUT_MS / 1000
+      }s; run \`ch merge\` again.`
+    );
+  }
+  if (state.mergeable === 'CONFLICTING' || state.mergeStateStatus === 'DIRTY') {
+    throw new ExitFailedError(`#${number} has conflicts with its base.`);
+  }
+  if (state.mergeStateStatus === 'BLOCKED') {
+    throw new ExitFailedError(
+      `#${number} is blocked by required checks or reviews; run \`ch merge\` again once they pass, or \`ch merge --auto\`.`
+    );
+  }
+}
+
+const MERGEABLE_TIMEOUT_MS = 2 * 60 * 1000;
 const STACK_MERGE_TIMEOUT_MS = 5 * 60 * 1000;
 
 const prList = (prs: number[]) => prs.map((n) => `#${n}`).join(', ');
