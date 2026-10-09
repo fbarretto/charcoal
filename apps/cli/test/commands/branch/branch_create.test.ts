@@ -60,6 +60,67 @@ for (const scene of allScenes) {
 
       expectCommits(scene.repo, 'b, c, a');
     });
+
+    it('Can create onto another branch, carrying staged changes', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+
+      scene.repo.createChange('c', 'c');
+      scene.repo.runCliCommand([`create`, `c`, `-m`, `c`, `--onto`, `a`]);
+      expect(scene.repo.currentBranchName()).to.equal('c');
+      expectCommits(scene.repo, 'c, a, 1');
+
+      scene.repo.runCliCommand(['down']);
+      expect(scene.repo.currentBranchName()).to.equal('a');
+      scene.repo.checkoutBranch('b');
+      expectCommits(scene.repo, 'b, a, 1');
+    });
+
+    it('Refuses to create onto a branch when carrying changes would conflict', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.checkoutBranch('main');
+
+      scene.repo.createChange('main-version', 'a');
+      expect(() =>
+        scene.repo.runCliCommand([`create`, `c`, `-m`, `c`, `-o`, `a`])
+      ).to.throw(Error);
+      expect(scene.repo.currentBranchName()).to.equal('main');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([
+          `diff`,
+          `--cached`,
+          `--name-only`,
+        ])
+      ).to.equal('a_test.txt');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`branch`, `--list`, `c`])
+      ).to.equal('');
+    });
+
+    it('Refuses to create onto an untracked branch', () => {
+      scene.repo.createAndCheckoutBranch('untracked');
+      scene.repo.checkoutBranch('main');
+      expect(() =>
+        scene.repo.runCliCommand([`create`, `c`, `--onto`, `untracked`])
+      ).to.throw(Error);
+      expect(scene.repo.currentBranchName()).to.equal('main');
+    });
+
+    it('Can insert onto another branch', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.checkoutBranch('main');
+
+      scene.repo.createChange('c', 'c');
+      scene.repo.runCliCommand([`create`, `c`, `-m`, `c`, `-o`, `a`, `-i`]);
+      scene.repo.checkoutBranch('b');
+      expectCommits(scene.repo, 'b, c, a');
+    });
   });
 }
 

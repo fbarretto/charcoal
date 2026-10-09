@@ -38,6 +38,12 @@ const args = {
     type: 'boolean',
     alias: 'i',
   },
+  onto: {
+    describe: `Stack the new branch on this branch instead of the current one. Staged and unstaged changes are carried over.`,
+    demandOption: false,
+    type: 'string',
+    alias: 'o',
+  },
 } as const;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
@@ -56,6 +62,7 @@ export const handler = async (argv: argsT): Promise<void> => {
         all: argv.all,
         insert: argv.insert,
         patch: argv.patch,
+        onto: argv.onto,
       },
       context
     );
