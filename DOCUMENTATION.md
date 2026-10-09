@@ -378,6 +378,18 @@ ch pr 123
 ch pr --stack
 ```
 
+### `unlink`
+Clear the PR associated with a branch in Charcoal's metadata, so the next `submit` creates a new PR. Does not touch the PR on GitHub. Note: `submit` and `sync` re-link a branch to an **open** PR whose head is that branch, so close the old PR (or rename the branch) first. Defaults to the current branch.
+
+| Flag | Description |
+| --- | --- |
+| `[branch]` | Positional: branch to unlink. |
+
+```
+ch unlink
+ch unlink feature-x
+```
+
 ---
 
 ## Collaborate
