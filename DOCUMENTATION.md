@@ -40,19 +40,26 @@ Every command accepts these:
 ## Create & modify
 
 ### `create` (alias `c`)
-Create a new branch stacked on top of the current branch and commit staged changes. If no branch name is given but a commit message is passed, the branch name is generated from the message.
+Create a new branch stacked on top of the current branch and commit staged changes. If no branch name is given, it is generated from the commit message; with neither a name nor `-m`, the commit editor opens and the name comes from the message you write there (a taken name gets a `_2`, `_3`, … suffix). With nothing staged and no name, it asks for a name and creates an empty branch.
+
+If nothing is staged but there are unstaged changes, and no staging flag is passed, it asks whether to stage them: everything (`--all`), tracked files only (`--update`), selected hunks (`--patch`), or nothing.
 
 | Flag | Description |
 | --- | --- |
 | `[name]` | Positional: name for the new branch. |
-| `-m`, `--message` | Commit staged changes on the new branch with this message. |
-| `-a`, `--all` | Stage all unstaged changes before committing. |
+| `-m`, `--message` | Commit staged changes on the new branch with this message. Repeat it to add paragraphs, as with `git commit`; the branch name comes from the first line. |
+| `-a`, `--all` | Stage all unstaged changes before committing, including untracked files. |
+| `-u`, `--update` | Stage all updates to tracked files before committing. |
 | `-p`, `--patch` | Pick hunks to stage before committing. |
-| `-i`, `--insert` | Existing children of the parent branch become children of the new branch. |
-| `-o`, `--onto` | Stack the new branch on this branch instead of the current one. Uncommitted changes are carried over; if that would overwrite them, nothing is changed. With `--insert`, the children of the `--onto` branch move onto the new branch. |
+| `-v`, `--verbose` | Show the diff at the bottom of the commit message template; twice (`-vv`) also shows the unstaged changes. |
+| `-i`, `--insert` | Existing children of the parent branch become children of the new branch. With several children, asks which ones to move (all are moved with `--no-interactive`). |
+| `-o`, `--onto` | Stack the new branch on this branch instead of the current one (the current branch itself is allowed). Uncommitted changes are carried over; if that would overwrite them, nothing is changed. With `--insert`, the children of the `--onto` branch move onto the new branch. |
+
+If a pre-commit hook fails, the new branch is removed and you're back where you started, with the staged changes and anything the hook wrote still in the working tree.
 
 ```
 ch create -am "Add login form"
+ch create                       # write the message in the editor; the name follows
 ch create fix -m "Fix typo" --onto main
 ```
 

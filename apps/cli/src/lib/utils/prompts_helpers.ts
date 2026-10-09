@@ -36,3 +36,8 @@ export const gtPrompts = async (
     ...options,
   });
 };
+
+// A prompt on a closed, non-TTY stdin never resolves, so optional prompts
+// (ones with a sensible non-interactive default) also require a TTY.
+export const canPrompt = (context: { interactive: boolean }): boolean =>
+  context.interactive && !!process.stdin.isTTY;
