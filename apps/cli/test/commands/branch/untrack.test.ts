@@ -33,6 +33,13 @@ for (const scene of allScenes) {
       expectCommits(scene.repo, 'a, 1');
     });
 
+    it('Supports the `utr` alias', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.runCliCommand([`utr`, `a`]);
+      expect(() => scene.repo.runCliCommand([`down`])).to.throw();
+    });
+
     it('Can untrack a tracked branch with children', () => {
       // Create our branches
       scene.repo.createChange('a', 'a');
