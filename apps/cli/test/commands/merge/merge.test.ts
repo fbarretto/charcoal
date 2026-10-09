@@ -106,6 +106,22 @@ for (const scene of [new CloneScene()]) {
       expect(scene.repo.runCliCommandAndGetOutput([`parent`])).to.equal('main');
     });
 
+    it('Is aliased as `mg`', () => {
+      setPrNumbers(['a', 'b', 'c']);
+      scene.repo.runCliCommand([`mg`, `--dry-run`]);
+    });
+
+    it('Refuses when local branches differ from remote and it cannot ask', () => {
+      setPrNumbers(['a', 'b', 'c']);
+      scene.repo.checkoutBranch('b');
+      scene.repo.createChangeAndCommit('b2', 'b2');
+      scene.repo.checkoutBranch('c');
+      expect(() =>
+        scene.repo.runCliCommand([`merge`, `--no-interactive`])
+      ).to.throw(/differ from remote: .*b/);
+      expect(ghCalls()).to.deep.equal([]);
+    });
+
     it('Stops at the first PR that fails to merge', () => {
       setPrNumbers(['a', 'b', 'c']);
       process.env.FAKE_GH_FAIL = '2';
