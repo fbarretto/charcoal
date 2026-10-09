@@ -1,6 +1,9 @@
 import { expect } from 'chai';
 import { spawnSync } from 'child_process';
 import path from 'path';
+import prompts from 'prompts';
+import { absorbAction } from '../../../src/actions/absorb';
+import { withTTY } from '../../lib/utils/interactive';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
 import { expectCommits } from '../../lib/utils/expect_commits';
@@ -100,6 +103,58 @@ for (const scene of allScenes) {
           `refs/charcoal/stash/`,
         ])
       ).to.equal('');
+    });
+
+    it('Prints how many hunks were not absorbed', () => {
+      scene.repo.createChange('new', 'new');
+      expect(scene.repo.runCliCommandAndGetOutput([`absorb`, `-f`])).to.contain(
+        '1 hunk was not absorbed'
+      );
+      expect(show('a:a_test.txt')).to.equal('a2');
+    });
+
+    it('Leaves untracked files out with -a', () => {
+      scene.repo.runGitCommand([`reset`, `-q`]);
+      scene.repo.createChange('new', 'new', true);
+
+      scene.repo.runCliCommand([`absorb`, `-a`, `-f`]);
+
+      expect(show('a:a_test.txt')).to.equal('a2');
+      expect(show('b:b_test.txt')).to.equal('b2');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([
+          `diff`,
+          `--cached`,
+          `--name-only`,
+        ])
+      ).to.equal('');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([
+          `ls-files`,
+          `--others`,
+          `--exclude-standard`,
+        ])
+      ).to.equal('new_test.txt');
+    });
+
+    it('Asks whether to stage unstaged changes, offering tracked files only', async () => {
+      scene.repo.runGitCommand([`reset`, `-q`]);
+      scene.repo.createChange('new', 'new', true);
+      prompts.inject(['update']);
+      await withTTY(() =>
+        absorbAction(
+          { all: false, dryRun: false, force: true, patch: false },
+          scene.getContext(true)
+        )
+      );
+      expect(show('a:a_test.txt')).to.equal('a2');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([
+          `ls-files`,
+          `--others`,
+          `--exclude-standard`,
+        ])
+      ).to.equal('new_test.txt');
     });
 
     it('Changes nothing with --dry-run', () => {
