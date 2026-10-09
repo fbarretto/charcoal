@@ -44,6 +44,17 @@ for (const scene of [new BasicScene()]) {
       expect(scene.repo.currentBranchName()).to.equal('a');
     });
 
+    it('Shows the worktree path in log', () => {
+      buildStackWithBInWorktree();
+      for (const cmd of [['log', 'short'], ['log']]) {
+        const line = scene.repo
+          .runCliCommandAndGetOutput([...cmd, '--no-interactive'])
+          .split('\n')
+          .find((l) => / b( |$)/.test(l));
+        expect(line, cmd.join(' ')).to.contain(`(worktree: ${worktree})`);
+      }
+    });
+
     it('Sync does not delete a merged branch checked out in another worktree', () => {
       scene.repo.createChange('a', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);

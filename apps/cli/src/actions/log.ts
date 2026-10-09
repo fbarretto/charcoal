@@ -3,6 +3,7 @@ import stripAnsi from 'strip-ansi';
 import { GRAPHITE_COLORS } from '../lib/colors';
 import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
+import { branchesInOtherWorktrees } from '../lib/git/worktrees';
 import { clearPromptResultLine, suggest } from '../lib/utils/prompts_helpers';
 import { getBranchInfo } from './show_branch';
 
@@ -150,6 +151,13 @@ type TPrintStackArgs = {
   noStyleBranchName?: boolean; // Currently only implemented for short = true
   steps?: number;
 };
+
+let otherWorktrees: Map<string, string> | undefined;
+function worktreeSuffix(branchName: string): string {
+  otherWorktrees ??= branchesInOtherWorktrees();
+  const worktree = otherWorktrees.get(branchName);
+  return worktree ? ` (worktree: ${worktree})` : '';
+}
 
 function getLogShortColor(toColor: string, index: number): string {
   return chalk.rgb(
@@ -308,7 +316,7 @@ function getBranchLines(
         ghStackNumber && !args.noStyleBranchName
           ? ` (stack #${ghStackNumber})`
           : ''
-      }`,
+      }${args.noStyleBranchName ? '' : worktreeSuffix(args.branchName)}`,
     ];
   }
 
@@ -375,7 +383,7 @@ function getInfoLines(
             : args.noStem
             ? ' '
             : '│'
-        } ${line}`
+        } ${line}${index === 0 ? worktreeSuffix(args.branchName) : ''}`
     )
     .concat([getPrefix(args.indentLevel) + (args.noStem ? ' ' : '│')]);
 }
