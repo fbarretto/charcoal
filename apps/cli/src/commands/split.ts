@@ -17,6 +17,13 @@ const args = {
     type: 'boolean',
     alias: ['h', 'hunk'],
   },
+  ['by-file']: {
+    describe: `Split the changes to files matching these pathspecs into a new branch below the current one. Repeatable.`,
+    demandOption: false,
+    type: 'string',
+    array: true,
+    alias: ['f'],
+  },
 } as const;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
@@ -35,6 +42,7 @@ export const handler = async (argv: argsT): Promise<void> =>
           : argv['by-commit']
           ? 'commit'
           : undefined,
+        byFile: argv['by-file'],
       },
       context
     )
