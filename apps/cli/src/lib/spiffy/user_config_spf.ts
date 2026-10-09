@@ -106,6 +106,7 @@ export const userConfigFactory = spiffy({
     const getEditor = () => {
       return (
         process.env.CH_EDITOR ?? // single command override
+        process.env.GT_EDITOR ??
         data.editor ??
         process.env.TEST_CH_EDITOR ?? // for tests
         // If we don't have an editor set, do what git would do
@@ -120,6 +121,7 @@ export const userConfigFactory = spiffy({
       // If we don't have a pager set, do what git would do
       const pager =
         process.env.CH_PAGER ?? // single command override
+        process.env.GT_PAGER ??
         data.pager ??
         process.env.TEST_CH_PAGER ?? // for tests
         // If we don't have a pager set, do what git would do

@@ -23,17 +23,18 @@ Every command accepts these:
 
 | Flag | Description |
 | --- | --- |
-| `--interactive` / `--no-interactive` | Prompt the user. On by default; disable for scripts/CI. |
-| `-q`, `--quiet` | Minimize output to the terminal. |
+| `--interactive` / `--no-interactive` | Prompt the user. On by default when stdin and stdout are terminals, off otherwise (pipes, scripts, CI); pass either flag to override. |
+| `-q`, `--quiet` | Minimize output to the terminal. Implies `--no-interactive`. |
+| `--cwd <dir>` | Run as if Charcoal was started in `<dir>`. |
 | `--verify` / `--no-verify` | Run git hooks. On by default; `--no-verify` skips them. |
 | `--debug` | Display debug output. |
-| `--help` | Show help for any command. |
+| `--help` | Show help for any command. `ch --help --all` also lists hidden options. |
 | `--version` | Show the installed version. |
 
 **Environment overrides** (apply to a single invocation):
 
-- `CH_EDITOR` — override the editor Charcoal opens.
-- `CH_PAGER` — override the pager Charcoal opens.
+- `CH_EDITOR` (or `GT_EDITOR`) — override the editor Charcoal opens.
+- `CH_PAGER` (or `GT_PAGER`) — override the pager Charcoal opens.
 
 ---
 
