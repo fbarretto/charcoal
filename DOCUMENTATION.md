@@ -92,12 +92,12 @@ Amend each staged hunk into the commit in the current downstack (trunk → curre
 
 | Flag | Description |
 | --- | --- |
-| `-a`, `--all` | Stage all changes before absorbing. |
+| `-a`, `--all` | Stage all changes to tracked files before absorbing. Untracked files are left out, since a new file is never absorbed. |
 | `-d`, `--dry-run` | Print which commit each hunk would go into, and change nothing. |
 | `-f`, `--force` | Don't ask for confirmation. Without it, the plan is printed and confirmed first (interactive mode only). |
 | `-p`, `--patch` | Pick hunks to stage before absorbing. |
 
-`git absorb` creates `fixup!` commits scoped to the downstack, which are then squashed in by one autosquash rebase; every downstack branch is moved to its rewritten commit, and everything upstack of the bottom branch is restacked. You stay on the current branch. Hunks git-absorb can't place (new or deleted files, lines no commit in the stack owns) stay uncommitted, as unstaged changes. Downstack branches must already be restacked, and the stack must not already contain `fixup!`/`squash!`/`amend!` commits. `ch undo` reverts it.
+`git absorb` creates `fixup!` commits scoped to the downstack, which are then squashed in by one autosquash rebase; every downstack branch is moved to its rewritten commit, and everything upstack of the bottom branch is restacked. You stay on the current branch. Hunks git-absorb can't place (new or deleted files, lines no commit in the stack owns) stay uncommitted, as unstaged changes, and their count is printed. With nothing staged and no staging flag, it asks whether to stage your unstaged changes (tracked files only). git-absorb's hunk placement is its own heuristic, so an edge-case hunk can land differently than with `gt absorb`. Downstack branches must already be restacked, and the stack must not already contain `fixup!`/`squash!`/`amend!` commits. `ch undo` reverts it.
 
 ```
 ch absorb -a      # absorb every change, after confirming

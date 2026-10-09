@@ -9,7 +9,10 @@ import {
 } from '../lib/errors';
 import { detachAt } from '../lib/git/plumbing';
 import { runGitCommand } from '../lib/git/runner';
-import { ensureSomeStagedChangesPrecondition } from '../lib/preconditions';
+import {
+  ensureSomeStagedChangesPrecondition,
+  stageChanges,
+} from '../lib/preconditions';
 import { restackBranches, withChangesSetAside } from './restack';
 
 // git-absorb writes `fixup!` commits onto a detached HEAD; an autosquash rebase
@@ -24,12 +27,8 @@ export async function absorbAction(
   const current = downstack[downstack.length - 1];
   const base = context.engine.getBaseRevision(downstack[0]);
 
-  if (opts.all) {
-    context.engine.addAll();
-  }
-  if (opts.patch) {
-    git(['add', '-p'], { stdio: 'inherit' });
-  }
+  // `--all` here leaves untracked files out: a new file is never absorbed.
+  await stageChanges(opts, context, { untracked: false });
   ensureSomeStagedChangesPrecondition(context);
 
   if (opts.dryRun || (!opts.force && context.interactive)) {
@@ -48,6 +47,7 @@ export async function absorbAction(
     context.engine.checkoutBranch(current);
     throw e;
   }
+  const unabsorbed = stagedHunkCount();
   if (git(['rev-parse', 'HEAD']) === original) {
     context.engine.checkoutBranch(current);
     context.splog.info('Nothing could be absorbed.');
@@ -79,6 +79,19 @@ export async function absorbAction(
   context.splog.info(
     `Absorbed staged changes into ${chalk.green(current)}'s stack.`
   );
+  if (unabsorbed > 0) {
+    context.splog.info(
+      `${unabsorbed} hunk${
+        unabsorbed === 1 ? ' was' : 's were'
+      } not absorbed and left uncommitted.`
+    );
+  }
+}
+
+function stagedHunkCount(): number {
+  return git(['diff', '--cached', '--no-ext-diff', '-U0'])
+    .split('\n')
+    .filter((l) => l.startsWith('@@')).length;
 }
 
 function absorbPreconditions(context: TContext): string[] {
