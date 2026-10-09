@@ -269,7 +269,7 @@ Ensure each branch in the current stack is based on its parent, rebasing if nece
 
 | Flag | Description |
 | --- | --- |
-| `--branch` | Which branch to run from (default: current branch). |
+| `--branch` | Submit as if `<branch>` were checked out (default: current branch). |
 | `-d`, `--downstack` | Only restack this branch and its ancestors. |
 | `-u`, `--upstack` | Only restack this branch and its descendants. |
 | `-o`, `--only` | Only restack this branch. |
@@ -385,7 +385,7 @@ ch abort -f
 
 ## Submit & sync
 
-### `submit`
+### `submit` (alias `s`)
 Idempotently force-push all branches from trunk to the current branch to GitHub, creating or updating a distinct PR for each. **Defaults to the current downstack** (trunk → current); pass `--stack` to also include descendants.
 
 | Flag | Description |
@@ -401,7 +401,7 @@ Idempotently force-push all branches from trunk to the current branch to GitHub,
 | `-u`, `--update-only` | Only update PRs that have already been submitted. |
 | `-f`, `--force` | Force push (overwrites remote). Otherwise defaults to `--force-with-lease`. |
 | `--always` | Always push updates even if the branch is unchanged. |
-| `--branch` | Which branch to run from (default: current branch). |
+| `--branch` | Submit as if `<branch>` were checked out (default: current branch). |
 | `--gh-stack` / `--no-gh-stack` | Link (or don't link) the PRs as a GitHub stack. Defaults to the `repo github-stacks` setting (on). |
 
 **GitHub stacks.** After pushing, submit links the chain of PRs from trunk up through the current branch, and on through its descendants that have open PRs, as a native GitHub stack (`gh stack`): it creates the stack, appends new PRs to it, or — if the stack on GitHub no longer matches (reordered, removed or re-parented PRs) — unstacks and recreates it. Frozen branches are included when they have a PR. A chain with fewer than two PRs is not linked. GitHub stacks are linear, so if the local stack is a tree, submit links the longest chain through the current branch and warns about the branches left out. Repos without stacked PRs enabled are skipped silently; any other GitHub error is a warning and never fails the submit. The stack number is shown next to the bottom branch in `ch ls`/`ch log`. Turn it off per repo with `ch config` (`repo github-stacks`).
