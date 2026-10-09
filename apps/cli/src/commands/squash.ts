@@ -1,5 +1,6 @@
 import yargs from 'yargs';
 import { squashCurrentBranch } from '../actions/squash';
+import { joinMessages } from '../lib/git/commit';
 import { graphite } from '../lib/runner';
 
 const args = {
@@ -30,13 +31,13 @@ export const command = 'squash';
 export const canonical = 'squash';
 export const aliases = ['sq'];
 export const description =
-  'Squash all commits in the current branch and restack upstack branches.';
+  'Squash all commits in the current branch into a single commit and restack upstack branches. Does nothing if the branch has at most one commit.';
 export const builder = args;
 export const handler = async (argv: argsT): Promise<void> =>
   graphite(argv, canonical, async (context) =>
     squashCurrentBranch(
       {
-        message: argv.message,
+        message: joinMessages(argv.message),
         noEdit: argv['no-edit'] || !argv.edit,
       },
       context

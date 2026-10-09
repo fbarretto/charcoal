@@ -15,16 +15,22 @@ import { printConflictStatus } from './print_conflict_status';
 // pendingParents: re-parentings applied only right before each branch
 // restacks (see continuation_spf.ts). branchesToDelete: deleted once every
 // queued branch has restacked, so their children never point at a missing
-// parent while a conflict is pending.
+// parent while a conflict is pending. leaveConflicts: abort a conflicting
+// restack and leave that branch needing a restack instead of halting.
 export type TRestackFollowUp = {
   pendingParents?: Record<string, string>;
   branchesToDelete?: string[];
+  leaveConflicts?: boolean;
 };
 
 export function restackBranches(
   branchNames: string[],
   context: TContext,
-  { pendingParents = {}, branchesToDelete = [] }: TRestackFollowUp = {}
+  {
+    pendingParents = {},
+    branchesToDelete = [],
+    leaveConflicts = false,
+  }: TRestackFollowUp = {}
 ): void {
   context.splog.debug(
     branchNames.reduce((acc, curr) => `${acc}\n${curr}`, 'RESTACKING:')
@@ -67,6 +73,17 @@ export function restackBranches(
         continue;
 
       case 'REBASE_CONFLICT': {
+        if (leaveConflicts) {
+          context.engine.abortRebase();
+          context.splog.info(
+            `${chalk.yellow(
+              branchName
+            )} conflicts with its parent; left it needing a restack (${chalk.cyan(
+              'ch restack'
+            )}).`
+          );
+          continue;
+        }
         const message = `Hit conflict restacking ${chalk.yellow(
           branchName
         )} on ${chalk.cyan(context.engine.getParentPrecondition(branchName))}.`;
