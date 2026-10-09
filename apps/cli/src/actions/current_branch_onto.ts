@@ -52,8 +52,10 @@ export function currentBranchOnto(
     ],
     context,
     {
-      ...Object.fromEntries(children.map((child) => [child, oldParent])),
-      [currentBranch]: ontoBranchName,
+      pendingParents: {
+        ...Object.fromEntries(children.map((child) => [child, oldParent])),
+        [currentBranch]: ontoBranchName,
+      },
     }
   );
 }

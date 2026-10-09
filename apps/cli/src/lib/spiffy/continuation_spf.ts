@@ -16,11 +16,14 @@ import { spiffy } from './spiffy';
  * pendingParents holds queued branches whose new parent must not be written
  * until just before they restack: once a branch's new parent is already in
  * its history, the cache loader would silently "fix" its parentBranchRevision.
+ * branchesToDelete are deleted only after the queue is restacked, so their
+ * children keep a valid parent until they move off it.
  */
 const ContinueSchema = t.shape({
   branchesToSync: t.array(t.string),
   branchesToRestack: t.array(t.string),
   pendingParents: t.optional(t.array(t.tuple([t.string, t.string] as const))),
+  branchesToDelete: t.optional(t.array(t.string)),
   currentBranchOverride: t.optional(t.string),
   rebasedBranchBase: t.optional(t.string),
 });
