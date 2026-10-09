@@ -129,7 +129,10 @@ for (const scene of allScenes) {
         );
       }
       expect(
-        fs.readFileSync(path.join(scene.repo.dir, '.git', '.gtcontinue'), 'utf-8')
+        fs.readFileSync(
+          path.join(scene.repo.dir, '.git', '.gtcontinue'),
+          'utf-8'
+        )
       ).to.equal(continuation);
       expect(scene.repo.runCliCommandAndGetOutput(['ls'])).to.contain('b');
       scene.repo.runCliCommand(['info']);

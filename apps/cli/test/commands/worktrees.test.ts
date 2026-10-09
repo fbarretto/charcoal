@@ -44,6 +44,34 @@ for (const scene of [new BasicScene()]) {
       expect(scene.repo.currentBranchName()).to.equal('a');
     });
 
+    it('Restack skips a branch mid-rebase in another worktree', () => {
+      buildStackWithBInWorktree();
+      // A stopped rebase detaches HEAD in that worktree.
+      scene.repo.runGitCommand([
+        '-C',
+        worktree,
+        'rebase',
+        '-x',
+        'false',
+        'HEAD~1',
+      ]);
+      expect(
+        scene.repo.runGitCommandAndGetOutput([
+          'worktree',
+          'list',
+          '--porcelain',
+        ])
+      ).not.to.contain('branch refs/heads/b');
+      const bBefore = scene.repo.getRef('refs/heads/b');
+      scene.repo.createChangeAndAmend('a2', 'a');
+
+      const output = scene.repo.runCliCommandAndGetOutput([`restack`]);
+      expect(output).to.contain(
+        `Skipped b: it is checked out in another worktree (${worktree})`
+      );
+      expect(scene.repo.getRef('refs/heads/b')).to.equal(bBefore);
+    });
+
     it('Shows the worktree path in log', () => {
       buildStackWithBInWorktree();
       for (const cmd of [['log', 'short'], ['log']]) {

@@ -107,7 +107,9 @@ for (const scene of [new CloneScene()]) {
           },
           scene.getContext()
         )
-      ).to.eventually.be.rejectedWith(/could not be fast-forwarded[\s\S]*--force/);
+      ).to.eventually.be.rejectedWith(
+        /could not be fast-forwarded[\s\S]*--force/
+      );
     });
 
     it('can reset trunk from remote', async () => {
