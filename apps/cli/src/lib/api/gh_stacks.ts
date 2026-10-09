@@ -3,7 +3,19 @@ import { execFileSync } from 'child_process';
 // GitHub's native stacked-PR REST API (what `gh stack` uses), called via `gh api`.
 export type TGhStack = {
   number: number;
-  pull_requests: { number: number; head?: { ref: string } }[];
+  open?: boolean;
+  pull_requests: {
+    number: number;
+    state?: 'open' | 'closed';
+    head?: { ref: string };
+  }[];
+};
+
+// The async merge API (PUT pulls/{n}/merge-async), the only way GitHub merges
+// a stacked PR. On a stacked PR it merges every member up to and including n.
+export type TAsyncMerge = {
+  status: 'pending' | 'merged' | 'enqueued' | 'failed';
+  details?: { uuid?: string; message?: string; sha?: string };
 };
 
 export class GhApiError extends Error {
@@ -14,7 +26,7 @@ export class GhApiError extends Error {
 
 function ghApi(
   path: string,
-  opts?: { method: 'POST'; body?: unknown }
+  opts?: { method: 'POST' | 'PUT'; body?: unknown }
 ): unknown {
   const args = ['api', path];
   if (opts) {
@@ -44,11 +56,21 @@ function ghApi(
 export const prNumbersOf = (stack: TGhStack): number[] =>
   stack.pull_requests.map((pr) => pr.number);
 
+// Merged and closed PRs stay listed in a stack; only open ones form the chain.
+export const openPrNumbersOf = (stack: TGhStack): number[] =>
+  stack.pull_requests
+    .filter((pr) => pr.state !== 'closed')
+    .map((pr) => pr.number);
+
+// A PR can also be listed in stacks GitHub already closed (fully merged or
+// unstacked while a member was queued); those no longer hold it.
 export const findStackForPr = (
   repo: string,
   pr: number
 ): TGhStack | undefined =>
-  (ghApi(`repos/${repo}/stacks?pull_request=${pr}`) as TGhStack[])[0];
+  (ghApi(`repos/${repo}/stacks?pull_request=${pr}`) as TGhStack[]).find(
+    (s) => s.open !== false
+  );
 
 export const createStack = (repo: string, prs: number[]): TGhStack =>
   ghApi(`repos/${repo}/stacks`, {
@@ -71,3 +93,20 @@ export const unstack = (repo: string, stack: number): TGhStack | undefined =>
   ghApi(`repos/${repo}/stacks/${stack}/unstack`, { method: 'POST' }) as
     | TGhStack
     | undefined;
+
+export const mergeAsync = (
+  repo: string,
+  pr: number,
+  method: 'squash' | 'merge' | 'rebase'
+): TAsyncMerge =>
+  ghApi(`repos/${repo}/pulls/${pr}/merge-async`, {
+    method: 'PUT',
+    body: { merge_method: method, merge_action: 'default' },
+  }) as TAsyncMerge;
+
+export const getAsyncMerge = (
+  repo: string,
+  pr: number,
+  uuid: string
+): TAsyncMerge =>
+  ghApi(`repos/${repo}/pulls/${pr}/merge-async/${uuid}`) as TAsyncMerge;
