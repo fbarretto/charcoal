@@ -40,6 +40,7 @@ import * as rename from './commands/rename';
 import * as reorder from './commands/reorder';
 import * as repo from './commands/repo';
 import * as restack from './commands/restack';
+import * as revert from './commands/revert';
 import * as split from './commands/split';
 import * as squash from './commands/squash';
 import * as submit from './commands/submit';
@@ -103,6 +104,7 @@ const commandModules = [
   reorder,
   repo,
   restack,
+  revert,
   split,
   squash,
   submit,

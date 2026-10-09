@@ -149,6 +149,18 @@ Delete the current branch but retain the state of files in the working tree.
 ch pop
 ```
 
+### `revert`
+**Experimental.** Create a new branch off trunk that reverts a commit already on trunk, track it with trunk as its parent, and check it out. Refuses commits that aren't on trunk; if the revert doesn't apply cleanly, nothing is changed. Requires a clean working tree.
+
+| Flag | Description |
+| --- | --- |
+| `<sha>` | Positional: the trunk commit to revert. |
+| `-e`, `--edit` | Edit the revert's commit message. |
+
+```
+ch revert 1a2b3c4
+```
+
 ---
 
 ## Navigate
