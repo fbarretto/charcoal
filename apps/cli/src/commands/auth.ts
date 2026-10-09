@@ -1,12 +1,15 @@
 import yargs from 'yargs';
 import { graphiteWithoutRepo } from '../lib/runner';
 import { execFileSync } from 'child_process';
+import { TContextLite } from '../lib/context';
+import { ExitFailedError } from '../lib/errors';
 
 const args = {
   token: {
     type: 'string',
     alias: 't',
-    describe: 'Authenticate with the GitHub API using OAuth.',
+    describe:
+      'A GitHub token to store via `gh auth login --with-token` (never printed).',
     demandOption: false,
   },
 } as const;
@@ -28,6 +31,11 @@ export const handler = async (argv: argsT): Promise<void> => {
       context.splog.message(
         `❌ Please install GitHub CLI version ${MIN_GH_VERSION} or higher.`
       );
+      return;
+    }
+
+    if (argv.token) {
+      loginWithToken(argv.token, context);
       return;
     }
 
@@ -57,6 +65,20 @@ export const handler = async (argv: argsT): Promise<void> => {
     }
   });
 };
+
+function loginWithToken(token: string, context: TContextLite): void {
+  try {
+    execFileSync('gh', ['auth', 'login', '--with-token'], {
+      input: token,
+      stdio: ['pipe', 'inherit', 'inherit'],
+    });
+  } catch {
+    throw new ExitFailedError(
+      '❌ `gh auth login --with-token` rejected the token.'
+    );
+  }
+  context.splog.message('✅ Successfully authenticated Charcoal with GitHub.');
+}
 
 export const getGhVersion = (): string | null => {
   try {
