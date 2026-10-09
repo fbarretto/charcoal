@@ -1,4 +1,6 @@
 import { expect } from 'chai';
+import fs from 'fs-extra';
+import path from 'path';
 import { allScenes } from '../lib/scenes/all_scenes';
 import { configureTest } from '../lib/utils/configure_test';
 import { expectBranches } from '../lib/utils/expect_branches';
@@ -67,6 +69,47 @@ for (const scene of allScenes) {
       );
     });
 
+    it('Gives back the changes create committed, staged', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+
+      scene.repo.runCliCommand([`undo`, `-f`]);
+      expect(scene.repo.currentBranchName()).to.equal('main');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`status`, `--porcelain`])
+      ).to.equal('A  a_test.txt');
+    });
+
+    it('Gives back the changes create --onto carried to the other branch', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.checkoutBranch('main');
+      scene.repo.createChange('c', 'c');
+      scene.repo.runCliCommand([`create`, `c`, `-m`, `c`, `--onto`, `a`]);
+
+      scene.repo.runCliCommand([`undo`, `-f`]);
+      expect(scene.repo.currentBranchName()).to.equal('main');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`status`, `--porcelain`])
+      ).to.equal('A  c_test.txt');
+    });
+
+    it('Gives back the changes modify committed, staged', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('a2', 'a');
+      scene.repo.createChange('new', 'new');
+      scene.repo.runCliCommand([`modify`]);
+
+      scene.repo.runCliCommand([`undo`, `-f`]);
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`status`, `--porcelain`])
+      ).to.equal('M  a_test.txt\nA  new_test.txt');
+      expect(
+        fs.readFileSync(path.join(scene.repo.dir, 'a_test.txt'), 'utf-8')
+      ).to.equal('a2');
+    });
+
     it('Brings back a deleted branch and its metadata', () => {
       scene.repo.createChange('a', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
@@ -113,6 +156,8 @@ for (const scene of allScenes) {
       scene.repo.runCliCommand([`undo`, `-f`]);
       expectBranches(scene.repo, 'a, main');
       expect(scene.repo.currentBranchName()).to.equal('a');
+      // The undone create gives b's changes back; undo needs a clean tree.
+      scene.repo.runGitCommand([`reset`, `--hard`]);
 
       scene.repo.runCliCommand([`undo`, `-f`]);
       expectBranches(scene.repo, 'main');

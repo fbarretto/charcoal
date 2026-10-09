@@ -38,6 +38,28 @@ for (const scene of allScenes) {
       expect(scene.repo.rebaseInProgress()).to.be.true;
     });
 
+    it('Gives back the changes of a modify halted by a conflict', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'a');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      const aBefore = scene.repo.getRef('refs/heads/a');
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChange('a2', 'a');
+      expect(() => scene.repo.runCliCommand(['modify'])).to.throw();
+      expect(scene.repo.rebaseInProgress()).to.be.true;
+
+      scene.repo.runCliCommand(['abort', '-f']);
+      expect(scene.repo.currentBranchName()).to.equal('a');
+      expect(scene.repo.getRef('refs/heads/a')).to.equal(aBefore);
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`status`, `--porcelain`])
+      ).to.equal('M  a_test.txt');
+      expect(
+        fs.readFileSync(path.join(scene.repo.dir, 'a_test.txt'), 'utf-8')
+      ).to.equal('a2');
+    });
+
     it('Aborts a restack halted by a merge conflict', () => {
       scene.repo.createChange('a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
