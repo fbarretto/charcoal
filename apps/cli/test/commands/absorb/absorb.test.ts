@@ -3,7 +3,6 @@ import { spawnSync } from 'child_process';
 import path from 'path';
 import prompts from 'prompts';
 import { absorbAction } from '../../../src/actions/absorb';
-import { withTTY } from '../../lib/utils/interactive';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
 import { expectCommits } from '../../lib/utils/expect_commits';
@@ -141,11 +140,9 @@ for (const scene of allScenes) {
       scene.repo.runGitCommand([`reset`, `-q`]);
       scene.repo.createChange('new', 'new', true);
       prompts.inject(['update']);
-      await withTTY(() =>
-        absorbAction(
-          { all: false, dryRun: false, force: true, patch: false },
-          scene.getContext(true)
-        )
+      await absorbAction(
+        { all: false, dryRun: false, force: true, patch: false },
+        scene.getContext(true)
       );
       expect(show('a:a_test.txt')).to.equal('a2');
       expect(

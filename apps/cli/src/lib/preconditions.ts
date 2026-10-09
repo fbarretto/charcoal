@@ -6,7 +6,6 @@ import {
   unstagedChanges,
 } from './git/git_status_utils';
 import { runGitCommand } from './git/runner';
-import { canPrompt } from './utils/prompts_helpers';
 
 export type TStageOpts = { all?: boolean; update?: boolean; patch?: boolean };
 
@@ -41,7 +40,7 @@ async function promptToStage(
   context: TContext,
   untracked: boolean
 ): Promise<'all' | 'update' | 'patch' | undefined> {
-  if (!canPrompt(context) || detectStagedChanges()) {
+  if (!context.interactive || detectStagedChanges()) {
     return undefined;
   }
   const hasTracked = git(['diff', '--name-only']).length > 0;

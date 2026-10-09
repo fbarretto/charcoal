@@ -54,6 +54,9 @@ export function initContextLite(opts?: {
     pager: userConfig.getPager(),
   });
 
+  // The one answer to "can we prompt?". Off unless stdin and stdout are TTYs
+  // (a prompt on a closed, non-TTY stdin never resolves) or --interactive
+  // forces it; --quiet implies --no-interactive.
   const interactive =
     // Confusing, but if invoked from GTI, behave as if `--no-interactive` was passed
     !process.env.GRAPHITE_INTERACTIVE &&
