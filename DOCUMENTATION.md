@@ -449,13 +449,13 @@ ch sync -d             # delete merged branches without asking
 ch sync --no-restack
 ```
 
-### `merge`
+### `merge` (alias `mg`)
 Merge the PRs from trunk up to the current branch, bottom-up, via `gh pr merge`. Every branch in the downstack must have an open PR; otherwise the command lists the ones that don't and merges nothing.
 
 | Flag | Description |
 | --- | --- |
 | `--dry-run` | Print the PRs that would be merged, in order, and exit. |
-| `-c`, `--confirm` | Print the plan and ask before merging. Ignored with `--no-interactive`. |
+| `-c`, `--confirm` | Print the plan and ask before merging. Ignored with `--no-interactive`. Merge also asks, regardless of this flag, when a local branch differs from its remote (GitHub merges the remote version); with `--no-interactive` it refuses instead. |
 | `--method` | `squash` (default), `merge`, or `rebase`. |
 | `--auto` | Enable auto-merge on the bottom PR instead of merging it now, then stop; later PRs can't merge until it lands, so run `ch merge` again afterwards. |
 
