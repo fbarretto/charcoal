@@ -22,7 +22,7 @@ export const canonical = 'user restack-date';
 export const builder = args;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphiteWithoutRepo(argv, canonical, async (context) => {
-    if (typeof argv['use-author-date'] === undefined) {
+    if (typeof argv['use-author-date'] === 'undefined') {
       context.splog.info(
         `\`--committer-date-is-author-date\` will ${
           context.userConfig.data.restackCommitterDateIsAuthorDate ? '' : 'not '
