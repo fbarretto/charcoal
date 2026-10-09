@@ -666,14 +666,16 @@ ch config --no-interactive
 ```
 
 ### `aliases`
-User-defined command aliases, kept in `.graphite_aliases` next to your user config (`~/.graphite_aliases` by default). One alias per line, `<alias> <expansion...>`; blank lines and `#` comments are ignored. When the first word you type matches an alias, Charcoal replaces it with the expansion and keeps the rest of your arguments (`ch ss -d` runs `ch submit --stack -d`). Aliases can't shadow built-in commands or git passthrough commands; such a line is ignored with a warning.
+User-defined command aliases, kept in `~/.config/charcoal/aliases` (`$XDG_CONFIG_HOME/charcoal/aliases` when that is set). One alias per line, `<alias> <expansion...>`; blank lines and `#` comments are ignored. When the first word you type matches an alias, Charcoal replaces it with the expansion and keeps the rest of your arguments (`ch ss -d` runs `ch submit --stack -d`). Aliases can't shadow built-in commands or git passthrough commands; such a line is ignored with a warning.
+
+`ss` (`submit --stack`), `ls` (`log short`) and `ll` (`log long`) are defined by default and must be overridden to be disabled (`ls`/`ll` are also built-in commands). The file is created with these defaults on first use, and recreated if you delete it. An existing `~/.graphite_aliases` from an older Charcoal is moved there once.
 
 `ch aliases` opens the file in your editor (prints it with `--no-interactive`).
 
 | Flag | Description |
 | --- | --- |
-| `--reset` | Remove all aliases. |
-| `--legacy` | Add the pre-v1.0 noun-verb shortcuts, mapped to the flat commands that replaced them (`bc` → `create`, `bco` → `checkout`, `bu`/`bd` → `up`/`down`, `ca` → `modify`, `cc` → `modify --commit`, `ss` → `submit --stack`, `dss` → `submit`, `sr` → `restack`, `br` → `restack --only`, `usr`/`dsr` → `restack --upstack`/`--downstack`, `uso` → `move`, `dse` → `reorder`, `dstr` → `track --downstack` (now the default; `--downstack` is accepted as a no-op), `rs` → `repo sync`, and the rest of the `b*`, `ds*`, `us*` family). Aliases you already defined are kept. Old shortcuts with no flat equivalent (`bs`, `uss`) are not included. |
+| `--reset` | Reset the file to the default aliases. |
+| `--legacy` | Append Graphite's [legacy alias preset](https://graphite.com/docs/legacy-alias-preset): the pre-v1.0 shortcuts mapped to the flat commands that replaced them (`bc` → `create`, `bco` → `checkout`, `bu`/`bd` → `up`/`down`, `ca` → `modify`, `cc` → `modify --commit`, `bs`/`dss` → `submit`, `uss` → `submit --stack`, `sr` → `restack`, `br` → `restack --only`, `usr`/`dsr` → `restack --upstack`/`--downstack`, `uso` → `move --onto`, `dse` → `reorder`, `be` → `modify --interactive-rebase`, `dsm` → `merge`, `ri` → `init`, `rs` → `repo sync`, and the rest of the `b*`/`ds*` family). Aliases you already defined are kept. |
 
 ```
 ch aliases

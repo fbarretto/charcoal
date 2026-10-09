@@ -1,7 +1,10 @@
 import { expect } from 'chai';
 import fs from 'fs-extra';
 import path from 'path';
-import { LEGACY_ALIASES } from '../../../src/lib/pre-yargs/aliases';
+import {
+  DEFAULT_ALIASES,
+  LEGACY_ALIASES,
+} from '../../../src/lib/pre-yargs/aliases';
 import { BasicScene } from '../../lib/scenes/basic_scene';
 import { configureTest } from '../../lib/utils/configure_test';
 
@@ -9,7 +12,7 @@ for (const scene of [new BasicScene()]) {
   describe(`(${scene}): aliases`, function () {
     configureTest(this, scene);
 
-    const aliasFile = () => path.join(scene.dir, '.git', '.graphite_aliases');
+    const aliasFile = () => path.join(scene.dir, '.git', 'aliases');
 
     it('Expands an alias and appends the remaining arguments', () => {
       fs.writeFileSync(aliasFile(), '# comment\nnb create --all\n');
@@ -26,20 +29,51 @@ for (const scene of [new BasicScene()]) {
     });
 
     it('Prints, resets, and installs legacy aliases', () => {
-      fs.writeFileSync(aliasFile(), 'ss my-own-thing\n');
+      fs.writeFileSync(aliasFile(), 'bc my-own-thing\n');
       scene.repo.runCliCommand([`aliases`, `--legacy`]);
       const printed = scene.repo.runCliCommandAndGetOutput([
         `aliases`,
         `--no-interactive`,
       ]);
-      expect(printed).to.contain('ss my-own-thing');
-      expect(printed).not.to.contain('ss submit --stack');
-      expect(printed).to.contain('bc create');
+      expect(printed).to.contain('bc my-own-thing');
+      expect(printed).not.to.contain('bc create');
+      expect(printed).to.contain('# GRAPHITE LEGACY PRESET');
+      expect(printed).to.contain('be modify --interactive-rebase');
 
       scene.repo.runCliCommand([`aliases`, `--reset`]);
+      expect(fs.readFileSync(aliasFile(), 'utf-8')).to.equal(DEFAULT_ALIASES);
+    });
+
+    it('Seeds the defaults, recreating a deleted file', () => {
+      fs.removeSync(aliasFile());
       expect(
         scene.repo.runCliCommandAndGetOutput([`aliases`, `--no-interactive`])
-      ).to.equal('');
+      ).to.contain('ss submit --stack');
+      expect(fs.readFileSync(aliasFile(), 'utf-8')).to.equal(DEFAULT_ALIASES);
+      // The built-in `ls` is not reported as shadowed by its default alias.
+      expect(scene.repo.runCliCommandAndGetOutput([`ls`])).not.to.contain(
+        'Ignoring alias'
+      );
+    });
+
+    it('`ss` is a default alias even when the file omits it', () => {
+      fs.writeFileSync(aliasFile(), '# nothing here\n');
+      expect(scene.repo.runCliCommandAndGetOutput([`ss`, `--help`])).to.contain(
+        'ch submit'
+      );
+    });
+
+    it('Migrates a legacy .graphite_aliases file once', () => {
+      fs.removeSync(aliasFile());
+      const legacy = path.join(scene.dir, '.git', '.graphite_aliases');
+      fs.writeFileSync(legacy, 'nb create --all\n');
+      scene.repo.createChange('a');
+      scene.repo.runCliCommand([`nb`, `a`, `-m`, `a`]);
+      expect(scene.repo.currentBranchName()).to.equal('a');
+      expect(fs.existsSync(legacy)).to.be.false;
+      expect(fs.readFileSync(aliasFile(), 'utf-8')).to.equal(
+        'nb create --all\n'
+      );
     });
 
     it('Every legacy alias resolves to a command and shadows nothing', () => {
