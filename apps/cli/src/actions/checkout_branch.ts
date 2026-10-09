@@ -7,9 +7,11 @@ export async function checkoutBranch(
   {
     branchName,
     showUntracked,
+    onlyCurrentStack,
   }: {
     branchName: string | undefined;
     showUntracked?: boolean;
+    onlyCurrentStack?: boolean;
   },
   context: TContext
 ): Promise<void> {
@@ -18,6 +20,7 @@ export async function checkoutBranch(
       {
         message: 'Checkout a branch (autocomplete or arrow keys)',
         showUntracked,
+        onlyCurrentStack,
       },
       context
     );
