@@ -105,11 +105,11 @@ ch absorb -d      # preview
 ```
 
 ### `squash` (alias `sq`)
-Squash all commits in the current branch into one and restack upstack branches.
+Squash all commits in the current branch into one and restack upstack branches. Does nothing if the branch has at most one commit. If restacking an upstack branch conflicts, that branch is left needing a restack (shown in `ch ls`; fix it with `ch restack`) instead of stopping for conflict resolution.
 
 | Flag | Description |
 | --- | --- |
-| `-m`, `--message` | The updated message for the commit. |
+| `-m`, `--message` | The updated message for the commit. Repeat it to add paragraphs. |
 | `--edit` / `-n`, `--no-edit` | Whether to modify the existing commit message (`--no-edit` takes precedence). |
 
 ```
