@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import stripAnsi from 'strip-ansi';
 import { GRAPHITE_COLORS } from '../lib/colors';
 import { TContext } from '../lib/context';
+import { SCOPE } from '../lib/engine/scope_spec';
 import { clearPromptResultLine, suggest } from '../lib/utils/prompts_helpers';
 import { getBranchInfo } from './show_branch';
 
@@ -69,9 +70,19 @@ export async function interactiveBranchSelection(
     message: string;
     omitCurrentBranch?: boolean;
     showUntracked?: boolean;
+    onlyCurrentStack?: boolean;
   },
   context: TContext
 ): Promise<string> {
+  const currentStack = opts.onlyCurrentStack
+    ? new Set([
+        context.engine.trunk,
+        ...context.engine.getRelativeStack(
+          context.engine.currentBranchPrecondition,
+          SCOPE.STACK
+        ),
+      ])
+    : undefined;
   const choices = getStackLines(
     {
       short: true,
@@ -90,6 +101,7 @@ export async function interactiveBranchSelection(
         stripAnsi(stackLine)
       ),
     }))
+    .filter((choice) => !currentStack || currentStack.has(choice.value))
     .concat(
       opts.showUntracked
         ? getUntrackedBranchNames(context).map((branchName) => ({

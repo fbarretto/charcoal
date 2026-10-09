@@ -1,9 +1,11 @@
 import { expect } from 'chai';
+import { checkoutBranch } from '../../../src/actions/checkout_branch';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
+import { captureSelectorChoices } from '../../lib/utils/capture_prompts';
 
 for (const scene of allScenes) {
-  describe(`(${scene}): branch create`, function () {
+  describe(`(${scene}): branch checkout`, function () {
     configureTest(this, scene);
 
     it('Can checkout a branch', () => {
@@ -13,6 +15,39 @@ for (const scene of allScenes) {
       scene.repo.runCliCommand([`checkout`, `a`]);
 
       expect(scene.repo.currentBranchName()).to.eq('a');
+    });
+
+    it('Checks out trunk with --trunk', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.runCliCommand([`checkout`, `-t`]);
+
+      expect(scene.repo.currentBranchName()).to.eq('main');
+    });
+
+    it('Limits the selector to the current stack with --stack', async () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.checkoutBranch('main');
+      scene.repo.createChange('c', 'c');
+      scene.repo.runCliCommand([`create`, `c`, `-m`, `c`]);
+      scene.repo.checkoutBranch('a');
+
+      const all = await captureSelectorChoices(scene, 'a', (context) =>
+        checkoutBranch({ branchName: undefined }, context)
+      );
+      expect(all.sort()).to.deep.equal(['a', 'b', 'c', 'main']);
+
+      const stack = await captureSelectorChoices(scene, 'b', (context) =>
+        checkoutBranch(
+          { branchName: undefined, onlyCurrentStack: true },
+          context
+        )
+      );
+      expect(stack.sort()).to.deep.equal(['a', 'b', 'main']);
+      expect(scene.repo.currentBranchName()).to.eq('b');
     });
   });
 }

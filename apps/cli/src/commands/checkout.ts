@@ -11,11 +11,25 @@ const args = {
     hidden: true,
   },
   'show-untracked': {
-    describe: `Include untracked branched in interactive selection`,
+    describe: `Include untracked branches in interactive selection.`,
     demandOption: false,
     type: 'boolean',
     positional: false,
     alias: 'u',
+  },
+  stack: {
+    describe: `Only show ancestors and descendants of the current branch in interactive selection.`,
+    demandOption: false,
+    type: 'boolean',
+    positional: false,
+    alias: 's',
+  },
+  trunk: {
+    describe: `Checkout the current trunk.`,
+    demandOption: false,
+    type: 'boolean',
+    positional: false,
+    alias: 't',
   },
 } as const;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
@@ -30,7 +44,11 @@ export const builder = args;
 export const handler = async (argv: argsT): Promise<void> =>
   graphite(argv, canonical, async (context) =>
     checkoutBranch(
-      { branchName: argv.branch, showUntracked: argv['show-untracked'] },
+      {
+        branchName: argv.trunk ? context.engine.trunk : argv.branch,
+        showUntracked: argv['show-untracked'],
+        onlyCurrentStack: argv.stack,
+      },
       context
     )
   );
