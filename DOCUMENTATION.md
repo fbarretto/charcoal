@@ -397,7 +397,7 @@ Idempotently force-push all branches from trunk to the current branch to GitHub,
 
 | Flag | Description |
 | --- | --- |
-| `-s`, `--stack` | Also submit the current branch's descendants, in addition to its ancestors. |
+| `-s`, `--stack` | Also submit the current branch's descendants, in addition to its ancestors. Without `--stack`, interactive submits offer to include the branches above the current one that already have open PRs; `--no-stack` skips that question. |
 | `-d`, `--draft` | Create new PRs as drafts (existing PRs are left as they are). In `--no-interactive` mode, new PRs are created as drafts. |
 | `-p`, `--publish` | Publish PRs: new PRs are created ready for review, and existing drafts are marked ready. |
 | `-e`, `--edit` / `-n`, `--no-edit` | Edit the title and description of every PR (`--edit`) or none (`--no-edit`, which wins). By default only new PRs prompt. |

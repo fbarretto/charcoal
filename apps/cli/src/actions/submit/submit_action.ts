@@ -47,6 +47,7 @@ export async function submitAction(
     view?: boolean;
     restack?: boolean;
     ignoreOutOfSyncTrunk?: boolean;
+    promptUpstack?: boolean;
   },
   context: TContext
 ): Promise<void> {
@@ -117,6 +118,10 @@ export async function submitAction(
       }
       return !frozen;
     });
+
+  if (args.promptUpstack && !args.dryRun) {
+    allBranchNames.push(...(await askForUpstackPrs(currentBranch, context)));
+  }
 
   const branchNames = args.select
     ? await selectBranches(context, allBranchNames)
@@ -307,6 +312,36 @@ export function updatePrBodyFooter(
   );
 
   return body.replace(footerBlock, '').trimEnd() + footer;
+}
+
+// gt: without --stack, offer to also submit the branches above this one
+// that already have open PRs (--no-stack skips the question).
+async function askForUpstackPrs(
+  branch: string,
+  context: TContext
+): Promise<string[]> {
+  const withOpenPrs = (b: string): string[] =>
+    context.engine.getChildren(b).flatMap((child) => {
+      const pr = context.engine.getPrInfo(child);
+      return pr?.number !== undefined &&
+        !['MERGED', 'CLOSED'].includes(pr.state ?? '') &&
+        !context.engine.isBranchFrozen(child)
+        ? [child, ...withOpenPrs(child)]
+        : [];
+    });
+  const upstack = withOpenPrs(branch);
+  if (!context.interactive || upstack.length === 0) {
+    return [];
+  }
+  const { value } = await context.prompts({
+    type: 'confirm',
+    name: 'value',
+    message: `Also submit the branches above ${chalk.cyan(
+      branch
+    )} that have open PRs (${upstack.join(', ')})?`,
+    initial: true,
+  });
+  return value ? upstack : [];
 }
 
 async function checkTrunkInSync(
