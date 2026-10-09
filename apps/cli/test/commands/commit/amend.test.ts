@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import fs from 'fs-extra';
 import prompts from 'prompts';
 import { commitAmendAction } from '../../../src/actions/commit_amend';
-import { withEditor, withTTY } from '../../lib/utils/interactive';
+import { withEditor } from '../../lib/utils/interactive';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
 import { expectCommits } from '../../lib/utils/expect_commits';
@@ -186,9 +186,7 @@ for (const scene of allScenes) {
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
       scene.repo.createChange('3', undefined, true);
       prompts.inject(['update']);
-      await withTTY(() =>
-        commitAmendAction({ edit: false }, scene.getContext(true))
-      );
+      await commitAmendAction({ edit: false }, scene.getContext(true));
       expect(
         scene.repo.runGitCommandAndGetOutput([`show`, `a:test.txt`])
       ).to.equal('3');

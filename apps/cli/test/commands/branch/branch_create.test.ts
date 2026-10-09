@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import fs from 'fs-extra';
 import prompts from 'prompts';
 import { createBranchAction } from '../../../src/actions/create_branch';
-import { withEditor, withTTY } from '../../lib/utils/interactive';
+import { withEditor } from '../../lib/utils/interactive';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
 import { expectCommits } from '../../lib/utils/expect_commits';
@@ -154,7 +154,9 @@ for (const scene of allScenes) {
 
     it('Opens the editor and names the branch from the message when given neither', () => {
       scene.repo.createChange('2');
-      withEditor('from editor', () => scene.repo.runCliCommand([`create`]));
+      withEditor('from editor', () =>
+        scene.repo.runCliCommand([`create`, `--interactive`])
+      );
       expect(scene.repo.currentBranchName()).to.match(/from_editor$/);
       expectCommits(scene.repo, 'from editor, 1');
       expect(scene.repo.runCliCommandAndGetOutput([`parent`])).to.equal('main');
@@ -165,7 +167,7 @@ for (const scene of allScenes) {
       const template = `${scene.dir}/../template-${Date.now()}`;
       withEditor(
         'v',
-        () => scene.repo.runCliCommand([`create`, `-v`]),
+        () => scene.repo.runCliCommand([`create`, `-v`, `--interactive`]),
         template
       );
       expect(fs.readFileSync(template, 'utf-8')).to.contain('+verbose-content');
@@ -173,10 +175,14 @@ for (const scene of allScenes) {
 
     it('Deduplicates a branch name derived in the editor', () => {
       scene.repo.createChange('2', '2');
-      withEditor('same', () => scene.repo.runCliCommand([`create`]));
+      withEditor('same', () =>
+        scene.repo.runCliCommand([`create`, `--interactive`])
+      );
       const first = scene.repo.currentBranchName();
       scene.repo.createChange('3', '3');
-      withEditor('same', () => scene.repo.runCliCommand([`create`]));
+      withEditor('same', () =>
+        scene.repo.runCliCommand([`create`, `--interactive`])
+      );
       expect(scene.repo.currentBranchName()).to.equal(`${first}_2`);
     });
 
@@ -220,11 +226,9 @@ for (const scene of allScenes) {
       scene.repo.createChange('2', 'tracked', true);
       scene.repo.createChange('new', 'untracked', true);
       prompts.inject(['update']);
-      await withTTY(() =>
-        createBranchAction(
-          { branchName: 'a', message: 'a' },
-          scene.getContext(true)
-        )
+      await createBranchAction(
+        { branchName: 'a', message: 'a' },
+        scene.getContext(true)
       );
       expect(
         scene.repo.runGitCommandAndGetOutput([
@@ -237,7 +241,7 @@ for (const scene of allScenes) {
 
     it('Asks for a name when creating an empty branch without one', async () => {
       prompts.inject(['empty']);
-      await withTTY(() => createBranchAction({}, scene.getContext(true)));
+      await createBranchAction({}, scene.getContext(true));
       expect(scene.repo.currentBranchName()).to.equal('empty');
     });
 
@@ -251,11 +255,9 @@ for (const scene of allScenes) {
 
       scene.repo.createChange('c', 'c');
       prompts.inject([['b']]);
-      await withTTY(() =>
-        createBranchAction(
-          { branchName: 'c', message: 'c', insert: true },
-          scene.getContext(true)
-        )
+      await createBranchAction(
+        { branchName: 'c', message: 'c', insert: true },
+        scene.getContext(true)
       );
       expect(scene.repo.runCliCommandAndGetOutput([`children`])).to.equal('b');
       scene.repo.checkoutBranch('a');
