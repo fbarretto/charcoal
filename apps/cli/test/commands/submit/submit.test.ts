@@ -174,6 +174,38 @@ for (const scene of [new CloneScene()]) {
       expect(created()).to.deep.equal(['a', 'b']);
     });
 
+    it('offers to include upstack branches that have open PRs', async () => {
+      submit();
+      scene.repo.checkoutBranch('a');
+      const submitted = () =>
+        gh
+          .calls({ views: true })
+          .filter((c) => c.endsWith('body,isDraft'))
+          .map((c) => c.split(' ')[2]);
+
+      for (const [answer, expected] of [
+        [true, ['a', 'b']],
+        [false, ['a']],
+      ] as const) {
+        gh.clearCalls();
+        prompts.inject([answer]);
+        await submitAction(
+          { ...baseArgs, promptUpstack: true },
+          interactiveContext()
+        );
+        expect(submitted()).to.deep.equal(expected);
+      }
+
+      // --no-stack: no question asked, so the injected answer stays unused.
+      gh.clearCalls();
+      prompts.inject([true]);
+      await submitAction(baseArgs, interactiveContext());
+      expect(submitted()).to.deep.equal(['a']);
+      const injected = (prompts as unknown as { _injected: unknown[] })
+        ._injected;
+      expect(injected.splice(0)).to.deep.equal([true]);
+    });
+
     it('is aliased as `s`', () => {
       scene.repo.runCliCommand([`s`, `--no-interactive`]);
       expect(created()).to.deep.equal(['a', 'b']);

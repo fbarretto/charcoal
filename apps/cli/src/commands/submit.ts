@@ -6,9 +6,8 @@ import { graphite } from '../lib/runner';
 const args = {
   stack: {
     describe:
-      'Submit the current branch and all of its descendants, in addition to its ancestors.',
+      'Submit descendants of the current branch in addition to its ancestors. Pass --no-stack to submit narrowly and skip the prompt to include branches above the current one that already have open PRs.',
     type: 'boolean',
-    default: false,
     alias: 's',
   },
   draft: {
@@ -186,6 +185,7 @@ export const handler = async (argv: argsT): Promise<void> => {
         view: argv.view,
         restack: argv.restack,
         ignoreOutOfSyncTrunk: argv['ignore-out-of-sync-trunk'],
+        promptUpstack: argv.stack === undefined,
       },
       context
     );
