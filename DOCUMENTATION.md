@@ -541,6 +541,7 @@ Shared flags (on `ch log` and `ch log short`):
 
 | Flag | Description |
 | --- | --- |
+| `--classic` | Use the old short logging style (other options are ignored in classic mode). On `ch log short`/`ch ls`, also `-c`. |
 | `-r`, `--reverse` | Print the log upside down. |
 | `-s`, `--stack` | Only show ancestors and descendants of the current branch. |
 | `-n`, `--steps` | Only show this many levels up/downstack. Implies `--stack`. |

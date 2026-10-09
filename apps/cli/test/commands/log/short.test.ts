@@ -12,6 +12,19 @@ for (const scene of [new TrailingProdScene()]) {
       expect(() => scene.repo.runCliCommand([`ls`])).to.not.throw(Error);
     });
 
+    it('`log --classic` matches `ls --classic`', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      const classic = scene.repo.runCliCommandAndGetOutput([`ls`, `--classic`]);
+      expect(classic).to.contain('a');
+      expect(
+        scene.repo.runCliCommandAndGetOutput([`log`, `--classic`])
+      ).to.equal(classic);
+      expect(scene.repo.runCliCommandAndGetOutput([`log`])).not.to.equal(
+        classic
+      );
+    });
+
     it("Can print stacks if a branch's parent has been deleted", () => {
       // This is mostly an effort to recreate a messed-up repo state that created a bug for a user.
       scene.repo.createChange('a', 'a');
