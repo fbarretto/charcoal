@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { execFileSync } from 'child_process';
 import { githubRepoSlug } from '../../lib/api/github_repo';
 import { TContext } from '../../lib/context';
+import { TBranchPRInfo } from '../../lib/engine/metadata_ref';
 import {
   ExitFailedError,
   KilledError,
@@ -34,6 +35,11 @@ type TPr = {
   headRefName: string;
   baseRefName: string;
   author?: { login: string };
+  title?: string;
+  url?: string;
+  state?: TBranchPRInfo['state'];
+  isDraft?: boolean;
+  reviewDecision?: TBranchPRInfo['reviewDecision'] | '';
 };
 
 export type TBranchToSync = { branch: string; parent: string };
@@ -121,15 +127,25 @@ export async function getAction(
     context
   );
 
-  // Remember each fetched branch's PR so later syncs track its state.
+  // Remember each fetched branch's PR so `info`/`ls` show it right away.
   for (const { branch } of branches) {
     const pr = prs.get(branch);
     if (pr && context.engine.getPrInfo(branch)?.number === undefined) {
       context.engine.upsertPrInfo(branch, {
         number: pr.number,
         base: pr.baseRefName,
+        title: pr.title,
+        url: pr.url,
+        state: pr.state,
+        isDraft: pr.isDraft,
+        reviewDecision: pr.reviewDecision || undefined,
       });
     }
+  }
+  if (ghStack && context.engine.branchExists(ghStack.bottom)) {
+    context.engine.upsertPrInfo(ghStack.bottom, {
+      ghStackNumber: ghStack.number,
+    });
   }
 
   if (args.restack) {
@@ -201,21 +217,27 @@ function downstackPrs(target: string, repo: string, trunk: string): TPr[] {
   return chain;
 }
 
-// The PRs above `pr` in its GitHub stack, if it is in one.
+// The open PRs above `pr` in its GitHub stack, if it is in one, and the
+// stack's number and bottom branch.
 function githubStackHeads(
   pr: TPr | undefined,
   repo: string,
   context: TContext
-): { above: string[] } | undefined {
+): { above: string[]; number: number; bottom: string } | undefined {
   if (!pr || !context.repoConfig.getGithubStacks()) {
     return undefined;
   }
   try {
     const stack = findStackForPr(repo, pr.number);
-    const heads = stack?.pull_requests.map((p) => p.head?.ref);
+    const open = stack?.pull_requests.filter((p) => p.state !== 'closed');
+    const heads = open?.map((p) => p.head?.ref);
     const at = heads?.indexOf(pr.headRefName) ?? -1;
-    return heads && at >= 0 && heads.every(Boolean)
-      ? { above: heads.slice(at + 1) as string[] }
+    return stack && heads && at >= 0 && heads.every(Boolean)
+      ? {
+          above: heads.slice(at + 1) as string[],
+          number: stack.number,
+          bottom: heads[0] as string,
+        }
       : undefined;
   } catch {
     return undefined; // fall back to walking PR bases
@@ -254,7 +276,7 @@ function prView(branchOrNumber: string, repo: string): TPr | undefined {
     '--repo',
     repo,
     '--json',
-    'number,headRefName,baseRefName,author',
+    'number,headRefName,baseRefName,author,title,url,state,isDraft,reviewDecision',
   ]);
 }
 

@@ -94,6 +94,17 @@ for (const scene of [new CloneScene()]) {
       expect(gh.calls().some((c) => c.startsWith('pr list'))).to.be.false;
     });
 
+    it('records PR details and the GitHub stack number', () => {
+      gh.edit((s) => (s.stacks = [{ number: 100, prs: [1, 2, 3] }]));
+      get(`c`);
+      expect(scene.repo.runCliCommandAndGetOutput([`info`])).to.contain(
+        'PR #3'
+      );
+      expect(scene.repo.runCliCommandAndGetOutput([`ls`])).to.match(
+        / a \(stack #100\)/
+      );
+    });
+
     it('syncs local upstack branches unless --downstack', () => {
       get(`c`);
       advanceOrigin('c');
