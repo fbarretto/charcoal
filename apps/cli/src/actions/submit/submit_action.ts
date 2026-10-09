@@ -20,6 +20,8 @@ import {
   footerTitle,
 } from '../create_pr_body_footer';
 import { execFileSync } from 'child_process';
+import { uncommittedTrackedChangesPrecondition } from '../../lib/preconditions';
+import { restackWithoutConflicts } from '../sync/sync';
 
 // eslint-disable-next-line max-lines-per-function
 export async function submitAction(
@@ -43,6 +45,8 @@ export async function submitAction(
     mergeWhenReady?: boolean;
     rerequestReview?: boolean;
     view?: boolean;
+    restack?: boolean;
+    ignoreOutOfSyncTrunk?: boolean;
   },
   context: TContext
 ): Promise<void> {
@@ -118,6 +122,11 @@ export async function submitAction(
     ? await selectBranches(context, allBranchNames)
     : allBranchNames;
 
+  if (args.restack && !args.dryRun) {
+    uncommittedTrackedChangesPrecondition();
+    restackWithoutConflicts(branchNames, context);
+  }
+
   context.splog.info(
     chalk.blueBright(
       `🥞 Validating that this Charcoal stack is ready to submit...`
@@ -132,6 +141,7 @@ export async function submitAction(
     )
   );
   await populateRemoteShasPromise;
+  await checkTrunkInSync(args, context);
   const teamReviewers = teamSlugs(args.teamReviewers, context);
   const submissionInfos = await getPRInfoForBranches(
     {
@@ -297,6 +307,38 @@ export function updatePrBodyFooter(
   );
 
   return body.replace(footerBlock, '').trimEnd() + footer;
+}
+
+async function checkTrunkInSync(
+  args: { ignoreOutOfSyncTrunk?: boolean; dryRun: boolean },
+  context: TContext
+): Promise<void> {
+  const trunk = context.engine.trunk;
+  if (args.ignoreOutOfSyncTrunk || context.engine.branchMatchesRemote(trunk)) {
+    return;
+  }
+  context.splog.warn(
+    `${chalk.yellow(
+      trunk
+    )} is out of sync with its remote; PRs may pick up the wrong base. Run ${chalk.cyan(
+      'ch sync'
+    )} first, or pass --ignore-out-of-sync-trunk.`
+  );
+  if (args.dryRun) {
+    return;
+  }
+  if (!context.interactive) {
+    throw new ExitFailedError(`Aborting non-interactive submit.`);
+  }
+  const { value } = await context.prompts({
+    type: 'confirm',
+    name: 'value',
+    message: 'Submit anyway?',
+    initial: false,
+  });
+  if (!value) {
+    throw new KilledError();
+  }
 }
 
 // `-t core` means the repo owner's `core` team; `org/slug` passes through.
