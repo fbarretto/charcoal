@@ -66,10 +66,14 @@ Modify the current branch by amending its commit (or creating a new one with `--
 | `-m`, `--message` | The message for the commit. |
 | `--edit` / `-n`, `--no-edit` | Whether to edit the existing message when amending (`--no-edit` takes precedence). |
 | `-p`, `--patch` | Pick hunks to stage before committing. |
+| `--into <branch>` | Commit the staged changes into another tracked branch instead of the current one. |
+
+With `--into`, the target branch is never checked out: the new commit is built from the target's tree plus the staged diff, and the command fails without changing anything if that diff doesn't apply cleanly. It amends the target's last commit (keeping its message unless `-m` is given) or, with `-c`, adds a new commit (which requires `-m`). Then everything upstack of the target is restacked and you stay on the current branch. Unstaged changes are kept; the staged ones leave the working tree, so they only reappear if the current branch is upstack of the target. If a restack conflict interrupts the command, the uncommitted changes are saved in a stash commit whose sha is printed (`git stash apply <sha>` after `ch continue`). `--patch` is not supported with `--into`; stage hunks with `git add -p` first. `--into` naming the current branch is a plain `modify`.
 
 ```
 ch modify -a            # amend current commit with all changes
 ch modify -c -m "Fix"   # add a new commit instead
+ch modify --into parent-branch   # amend staged changes into a downstack branch
 ```
 
 ### `squash` (alias `sq`)
