@@ -99,7 +99,15 @@ async function submitPrToGithub({
 }): Promise<TSubmittedPRResponse> {
   // prepare_branches always attaches reviewers, but the route type only
   // declares them on the 'create' variant.
-  const reviewers = (request as { reviewers?: string[] }).reviewers ?? [];
+  const {
+    reviewers = [],
+    title,
+    body,
+  } = request as {
+    reviewers?: string[];
+    title?: string;
+    body?: string;
+  };
   try {
     const prInfo = await JSON.parse(
       execFileSync('gh', [
@@ -109,7 +117,7 @@ async function submitPrToGithub({
         '--repo',
         repo,
         '--json',
-        'headRefName,url,number,baseRefName,body',
+        'headRefName,url,number,baseRefName,body,isDraft',
       ]).toString()
     );
 
@@ -123,6 +131,8 @@ async function submitPrToGithub({
 
     const editArgs = [
       ...(prBaseChanged ? ['--base', request.base] : []),
+      ...(title !== undefined ? ['--title', title] : []),
+      ...(body !== undefined ? ['--body', body] : []),
       ...reviewers.flatMap((r) => ['--add-reviewer', r]),
     ];
 
@@ -135,6 +145,11 @@ async function submitPrToGithub({
         repo,
         ...editArgs,
       ]);
+    }
+
+    // Like gt, --draft only applies to new PRs; --publish readies drafts.
+    if (request.draft === false && prInfo.isDraft) {
+      execFileSync('gh', ['pr', 'ready', `${prInfo.number}`, '--repo', repo]);
     }
 
     return {

@@ -38,6 +38,16 @@ const args = {
     default: false,
     alias: 'n',
   },
+  'edit-title': {
+    describe:
+      'Input the PR title interactively. Default only prompts for new PRs. Takes precedence over --no-edit. --no-edit-title skips the prompt and takes precedence over --edit-title and --edit.',
+    type: 'boolean',
+  },
+  'edit-description': {
+    describe:
+      'Input the PR description interactively. Default only prompts for new PRs. Takes precedence over --no-edit. --no-edit-description skips the prompt and takes precedence over --edit-description and --edit.',
+    type: 'boolean',
+  },
   reviewers: {
     describe:
       'If set without an argument, prompt to manually set reviewers. Alternatively, accepts a comma separated string of reviewers',
@@ -106,12 +116,19 @@ export const aliases = ['s'];
 export const description =
   'Idempotently force push all branches from trunk to the current branch to GitHub, creating or updating distinct pull requests for each. Pass --stack to also submit descendants of the current branch.';
 export const builder = args;
+// true: always prompt; false: never; undefined: prompt for new PRs only.
+const editMode = (
+  field: boolean | undefined,
+  argv: argsT
+): boolean | undefined => field ?? (argv['no-edit'] ? false : argv.edit);
+
 export const handler = async (argv: argsT): Promise<void> => {
   await graphite(argv, canonical, async (context) => {
     await submitAction(
       {
         scope: argv.stack ? SCOPE.STACK : SCOPE.DOWNSTACK,
-        editPRFieldsInline: !argv['no-edit'] && argv.edit,
+        editTitle: editMode(argv['edit-title'], argv),
+        editDescription: editMode(argv['edit-description'], argv),
         draft: argv.draft,
         publish: argv.publish,
         dryRun: argv['dry-run'],

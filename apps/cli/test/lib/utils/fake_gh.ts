@@ -67,6 +67,7 @@ export type TFakePr = {
   headRefName: string;
   baseRefName: string;
   state?: string;
+  isDraft?: boolean;
   author?: { login: string };
   reviewRequests?: { login: string }[];
   reviews?: { author: { login: string } }[];

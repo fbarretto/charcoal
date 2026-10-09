@@ -31,6 +31,27 @@ for (const scene of [new CloneScene()]) {
         `--no-interactive`,
         ...flags,
       ]);
+    const interactiveContext = () =>
+      initContext(
+        initContextLite({ interactive: true, quiet: true }),
+        composeGit(),
+        { verify: false }
+      );
+    const baseArgs = {
+      scope: SCOPE.DOWNSTACK,
+      editTitle: false,
+      editDescription: false,
+      draft: false,
+      publish: true,
+      dryRun: false,
+      updateOnly: false,
+      reviewers: undefined,
+      confirm: false,
+      forcePush: false,
+      select: false,
+      always: true,
+      branch: undefined,
+    };
     const created = () =>
       gh
         .calls()
@@ -65,30 +86,39 @@ for (const scene of [new CloneScene()]) {
       gh.clearCalls();
       prompts.inject(['new']);
       await submitAction(
-        {
-          scope: SCOPE.DOWNSTACK,
-          editPRFieldsInline: false,
-          draft: false,
-          publish: true,
-          dryRun: false,
-          updateOnly: false,
-          reviewers: 'carol',
-          confirm: false,
-          forcePush: false,
-          select: false,
-          always: true,
-          branch: undefined,
-        },
-        initContext(
-          initContextLite({ interactive: true, quiet: true }),
-          composeGit(),
-          { verify: false }
-        )
+        { ...baseArgs, reviewers: 'carol' },
+        interactiveContext()
       );
       const calls = gh.calls();
       expect(calls.filter((c) => c.includes('carol'))).to.deep.equal([
         'pr create --repo owner/name --head b --base a --title b --body  --reviewer carol',
       ]);
+    });
+
+    it('--edit-title edits only the title of an existing PR', async () => {
+      submit(`--branch`, `a`);
+      gh.clearCalls();
+      prompts.inject(['New title']);
+      await submitAction(
+        {
+          ...baseArgs,
+          branch: 'a',
+          editTitle: true,
+          editDescription: false,
+        },
+        interactiveContext()
+      );
+      expect(gh.calls().filter((c) => c.startsWith('pr edit a'))).to.deep.equal(
+        ['pr edit a --repo owner/name --title New title']
+      );
+    });
+
+    it('--publish marks existing draft PRs ready for review', () => {
+      submit(`--branch`, `a`);
+      gh.edit((s) => Object.assign(s.prs.a, { isDraft: true }));
+      gh.clearCalls();
+      submit(`--branch`, `a`, `-p`);
+      expect(gh.calls()).to.include('pr ready 1 --repo owner/name');
     });
 
     it('is aliased as `s`', () => {
