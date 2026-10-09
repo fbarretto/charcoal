@@ -1,6 +1,7 @@
 import yargs from 'yargs';
 import { commitAmendAction } from '../actions/commit_amend';
 import { commitCreateAction } from '../actions/commit_create';
+import { modifyIntoAction } from '../actions/modify_into';
 import { graphite } from '../lib/runner';
 
 const args = {
@@ -45,6 +46,12 @@ const args = {
     default: false,
     alias: 'n',
   },
+  into: {
+    type: 'string',
+    describe:
+      'Commit the staged changes into this branch instead of the current one, restack its upstack, and stay on the current branch.',
+    demandOption: false,
+  },
 } as const;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
@@ -56,7 +63,18 @@ export const description =
 export const builder = args;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) =>
-    argv.commit
+    argv.into && argv.into !== context.engine.currentBranch
+      ? modifyIntoAction(
+          {
+            into: argv.into,
+            addAll: argv.all,
+            patch: argv.patch,
+            commit: argv.commit,
+            message: argv.message,
+          },
+          context
+        )
+      : argv.commit
       ? commitCreateAction(
           {
             message: argv.message,
