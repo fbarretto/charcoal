@@ -269,6 +269,11 @@ Ensure each branch in the current stack is based on its parent, rebasing if nece
 
 | Flag | Description |
 | --- | --- |
+| `--comment <msg>` | Add a comment with `<msg>` to every submitted PR. |
+| `-m`, `--merge-when-ready` | Enable auto-merge (`gh pr merge --auto --squash`) on every submitted PR. |
+| `--rerequest-review` | Re-request review from the current reviewers of every updated PR. |
+| `-v`, `--view` | Open the PR in the browser after submitting. |
+| `--cli` | Accepted for gt compatibility; Charcoal always edits PR metadata in the CLI. |
 | `--branch` | Submit as if `<branch>` were checked out (default: current branch). |
 | `-d`, `--downstack` | Only restack this branch and its ancestors. |
 | `-u`, `--upstack` | Only restack this branch and its descendants. |
@@ -404,6 +409,11 @@ Idempotently force-push all branches from trunk to the current branch to GitHub,
 | `-u`, `--update-only` | Only update PRs that have already been submitted. |
 | `-f`, `--force` | Force push (overwrites remote). Otherwise defaults to `--force-with-lease`. |
 | `--always` | Always push updates even if the branch is unchanged. |
+| `--comment <msg>` | Add a comment with `<msg>` to every submitted PR. |
+| `-m`, `--merge-when-ready` | Enable auto-merge (`gh pr merge --auto --squash`) on every submitted PR. |
+| `--rerequest-review` | Re-request review from the current reviewers of every updated PR. |
+| `-v`, `--view` | Open the PR in the browser after submitting. |
+| `--cli` | Accepted for gt compatibility; Charcoal always edits PR metadata in the CLI. |
 | `--branch` | Submit as if `<branch>` were checked out (default: current branch). |
 | `--gh-stack` / `--no-gh-stack` | Link (or don't link) the PRs as a GitHub stack. Defaults to the `repo github-stacks` setting (on). |
 
