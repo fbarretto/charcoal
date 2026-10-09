@@ -20,6 +20,7 @@ import {
 import { getCacheLock, TCacheLock } from './engine/cache_lock';
 import {
   BadTrunkOperationError,
+  BlockedDuringRebaseError,
   ConcurrentExecutionError,
   DetachedError,
   ExitFailedError,
@@ -117,6 +118,34 @@ async function graphiteInternal(
   }
 }
 
+// Read-only commands, repo config, and the commands that finish a halted one.
+const ALLOWED_DURING_REBASE = new Set([
+  'abort',
+  'children',
+  'continue',
+  'dev meta',
+  'feedback debug-context',
+  'info',
+  'log',
+  'log long',
+  'log short',
+  'parent',
+  'pr',
+  'repo github',
+  'repo name',
+  'repo owner',
+  'repo pr-templates',
+  'repo remote',
+  'trunk',
+]);
+
+const isBlockedDuringRebase = (canonicalName: string): boolean =>
+  isUndoableCommand(canonicalName) ||
+  !(
+    ALLOWED_DURING_REBASE.has(canonicalName) ||
+    canonicalName.startsWith('internal-only ')
+  );
+
 // eslint-disable-next-line max-params
 async function graphiteHelper(
   canonicalName: string,
@@ -130,6 +159,14 @@ async function graphiteHelper(
   let undoSnapshot: TUndoSnapshot | undefined;
 
   try {
+    // Refuse before snapshotting or touching state: a halted command's
+    // continuation and undo snapshot must survive until continue/abort.
+    if (
+      isBlockedDuringRebase(canonicalName) &&
+      context.engine.rebaseInProgress()
+    ) {
+      throw new BlockedDuringRebaseError();
+    }
     if (
       canonicalName !== 'repo init' &&
       !context.repoConfig.graphiteInitialized()

@@ -1,4 +1,6 @@
 import { expect } from 'chai';
+import fs from 'fs-extra';
+import path from 'path';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
 import { expectCommits } from '../../lib/utils/expect_commits';
@@ -77,6 +79,55 @@ for (const scene of allScenes) {
       );
       expect(
         scene.repo.runGitCommandAndGetOutput(['for-each-ref', 'refs/heads/c'])
+      ).to.equal('');
+    });
+
+    it('Refuses other mutating commands while halted, so abort still restores the state from before the halted command', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.createChange('c', 'a');
+      scene.repo.runCliCommand([`create`, `c`, `-m`, `c`]);
+      const [bBefore, cBefore] = [
+        scene.repo.getRef('refs/heads/b'),
+        scene.repo.getRef('refs/heads/c'),
+      ];
+
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChangeAndAmend('a2', 'a');
+      expect(() => scene.repo.runCliCommand(['restack'])).to.throw();
+      const continuation = fs.readFileSync(
+        path.join(scene.repo.dir, '.git', '.gtcontinue'),
+        'utf-8'
+      );
+
+      for (const command of [
+        ['create', 'x', '-m', 'x'],
+        ['modify', '-a', '-m', 'm'],
+        ['restack'],
+        ['checkout', 'b'],
+        ['up'],
+        ['undo', '-f'],
+        ['submit'],
+      ]) {
+        expect(() => scene.repo.runCliCommand(command)).to.throw(
+          'blocked while a rebase is in progress'
+        );
+      }
+      expect(
+        fs.readFileSync(path.join(scene.repo.dir, '.git', '.gtcontinue'), 'utf-8')
+      ).to.equal(continuation);
+      expect(scene.repo.runCliCommandAndGetOutput(['ls'])).to.contain('b');
+      scene.repo.runCliCommand(['info']);
+
+      scene.repo.runCliCommand(['abort', '-f']);
+      expect(scene.repo.rebaseInProgress()).to.be.false;
+      expect(scene.repo.currentBranchName()).to.equal('a');
+      expect(scene.repo.getRef('refs/heads/b')).to.equal(bBefore);
+      expect(scene.repo.getRef('refs/heads/c')).to.equal(cBefore);
+      expect(
+        scene.repo.runGitCommandAndGetOutput(['for-each-ref', 'refs/heads/x'])
       ).to.equal('');
     });
   });
