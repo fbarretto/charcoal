@@ -1,7 +1,14 @@
 import yargs from 'yargs';
 import { graphite } from '../lib/runner';
 
-const args = {} as const;
+const args = {
+  all: {
+    describe: `Show all configured trunks. Charcoal supports a single trunk, so this prints it.`,
+    demandOption: false,
+    type: 'boolean',
+    alias: 'a',
+  },
+} as const;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
 export const command = 'trunk';
