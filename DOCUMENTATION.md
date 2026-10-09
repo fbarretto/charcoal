@@ -48,10 +48,12 @@ Create a new branch stacked on top of the current branch and commit staged chang
 | `-m`, `--message` | Commit staged changes on the new branch with this message. |
 | `-a`, `--all` | Stage all unstaged changes before committing. |
 | `-p`, `--patch` | Pick hunks to stage before committing. |
-| `-i`, `--insert` | Existing children of the current branch become children of the new branch. |
+| `-i`, `--insert` | Existing children of the parent branch become children of the new branch. |
+| `-o`, `--onto` | Stack the new branch on this branch instead of the current one. Uncommitted changes are carried over; if that would overwrite them, nothing is changed. With `--insert`, the children of the `--onto` branch move onto the new branch. |
 
 ```
 ch create -am "Add login form"
+ch create fix -m "Fix typo" --onto main
 ```
 
 ### `modify` (alias `m`)
