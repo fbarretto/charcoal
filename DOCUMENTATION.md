@@ -76,6 +76,23 @@ ch modify -c -m "Fix"   # add a new commit instead
 ch modify --into parent-branch   # amend staged changes into a downstack branch
 ```
 
+### `absorb` (alias `ab`)
+Amend each staged hunk into the commit in the current downstack (trunk → current branch) that last touched those lines, then restack. Requires [git-absorb](https://github.com/tummychow/git-absorb) on `PATH` (`brew install git-absorb`).
+
+| Flag | Description |
+| --- | --- |
+| `-a`, `--all` | Stage all changes before absorbing. |
+| `-d`, `--dry-run` | Print which commit each hunk would go into, and change nothing. |
+| `-f`, `--force` | Don't ask for confirmation. Without it, the plan is printed and confirmed first (interactive mode only). |
+| `-p`, `--patch` | Pick hunks to stage before absorbing. |
+
+`git absorb` creates `fixup!` commits scoped to the downstack, which are then squashed in by one autosquash rebase; every downstack branch is moved to its rewritten commit, and everything upstack of the bottom branch is restacked. You stay on the current branch. Hunks git-absorb can't place (new or deleted files, lines no commit in the stack owns) stay uncommitted, as unstaged changes. Downstack branches must already be restacked, and the stack must not already contain `fixup!`/`squash!`/`amend!` commits. `ch undo` reverts it.
+
+```
+ch absorb -a      # absorb every change, after confirming
+ch absorb -d      # preview
+```
+
 ### `squash` (alias `sq`)
 Squash all commits in the current branch into one and restack upstack branches.
 

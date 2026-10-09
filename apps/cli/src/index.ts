@@ -11,6 +11,7 @@ import { registerCommands } from './lib/register_commands';
 import { registerCompletion } from './commands/completion';
 
 import * as abort from './commands/abort';
+import * as absorb from './commands/absorb';
 import * as aliases from './commands/aliases';
 import * as auth from './commands/auth';
 import * as bottom from './commands/bottom';
@@ -79,6 +80,7 @@ process.on('uncaughtException', (err) => {
 // bundled into the single-file binary built with `bun build --compile`.
 const commandModules = [
   abort,
+  absorb,
   aliases,
   auth,
   bottom,

@@ -1,6 +1,11 @@
 import chalk from 'chalk';
 import { TContext } from '../lib/context';
 import { RebaseConflictError } from '../lib/errors';
+import {
+  applyToWorkingTree,
+  createStashCommit,
+  hardResetToHead,
+} from '../lib/git/plumbing';
 import { assertUnreachable } from '../lib/utils/assert_unreachable';
 import { persistContinuation } from './persist_continuation';
 import { printConflictStatus } from './print_conflict_status';
@@ -74,5 +79,34 @@ export function restackBranches(
       default:
         assertUnreachable(result);
     }
+  }
+}
+
+// Clears the working tree so `fn` can rewrite and restack branches, then
+// reapplies `patches` (diffs captured beforehand) as unstaged changes. A backup
+// of everything set aside is printed if `fn` or the reapply fails.
+export function withChangesSetAside(
+  patches: string[],
+  context: TContext,
+  fn: () => void
+): void {
+  const backup = createStashCommit();
+  hardResetToHead();
+  const recoveryHint = backup
+    ? `Your uncommitted changes are saved in ${chalk.cyan(
+        backup
+      )}; recover them with \`git stash apply ${backup}\`.`
+    : undefined;
+  try {
+    fn();
+  } catch (e) {
+    recoveryHint && context.splog.warn(recoveryHint);
+    throw e;
+  }
+  try {
+    patches.filter((p) => p).forEach(applyToWorkingTree);
+  } catch {
+    context.splog.warn(`Couldn't reapply your uncommitted changes.`);
+    recoveryHint && context.splog.warn(recoveryHint);
   }
 }
