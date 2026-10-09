@@ -18,12 +18,20 @@ import { spiffy } from './spiffy';
  * its history, the cache loader would silently "fix" its parentBranchRevision.
  * branchesToDelete are deleted only after the queue is restacked, so their
  * children keep a valid parent until they move off it.
+ * stashToRestore is a stash commit (kept alive under refs/charcoal/stash/)
+ * whose `part` is reapplied once the command finishes or aborts.
  */
 const ContinueSchema = t.shape({
   branchesToSync: t.array(t.string),
   branchesToRestack: t.array(t.string),
   pendingParents: t.optional(t.array(t.tuple([t.string, t.string] as const))),
   branchesToDelete: t.optional(t.array(t.string)),
+  stashToRestore: t.optional(
+    t.shape({
+      sha: t.string,
+      part: t.literals(['UNSTAGED', 'ALL'] as const),
+    })
+  ),
   currentBranchOverride: t.optional(t.string),
   rebasedBranchBase: t.optional(t.string),
 });
