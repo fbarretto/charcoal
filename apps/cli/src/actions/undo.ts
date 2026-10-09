@@ -242,13 +242,6 @@ export async function undoAction(
   { force }: { force: boolean },
   context: TContext
 ): Promise<void> {
-  if (context.engine.rebaseInProgress()) {
-    throw new PreconditionsFailedError(
-      `Cannot undo while a rebase is in progress. Finish it with ${chalk.cyan(
-        'ch continue'
-      )} or abort it first.`
-    );
-  }
   uncommittedTrackedChangesPrecondition();
 
   const snapshot = undoStackFactory.load().data.snapshots?.at(-1);
