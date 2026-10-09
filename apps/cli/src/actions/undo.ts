@@ -233,22 +233,116 @@ export function restoreUndoSnapshot(
   context: TContext,
   plan = planRestore(snapshot)
 ): void {
+  const changes = committedChanges(snapshot, context);
   restoreSnapshot(snapshot, plan.branchChanges, plan.metadataChanges);
   context.engine.clear();
   context.engine.rebuild();
+  if (changes) {
+    reapplyChanges(snapshot.command, changes, context);
+  }
+}
+
+type TCommittedChanges = { base: string; head: string; patch: string };
+
+// What `create` / `modify` committed (the created branch's commits, or the
+// modified branch's old..new diff), so undoing it hands those changes back
+// instead of leaving them only in the reflog.
+function committedChanges(
+  snapshot: TUndoSnapshot,
+  context: TContext
+): TCommittedChanges | undefined {
+  const before = Object.fromEntries(snapshot.branches);
+  const now = getBranchNamesAndRevisions();
+  const branch =
+    snapshot.command === 'create'
+      ? Object.keys(now).find((b) => !(b in before))
+      : snapshot.command === 'modify'
+      ? modifiedBranch(before, now, context)
+      : undefined;
+  if (!branch || !now[branch]) {
+    return undefined;
+  }
+  const base =
+    snapshot.command === 'create'
+      ? context.engine.isBranchTracked(branch)
+        ? context.engine.getBaseRevision(branch)
+        : undefined
+      : before[branch];
+  const head = now[branch];
+  if (!base || base === head) {
+    return undefined;
+  }
+  const patch = runGitCommand({
+    args: ['diff', '--binary', '--no-ext-diff', base, head],
+    options: { noTrim: true },
+    onError: 'throw',
+    resource: 'undoCommittedChanges',
+  });
+  return patch ? { base, head, patch } : undefined;
+}
+
+// The amended branch (current, or the --into target) is the changed branch
+// whose parent didn't change; the others were only restacked onto it.
+function modifiedBranch(
+  before: Record<string, string>,
+  now: Record<string, string>,
+  context: TContext
+): string | undefined {
+  return Object.keys(now).find((b) => {
+    if (!before[b] || before[b] === now[b]) {
+      return false;
+    }
+    const parent = context.engine.getParent(b);
+    return parent !== undefined && before[parent] === now[parent];
+  });
+}
+
+function reapplyChanges(
+  command: string,
+  { base, head, patch }: TCommittedChanges,
+  context: TContext
+): void {
+  try {
+    runGitCommand({
+      args: ['apply', '--index'],
+      options: {
+        input: patch,
+        cwd: runGitCommand({
+          args: ['rev-parse', '--show-toplevel'],
+          onError: 'throw',
+          resource: 'undoToplevel',
+        }),
+      },
+      onError: 'throw',
+      resource: 'undoReapplyChanges',
+    });
+    context.splog.info(
+      `The changes ${chalk.cyan(
+        `ch ${command}`
+      )} committed are staged in your working tree.`
+    );
+  } catch {
+    context.splog.warn(
+      [
+        `Could not reapply the changes ${chalk.cyan(
+          `ch ${command}`
+        )} committed. Recover them with:`,
+        `  git diff --binary ${base} ${head} | git apply --3way`,
+      ].join('\n')
+    );
+  }
 }
 
 export async function undoAction(
   { force }: { force: boolean },
   context: TContext
 ): Promise<void> {
-  uncommittedTrackedChangesPrecondition();
-
   const snapshot = undoStackFactory.load().data.snapshots?.at(-1);
   if (!snapshot) {
     context.splog.info('Nothing to undo.');
     return;
   }
+  uncommittedTrackedChangesPrecondition();
 
   const plan = planRestore(snapshot);
   const { branchChanges, metadataChanges, checkout } = plan;
