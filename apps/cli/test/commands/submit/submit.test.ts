@@ -1,4 +1,9 @@
 import { expect } from 'chai';
+import prompts from 'prompts';
+import { submitAction } from '../../../src/actions/submit/submit_action';
+import { initContext, initContextLite } from '../../../src/lib/context';
+import { SCOPE } from '../../../src/lib/engine/scope_spec';
+import { composeGit } from '../../../src/lib/git/git';
 import { CloneScene } from '../../lib/scenes/clone_scene';
 import { configureTest } from '../../lib/utils/configure_test';
 import { FakeGh } from '../../lib/utils/fake_gh';
@@ -46,6 +51,44 @@ for (const scene of [new CloneScene()]) {
           `nope`,
         ])
       ).to.throw(/Could not find branch nope/);
+    });
+
+    it('keeps explicit reviewers and team reviewers in non-interactive mode', () => {
+      submit(`-r`, `alice, bob`, `-t`, `core,other-org/ops`);
+      expect(gh.calls().filter((c) => c.startsWith('pr create'))[0]).to.match(
+        /--reviewer alice --reviewer bob --reviewer owner\/core --reviewer other-org\/ops$/
+      );
+    });
+
+    it('asks whether reviewers apply to existing PRs too', async () => {
+      submit(`--branch`, `a`);
+      gh.clearCalls();
+      prompts.inject(['new']);
+      await submitAction(
+        {
+          scope: SCOPE.DOWNSTACK,
+          editPRFieldsInline: false,
+          draft: false,
+          publish: true,
+          dryRun: false,
+          updateOnly: false,
+          reviewers: 'carol',
+          confirm: false,
+          forcePush: false,
+          select: false,
+          always: true,
+          branch: undefined,
+        },
+        initContext(
+          initContextLite({ interactive: true, quiet: true }),
+          composeGit(),
+          { verify: false }
+        )
+      );
+      const calls = gh.calls();
+      expect(calls.filter((c) => c.includes('carol'))).to.deep.equal([
+        'pr create --repo owner/name --head b --base a --title b --body  --reviewer carol',
+      ]);
     });
 
     it('is aliased as `s`', () => {

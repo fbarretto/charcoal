@@ -394,7 +394,8 @@ Idempotently force-push all branches from trunk to the current branch to GitHub,
 | `-d`, `--draft` | Mark PRs as draft. In `--no-interactive` mode, new PRs are created as drafts. |
 | `-p`, `--publish` | Publish PRs (the inverse of draft). |
 | `-e`, `--edit` / `-n`, `--no-edit` | Edit PR fields inline. `--no-edit` takes precedence. |
-| `-r`, `--reviewers` | Prompt for reviewers, or pass a comma-separated list. |
+| `-r`, `--reviewers` | Prompt for reviewers, or pass a comma-separated list. An explicit list also applies with `--no-interactive`. When a submit mixes new and existing PRs, you're asked whether the reviewers go on all of them or only the new ones. |
+| `-t`, `--team-reviewers` | Comma-separated team slugs (`slug` means the repo owner's team; `org/slug` also works). Without a value, opens the reviewers prompt. |
 | `--dry-run` | Report which PRs would be submitted, then exit. Nothing is pushed. |
 | `-c`, `--confirm` | Report the PRs and ask for confirmation before pushing. Ignored with `--no-interactive`/`--dry-run`. |
 | `--select` | Report the PRs and ask which to update/create. Ignored with `--no-interactive`/`--dry-run`. |
