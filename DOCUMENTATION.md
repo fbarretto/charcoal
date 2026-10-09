@@ -426,6 +426,13 @@ Display information about the current branch.
 ch info -d
 ```
 
+### `parent`
+Print the current branch's parent. Errors on trunk or an untracked branch.
+
+```
+ch parent
+```
+
 ---
 
 ## Config
