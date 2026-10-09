@@ -19,7 +19,6 @@ export const GIT_COMMAND_ALLOWLIST = [
   'format-patch',
   'fsck',
   'grep',
-  'merge',
   'mv',
   'notes',
   'pull',

@@ -35,6 +35,7 @@ import * as init from './commands/init';
 import * as ll from './commands/ll';
 import * as log from './commands/log';
 import * as ls from './commands/ls';
+import * as merge from './commands/merge';
 import * as modify from './commands/modify';
 import * as move from './commands/move';
 import * as parent from './commands/parent';
@@ -104,6 +105,7 @@ const commandModules = [
   ll,
   log,
   ls,
+  merge,
   modify,
   move,
   parent,
