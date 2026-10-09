@@ -178,7 +178,20 @@ for (const scene of allScenes) {
       conflictOnRestack();
       scene.repo.runCliCommand([`abort`, `-f`]);
 
-      expectUnstagedRestored();
+      expect(scene.repo.rebaseInProgress()).to.be.false;
+      expect(scene.repo.currentBranchName()).to.equal('b');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`diff`, `--name-only`])
+      ).to.equal('b_test.txt');
+      // What --into committed to the target comes back staged.
+      expect(
+        scene.repo.runGitCommandAndGetOutput([
+          `diff`,
+          `--cached`,
+          `--name-only`,
+        ])
+      ).to.equal('x_test.txt');
+      expect(stashRefs()).to.equal('');
     });
   });
 }
