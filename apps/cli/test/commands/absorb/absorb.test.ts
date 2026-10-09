@@ -76,6 +76,13 @@ for (const scene of allScenes) {
       ).to.equal('a_test.txt\nb_test.txt');
     });
 
+    it('Refuses when a downstack branch is frozen', () => {
+      scene.repo.runCliCommand([`freeze`, `a`]);
+      const before = refs();
+      expect(() => scene.repo.runCliCommand([`absorb`, `-f`])).to.throw();
+      expect(refs()).to.deep.equal(before);
+    });
+
     it('Can be undone', () => {
       const before = refs();
       scene.repo.runCliCommand([`absorb`, `-f`]);
