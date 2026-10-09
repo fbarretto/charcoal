@@ -96,8 +96,8 @@ async function confirmDelete(
   );
 }
 
-// Children of deleted branches that survive are restacked once at the end,
-// onto whatever ancestor survives.
+// Surviving children are restacked onto their nearest surviving ancestor
+// before anything is deleted (see TRestackFollowUp).
 function deleteBranches(branchNames: string[], context: TContext): void {
   const deleted = new Set(branchNames);
   const branchesToRestack = [
@@ -108,12 +108,20 @@ function deleteBranches(branchNames: string[], context: TContext): void {
     ),
   ].filter((b) => !deleted.has(b));
 
-  [...branchNames].reverse().forEach((b) => {
-    context.engine.deleteBranch(b);
-    context.splog.info(`Deleted branch ${chalk.red(b)}`);
-  });
+  const survivingAncestor = (b: string): string => {
+    const parent = context.engine.getParentPrecondition(b);
+    return deleted.has(parent) ? survivingAncestor(parent) : parent;
+  };
+  const pendingParents = Object.fromEntries(
+    branchesToRestack
+      .filter((b) => deleted.has(context.engine.getParentPrecondition(b)))
+      .map((b) => [b, survivingAncestor(b)])
+  );
 
-  restackBranches(branchesToRestack, context);
+  restackBranches(branchesToRestack, context, {
+    pendingParents,
+    branchesToDelete: [...branchNames].reverse(),
+  });
 }
 
 function openPrNumbers(branchNames: string[], context: TContext): number[] {

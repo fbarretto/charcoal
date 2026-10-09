@@ -24,6 +24,7 @@ export async function continueAction(
   const pendingParents = Object.fromEntries(
     context.continueConfig.data?.pendingParents ?? []
   );
+  const branchesToDelete = context.continueConfig.data?.branchesToDelete;
 
   if (!rebasedBranchBase) {
     clearContinuation(context);
@@ -33,13 +34,22 @@ export async function continueAction(
   const cont = context.engine.continueRebase(rebasedBranchBase);
   if (cont.result === 'REBASE_CONFLICT') {
     persistContinuation(
-      { branchesToRestack, pendingParents, rebasedBranchBase },
+      {
+        branchesToRestack,
+        pendingParents,
+        branchesToDelete,
+        rebasedBranchBase,
+      },
       context
     );
     printConflictStatus(`Rebase conflict is not yet resolved.`, context);
     throw new RebaseConflictError();
   }
 
+  if (cont.branchName in pendingParents) {
+    context.engine.setParent(cont.branchName, pendingParents[cont.branchName]);
+    delete pendingParents[cont.branchName];
+  }
   context.splog.info(
     `Resolved rebase conflict for ${chalk.green(cont.branchName)}.`
   );
@@ -57,7 +67,10 @@ export async function continueAction(
   }
 
   if (branchesToRestack) {
-    restackBranches(branchesToRestack, context, pendingParents);
+    restackBranches(branchesToRestack, context, {
+      pendingParents,
+      branchesToDelete,
+    });
   }
   clearContinuation(context);
 }
