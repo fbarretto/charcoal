@@ -1,4 +1,8 @@
 import { expect } from 'chai';
+import fs from 'fs-extra';
+import prompts from 'prompts';
+import { commitAmendAction } from '../../../src/actions/commit_amend';
+import { withEditor, withTTY } from '../../lib/utils/interactive';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
 import { expectCommits } from '../../lib/utils/expect_commits';
@@ -49,9 +53,7 @@ for (const scene of allScenes) {
 
       scene.repo.checkoutBranch('a');
       scene.repo.createChange(`Hello world! ${lorem}`);
-      expect(() =>
-        scene.repo.runCliCommand([`modify`, `-m`, `a1`])
-      ).to.throw();
+      expect(() => scene.repo.runCliCommand([`modify`, `-m`, `a1`])).to.throw();
       expect(scene.repo.rebaseInProgress()).to.be.true;
 
       scene.repo.resolveMergeConflicts();
@@ -85,12 +87,111 @@ for (const scene of allScenes) {
       expectCommits(scene.repo, 'b, 1');
     });
 
-    it('Cannot amend an empty commit', () => {
+    it('Creates a commit when the branch has no commits', () => {
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
       expect(scene.repo.currentBranchName()).to.equal('a');
-      expect(() =>
-        scene.repo.runCliCommand([`modify`, `-m`, `b`])
-      ).to.throw();
+      expect(() => scene.repo.runCliCommand([`modify`, `-m`, `b`])).to.throw();
+
+      scene.repo.createChange('2');
+      scene.repo.runCliCommand([`modify`, `-m`, `b`]);
+      expectCommits(scene.repo, 'b, 1');
+    });
+
+    it('Does not open an editor unless -e is passed', () => {
+      scene.repo.createChange('2');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      const template = `${scene.dir}/../template-${Date.now()}`;
+
+      scene.repo.createChange('3');
+      withEditor(
+        'edited',
+        () => scene.repo.runCliCommand([`modify`]),
+        template
+      );
+      expectCommits(scene.repo, 'a, 1');
+      expect(fs.existsSync(template)).to.be.false;
+
+      withEditor(
+        'edited',
+        () => scene.repo.runCliCommand([`modify`, `-e`, `-v`]),
+        template
+      );
+      expectCommits(scene.repo, 'edited, 1');
+      expect(fs.readFileSync(template, 'utf-8')).to.contain('+3');
+    });
+
+    it('Joins repeated -m as paragraphs', () => {
+      scene.repo.createChange('2');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.runCliCommand([`modify`, `-m`, `x`, `-m`, `y`]);
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`log`, `-1`, `--format=%B`])
+      ).to.equal('x\n\ny');
+    });
+
+    it('Stages only tracked files with -u', () => {
+      scene.repo.createChange('2', 'tracked');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('3', 'tracked', true);
+      scene.repo.createChange('new', 'untracked', true);
+      scene.repo.runCliCommand([`modify`, `-u`]);
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`show`, `a:tracked_test.txt`])
+      ).to.equal('3');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`ls-files`, `--others`])
+      ).to.equal('untracked_test.txt');
+    });
+
+    it('Resets the author with --reset-author', () => {
+      scene.repo.createChange('2');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.runGitCommand([
+        `commit`,
+        `--amend`,
+        `--no-edit`,
+        `--author=Someone Else <else@example.com>`,
+      ]);
+      const author = () =>
+        scene.repo.runGitCommandAndGetOutput([`log`, `-1`, `--format=%ae`]);
+      expect(author()).to.equal('else@example.com');
+      scene.repo.runCliCommand([`modify`, `--reset-author`]);
+      expect(author()).to.equal(
+        scene.repo.runGitCommandAndGetOutput([`config`, `user.email`])
+      );
+    });
+
+    it('Runs an interactive rebase with --interactive-rebase, ignoring other flags', () => {
+      scene.repo.createChange('2', '2');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('3', '3');
+      scene.repo.runCliCommand([`modify`, `-c`, `-m`, `a2`]);
+      const original = process.env.GIT_SEQUENCE_EDITOR;
+      process.env.GIT_SEQUENCE_EDITOR = `sed -i.bak '2s/^pick/fixup/'`;
+      try {
+        scene.repo.runCliCommand([
+          `modify`,
+          `--interactive-rebase`,
+          `-m`,
+          `ignored`,
+        ]);
+      } finally {
+        process.env.GIT_SEQUENCE_EDITOR = original;
+      }
+      expectCommits(scene.repo, 'a, 1');
+    });
+
+    it('Asks whether to stage unstaged changes', async () => {
+      scene.repo.createChange('2');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('3', undefined, true);
+      prompts.inject(['update']);
+      await withTTY(() =>
+        commitAmendAction({ edit: false }, scene.getContext(true))
+      );
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`show`, `a:test.txt`])
+      ).to.equal('3');
     });
   });
 }

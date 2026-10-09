@@ -1,30 +1,24 @@
 import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
-import { ensureSomeStagedChangesPrecondition } from '../lib/preconditions';
+import {
+  ensureSomeStagedChangesPrecondition,
+  stageChanges,
+  TStageOpts,
+} from '../lib/preconditions';
 import { BlockedDuringRebaseError } from '../lib/errors';
 import { restackBranches } from './restack';
 
-export function commitCreateAction(
-  opts: {
-    addAll: boolean;
-    patch: boolean;
-    message?: string;
-  },
+export async function commitCreateAction(
+  opts: TStageOpts & { message?: string; verbose?: number },
   context: TContext
-): void {
+): Promise<void> {
   if (context.engine.rebaseInProgress()) {
     throw new BlockedDuringRebaseError();
   }
 
-  if (opts.addAll) {
-    context.engine.addAll();
-  }
-
+  await stageChanges(opts, context);
   ensureSomeStagedChangesPrecondition(context);
-  context.engine.commit({
-    message: opts.message,
-    patch: !opts.addAll && opts.patch,
-  });
+  context.engine.commit({ message: opts.message, verbose: opts.verbose });
 
   restackBranches(
     context.engine.getRelativeStack(

@@ -1,43 +1,32 @@
 import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
-import {
-  PreconditionsFailedError,
-  BlockedDuringRebaseError,
-} from '../lib/errors';
+import { BlockedDuringRebaseError } from '../lib/errors';
+import { stageChanges, TStageOpts } from '../lib/preconditions';
 import { restackBranches } from './restack';
 
-export function commitAmendAction(
-  opts: {
-    addAll: boolean;
+export async function commitAmendAction(
+  opts: TStageOpts & {
     message?: string;
-    noEdit: boolean;
-    patch: boolean;
+    edit: boolean;
+    verbose?: number;
+    resetAuthor?: boolean;
   },
   context: TContext
-): void {
-  if (context.engine.isBranchEmpty(context.engine.currentBranchPrecondition)) {
-    throw new PreconditionsFailedError('No commits in this branch to amend');
-  }
+): Promise<void> {
   if (context.engine.rebaseInProgress()) {
     throw new BlockedDuringRebaseError();
   }
 
-  if (opts.addAll) {
-    context.engine.addAll();
-  }
+  await stageChanges(opts, context);
 
   context.engine.commit({
     amend: true,
-    noEdit: opts.noEdit,
     message: opts.message,
-    patch: !opts.addAll && opts.patch,
+    edit: opts.edit,
+    noEdit: !opts.edit && !opts.message,
+    verbose: opts.verbose,
+    resetAuthor: opts.resetAuthor,
   });
-
-  if (!opts.noEdit) {
-    context.splog.tip(
-      'In the future, you can skip editing the commit message with the `--no-edit` flag.'
-    );
-  }
 
   restackBranches(
     context.engine.getRelativeStack(
