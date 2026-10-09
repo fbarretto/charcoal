@@ -547,18 +547,24 @@ ch unfreeze teammate-branch
 ```
 
 ### `get` (alias `g`)
-Get branches from trunk to the specified branch from remote, prompting to resolve conflicts. With no argument, gets downstack from the current branch. Useful for pulling a teammate's stack.
+For a branch or PR number, sync the branches from trunk to it from remote (rebuilt by walking each PR's base), prompting to resolve conflicts. If the branch already exists locally, its local upstack branches that have PRs are synced too (`--downstack` opts out); remote-only branches above it are only fetched with `--remote-upstack`. With no argument, syncs the current stack. Then, like `sync`, it offers to delete the stack's merged or closed branches and restacks what restacks cleanly, and checks out the branch. Useful for pulling a teammate's stack.
 
-Fetched branches are [frozen](#freeze) by default, so you can stack on top of them without rewriting them. A frozen local branch that differs from remote is overwritten with the remote version, without prompting.
+New branches authored by someone else are [frozen](#freeze), so you can stack on top of them without rewriting them; your own PRs' branches (by `gh api user`) come down unfrozen, and branches you already had keep their frozen state. A frozen local branch that differs from remote is overwritten with the remote version, without prompting. When rebasing your local changes onto the remote version hits conflicts, you can resolve them (then `ch continue`) or cancel, which undoes that rebase and stops.
 
 | Flag | Description |
 | --- | --- |
-| `[branch]` | Positional: branch to fetch down to. |
+| `[branch]` | Positional: branch name or PR number to get. |
+| `-d`, `--downstack` | When the branch already exists locally, don't sync its upstack branches. |
+| `-u`, `--remote-upstack` | Also get the open PRs above the branch on remote: the rest of its GitHub stack if it's in one, otherwise the open PRs based on it, recursively. |
+| `--checkout` / `--no-checkout` | Check out the branch afterwards (default on). |
+| `--restack` / `--no-restack` | Restack the stack afterwards, leaving branches that would conflict as they are (default on). |
+| `--delete-all` | Delete the stack's merged or closed branches without prompting. |
 | `-f`, `--force` | Overwrite all fetched branches with the remote source of truth. |
-| `-U`, `--unfrozen` | Don't freeze the fetched branches. Branches that are already frozen stay frozen. |
+| `-U`, `--unfrozen` | Leave every new branch unfrozen. Branches that are already frozen stay frozen. |
 
 ```
 ch get teammate-branch
+ch get 123 -u           # PR #123 and everything stacked above it
 ```
 
 ---

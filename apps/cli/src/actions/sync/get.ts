@@ -10,9 +10,35 @@ import {
 import { assertUnreachable } from '../../lib/utils/assert_unreachable';
 import { persistContinuation } from '../persist_continuation';
 import { printConflictStatus } from '../print_conflict_status';
+import { findStackForPr } from '../../lib/api/gh_stacks';
+import { SCOPE } from '../../lib/engine/scope_spec';
+import { syncPrInfo } from '../sync_pr_info';
+import { cleanBranches } from './clean_branches';
+import { restackWithoutConflicts } from './sync';
 
+type TGetArgs = {
+  branchName: string | undefined;
+  force: boolean;
+  unfrozen: boolean;
+  checkout: boolean;
+  downstack: boolean;
+  restack: boolean;
+  remoteUpstack: boolean;
+  deleteAll: boolean;
+};
+
+type TPr = {
+  number: number;
+  headRefName: string;
+  baseRefName: string;
+  author?: { login: string };
+};
+
+export type TBranchToSync = { branch: string; parent: string };
+
+// eslint-disable-next-line max-lines-per-function
 export async function getAction(
-  args: { branchName: string | undefined; force: boolean; unfrozen: boolean },
+  args: TGetArgs,
   context: TContext
 ): Promise<void> {
   const trunk = context.engine.trunk;
@@ -25,98 +51,240 @@ export async function getAction(
     );
   }
 
-  // A numeric argument is a PR number; resolve it to its head branch.
-  if (/^\d+$/.test(target)) {
-    target = prFieldOrThrow(target, 'headRefName', repo);
+  // A numeric argument is a PR number, unless a branch has that name.
+  if (/^\d+$/.test(target) && !context.engine.branchExists(target)) {
+    const pr = prView(target, repo);
+    if (!pr) {
+      throw new ExitFailedError(
+        `Could not find an open pull request for "${target}".`
+      );
+    }
+    target = pr.headRefName;
   }
 
   if (target === trunk) {
     context.splog.info(`Nothing to get: ${chalk.cyan(trunk)} is trunk.`);
+    if (args.checkout) {
+      context.engine.checkoutBranch(trunk);
+    }
     return;
   }
 
-  // Charcoal doesn't push branch metadata to the remote, so we reconstruct the
-  // downstack chain (trunk -> target) by walking each PR's base ref.
-  const downstack: string[] = [];
-  const seen = new Set<string>();
-  let branch: string | undefined = target;
-  while (branch && branch !== trunk) {
-    if (seen.has(branch)) {
+  const startedOn = context.engine.currentBranch;
+  const existedLocally = context.engine.branchExists(target);
+  await cleanLocalStack(target, args.deleteAll, context);
+  if (existedLocally && !context.engine.branchExists(target)) {
+    return; // its PR was merged or closed and the branch deleted
+  }
+
+  const downstack = downstackPrs(target, repo, trunk);
+  const prs = new Map(downstack.map((pr) => [pr.headRefName, pr]));
+  const ghStack = githubStackHeads(prs.get(target), repo, context);
+
+  // Upstack: branches above the target that already exist locally (unless
+  // --downstack), and with -u the remote-only ones from open PRs.
+  const upstack: string[] = [];
+  if (args.remoteUpstack) {
+    upstack.push(...(ghStack?.above ?? remoteChildren(target, repo)));
+  }
+  if (
+    !args.downstack &&
+    context.engine.branchExists(target) &&
+    context.engine.isBranchTracked(target)
+  ) {
+    upstack.push(
+      ...context.engine.getRelativeStack(target, SCOPE.UPSTACK_EXCLUSIVE)
+    );
+  }
+  const branches: TBranchToSync[] = downstack.map((pr) => ({
+    branch: pr.headRefName,
+    parent: pr.baseRefName,
+  }));
+  for (const branch of new Set(upstack)) {
+    const pr = prs.get(branch) ?? prView(branch, repo);
+    if (pr && pr.headRefName === branch) {
+      prs.set(branch, pr);
+      branches.push({ branch, parent: pr.baseRefName });
+    }
+  }
+
+  const me = currentGithubUser();
+  await getBranchesFromRemote(
+    {
+      branches,
+      force: args.force,
+      freezeNew: (b) =>
+        !args.unfrozen && (!me || prs.get(b)?.author?.login !== me),
+    },
+    context
+  );
+
+  // Remember each fetched branch's PR so later syncs track its state.
+  for (const { branch } of branches) {
+    const pr = prs.get(branch);
+    if (pr && context.engine.getPrInfo(branch)?.number === undefined) {
+      context.engine.upsertPrInfo(branch, {
+        number: pr.number,
+        base: pr.baseRefName,
+      });
+    }
+  }
+
+  if (args.restack) {
+    restackWithoutConflicts(
+      context.engine.getRelativeStack(target, SCOPE.STACK),
+      context
+    );
+  }
+  const back = args.checkout ? target : startedOn;
+  if (back && context.engine.branchExists(back)) {
+    context.engine.checkoutBranch(back);
+  }
+}
+
+// Like sync, clean up merged/closed branches of the local stack first, so
+// their children are reparented before being compared with remote.
+async function cleanLocalStack(
+  target: string,
+  deleteAll: boolean,
+  context: TContext
+): Promise<void> {
+  if (
+    !context.engine.branchExists(target) ||
+    !context.engine.isBranchTracked(target)
+  ) {
+    return;
+  }
+  const stack = new Set(
+    context.engine
+      .getRelativeStack(target, SCOPE.STACK)
+      .filter((b) => !context.engine.isTrunk(b))
+  );
+  await syncPrInfo([...stack], context);
+  await cleanBranches(
+    { showDeleteProgress: false, force: deleteAll, only: stack },
+    context
+  );
+}
+
+// Charcoal doesn't push branch metadata to the remote, so the downstack chain
+// (trunk -> target) is rebuilt by walking each PR's base ref.
+function downstackPrs(target: string, repo: string, trunk: string): TPr[] {
+  const chain: TPr[] = [];
+  let branch = target;
+  while (branch !== trunk) {
+    const pr = prView(branch, repo);
+    if (!pr || pr.headRefName !== branch) {
+      throw new ExitFailedError(
+        [
+          `Could not trace ${chalk.yellow(target)} back to trunk (${chalk.cyan(
+            trunk
+          )}) from its pull requests.`,
+          `\`ch get\` reconstructs a stack from open PRs, so every branch from trunk to ${chalk.yellow(
+            target
+          )} needs one.`,
+        ].join('\n')
+      );
+    }
+    if (chain.some((p) => p.headRefName === branch)) {
       throw new ExitFailedError(
         `Encountered a cycle while resolving the stack for ${chalk.yellow(
           target
         )}.`
       );
     }
-    seen.add(branch);
-    downstack.unshift(branch);
-    branch = prFieldMaybe(branch, 'baseRefName', repo);
+    chain.unshift(pr);
+    branch = pr.baseRefName;
   }
-
-  if (branch !== trunk) {
-    throw new ExitFailedError(
-      [
-        `Could not trace ${chalk.yellow(target)} back to trunk (${chalk.cyan(
-          trunk
-        )}) from its pull requests.`,
-        `\`ch get\` reconstructs a stack from open PRs, so every branch from trunk to ${chalk.yellow(
-          target
-        )} needs one.`,
-      ].join('\n')
-    );
-  }
-
-  await getBranchesFromRemote(
-    { downstack, base: trunk, force: args.force, freeze: !args.unfrozen },
-    context
-  );
-
-  context.engine.checkoutBranch(target);
+  return chain;
 }
 
-function prFieldMaybe(
-  branchOrNumber: string,
-  field: 'headRefName' | 'baseRefName',
-  repo: string
-): string | undefined {
+// The PRs above `pr` in its GitHub stack, if it is in one.
+function githubStackHeads(
+  pr: TPr | undefined,
+  repo: string,
+  context: TContext
+): { above: string[] } | undefined {
+  if (!pr || !context.repoConfig.getGithubStacks()) {
+    return undefined;
+  }
   try {
-    const pr = JSON.parse(
-      execFileSync(
-        'gh',
-        ['pr', 'view', branchOrNumber, '--repo', repo, '--json', field],
-        {
-          stdio: ['ignore', 'pipe', 'ignore'],
-        }
-      ).toString()
+    const stack = findStackForPr(repo, pr.number);
+    const heads = stack?.pull_requests.map((p) => p.head?.ref);
+    const at = heads?.indexOf(pr.headRefName) ?? -1;
+    return heads && at >= 0 && heads.every(Boolean)
+      ? { above: heads.slice(at + 1) as string[] }
+      : undefined;
+  } catch {
+    return undefined; // fall back to walking PR bases
+  }
+}
+
+// Open PRs based on `branch`, recursively, parents before children.
+function remoteChildren(branch: string, repo: string): string[] {
+  const children = ghJson<{ headRefName: string }[]>([
+    'pr',
+    'list',
+    '--repo',
+    repo,
+    '--base',
+    branch,
+    '--state',
+    'open',
+    '--json',
+    'headRefName',
+  ]);
+  return (children ?? []).flatMap((c) => [
+    c.headRefName,
+    ...remoteChildren(c.headRefName, repo),
+  ]);
+}
+
+function currentGithubUser(): string | undefined {
+  return ghJson<{ login: string }>(['api', 'user'])?.login;
+}
+
+function prView(branchOrNumber: string, repo: string): TPr | undefined {
+  return ghJson<TPr>([
+    'pr',
+    'view',
+    branchOrNumber,
+    '--repo',
+    repo,
+    '--json',
+    'number,headRefName,baseRefName,author',
+  ]);
+}
+
+function ghJson<T>(args: string[]): T | undefined {
+  try {
+    return JSON.parse(
+      execFileSync('gh', args, {
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).toString()
     );
-    return pr[field] || undefined;
   } catch {
     return undefined;
   }
 }
 
-function prFieldOrThrow(
-  branchOrNumber: string,
-  field: 'headRefName' | 'baseRefName',
-  repo: string
-): string {
-  const value = prFieldMaybe(branchOrNumber, field, repo);
-  if (!value) {
-    throw new ExitFailedError(
-      `Could not find an open pull request for "${branchOrNumber}".`
-    );
-  }
-  return value;
-}
-
+// Syncs each branch from remote in order (parents before children). Branches
+// that didn't exist locally are frozen when `freezeNew` says so; existing
+// branches keep their frozen state.
 export async function getBranchesFromRemote(
-  args: { downstack: string[]; base: string; force: boolean; freeze: boolean },
+  args: {
+    branches: TBranchToSync[];
+    force: boolean;
+    freezeNew: (branch: string) => boolean;
+  },
   context: TContext
 ): Promise<void> {
-  let parentBranchName = args.base;
-  for (const [index, branchName] of args.downstack.entries()) {
+  for (const [index, { branch: branchName, parent: parentBranchName }] of [
+    ...args.branches.entries(),
+  ]) {
+    const isNew = !context.engine.branchExists(branchName);
     context.engine.fetchBranch(branchName, parentBranchName);
-    if (args.force || !context.engine.branchExists(branchName)) {
+    if (args.force || isNew) {
       context.engine.checkoutBranchFromFetched(branchName, parentBranchName);
       context.splog.info(`Synced ${chalk.cyan(branchName)} from remote.`);
     } else if (!context.engine.isBranchTracked(branchName)) {
@@ -132,17 +300,39 @@ export async function getBranchesFromRemote(
       context.engine.checkoutBranchFromFetched(branchName, parentBranchName);
       context.splog.info(`Synced ${chalk.cyan(branchName)} from remote.`);
     } else {
-      const remainingBranchesToSync = args.downstack.slice(index + 1);
+      const remainingBranchesToSync = args.branches
+        .slice(index + 1)
+        .map((b) => b.branch);
       await handleSameParent(
         { branchName, parentBranchName, remainingBranchesToSync },
         context
       );
     }
-    if (args.freeze) {
+    if (isNew && args.freezeNew(branchName)) {
       context.engine.setBranchFrozen(branchName, true);
     }
-    parentBranchName = branchName;
   }
+}
+
+// After `ch continue`, the remaining branches resume with their tracked
+// parent, or (for ones not yet local) the branch synced before them.
+// ponytail: assumes a remote-only branch's parent precedes it in the list;
+// true for linear stacks and for `remoteChildren`'s parents-first order.
+export function branchesToSyncAfterContinue(
+  names: string[],
+  firstParent: string,
+  context: TContext
+): TBranchToSync[] {
+  let prev = firstParent;
+  return names.map((branch) => {
+    const parent =
+      context.engine.branchExists(branch) &&
+      context.engine.isBranchTracked(branch)
+        ? context.engine.getParentPrecondition(branch)
+        : prev;
+    prev = branch;
+    return { branch, parent };
+  });
 }
 
 async function handleUntrackedLocally(
@@ -253,6 +443,7 @@ async function handleSameParent(
     case 'REBASE': {
       const result = context.engine.rebaseBranchOntoFetched(args.branchName);
       if (result.result === 'REBASE_CONFLICT') {
+        await offerToCancel(args.branchName, context);
         persistContinuation(
           {
             branchesToSync: args.remainingBranchesToSync,
@@ -290,4 +481,32 @@ async function handleSameParent(
     default:
       assertUnreachable(fetchChoice);
   }
+}
+
+// gt 1.6.6: on a conflict, offer to cancel instead of resolving it.
+async function offerToCancel(
+  branchName: string,
+  context: TContext
+): Promise<void> {
+  if (
+    !context.interactive ||
+    (
+      await context.prompts({
+        type: 'select',
+        name: 'value',
+        message: `Rebasing ${chalk.yellow(branchName)} hit conflicts.`,
+        choices: [
+          {
+            title: 'Resolve the conflicts, then `ch continue`',
+            value: 'resolve',
+          },
+          { title: 'Cancel: undo this rebase and stop', value: 'cancel' },
+        ],
+      })
+    ).value !== 'cancel'
+  ) {
+    return;
+  }
+  context.engine.abortRebase();
+  throw new KilledError();
 }
