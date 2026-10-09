@@ -23,7 +23,7 @@ if (args[0] === 'auth') process.exit(0);
 if (args[0] === 'pr' && args[1] === 'view') {
   const pr = Object.values(st.prs).find((p) => String(p.number) === args[2] || p.headRefName === args[2]);
   if (!pr) fail('no pull requests found for branch "' + args[2] + '"');
-  out({ ...pr, state: 'OPEN', url: url(pr.number), title: 't', body: '', reviewDecision: '', isDraft: false });
+  out({ state: 'OPEN', ...pr, url: url(pr.number), title: 't', body: '', reviewDecision: '', isDraft: false });
   process.exit(0);
 }
 if (args[0] === 'pr' && args[1] === 'create') {
@@ -50,7 +50,8 @@ if (args[0] === 'api') {
   if (st.status === 404) fail('gh: Not Found (HTTP 404)');
   if (st.status) fail('gh: Server Error (HTTP ' + st.status + ')');
   const body = input ? JSON.parse(input) : {};
-  const view = (s) => ({ number: s.number, pull_requests: s.prs.map((number) => ({ number })) });
+  const done = (n) => ['MERGED', 'CLOSED'].includes(Object.values(st.prs).find((p) => p.number === n)?.state);
+  const view = (s) => ({ number: s.number, open: true, pull_requests: s.prs.map((number) => ({ number, state: done(number) ? 'closed' : 'open' })) });
   const [p, query] = args[1].split('?');
   const find = (n) => st.stacks.find((s) => s.number === Number(n));
   let m;
@@ -65,7 +66,8 @@ if (args[0] === 'api') {
     find(m[1]).prs.push(...body.pull_requests);
     out(view(find(m[1])));
   } else if ((m = /stacks\\/(\\d+)\\/unstack$/.exec(p))) {
-    const kept = find(m[1]).prs.filter((n) => st.queued.includes(n));
+    // GitHub keeps queued and already-merged PRs in the stack.
+    const kept = find(m[1]).prs.filter((n) => st.queued.includes(n) || done(n));
     st.stacks = st.stacks.filter((s) => s.number !== Number(m[1]));
     if (kept.length) {
       st.stacks.push({ number: Number(m[1]), prs: kept });
@@ -227,6 +229,37 @@ for (const scene of [new CloneScene()]) {
         scene.repo.runCliCommand([`submit`, `--no-interactive`, `--stack`])
       ).to.throw(/nothing was pushed\. GitHub kept #2 stacked/);
       expect(prOf('ins')).to.equal(undefined);
+    });
+
+    it('keeps a stack whose bottom PR merged, comparing only open PRs', () => {
+      createBranches(['c']);
+      submit();
+      editState((s) => {
+        s.prs['a'].state = 'MERGED';
+        s.prs['b'].baseRefName = 'main';
+      });
+      scene.repo.runCliCommand([`move`, `main`, `--source`, `b`]);
+      const output = submit(`--stack`);
+      expect(apiCalls()).to.deep.equal([GET(2)]);
+      expect(output).not.to.contain('WARNING');
+      expect(scene.repo.runCliCommandAndGetOutput([`ls`])).to.match(
+        / b \(stack #100\)/
+      );
+    });
+
+    it('relinks when GitHub keeps only merged PRs after unstacking', () => {
+      submit(`--no-gh-stack`);
+      editState((s) => {
+        s.prs['z'] = { number: 9, state: 'MERGED' };
+        s.stacks.push({ number: 7, prs: [9, 2, 1] });
+      });
+      const output = submit();
+      expect(apiCalls()).to.deep.equal([
+        GET(1),
+        'api repos/owner/name/stacks/7/unstack --method POST',
+        CREATE([1, 2]),
+      ]);
+      expect(output).not.to.contain('queued for merge');
     });
 
     it('makes no call for a single-PR chain', () => {
