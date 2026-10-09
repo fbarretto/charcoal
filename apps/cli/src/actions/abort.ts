@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { TContext } from '../lib/context';
-import { NoGraphiteContinue } from '../lib/errors';
+import { ExitFailedError, NoGraphiteContinue } from '../lib/errors';
 import { clearContinuation } from './persist_continuation';
 import { restoreSetAsideChanges } from './restack';
 import { popUndoSnapshot, restoreUndoSnapshot } from './undo';
@@ -28,6 +28,13 @@ export async function abortAction(
           initial: false,
         })
       ).value);
+  if (!confirmed && !context.interactive) {
+    throw new ExitFailedError(
+      `Cannot confirm the abort without an interactive terminal. Pass ${chalk.cyan(
+        '--force'
+      )} to abort.`
+    );
+  }
   if (!confirmed) {
     context.splog.info('Did not abort. Pass --force to skip confirmation.');
     return;

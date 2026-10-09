@@ -25,6 +25,19 @@ for (const scene of allScenes) {
       expect(() => scene.repo.runCliCommand(['abort', '-f'])).to.throw();
     });
 
+    it('Fails with a --force hint when it cannot prompt for confirmation', () => {
+      scene.repo.createChange('a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChangeAndAmend('1');
+      expect(() => scene.repo.runCliCommand(['restack', '-q'])).to.throw();
+
+      expect(() => scene.repo.runCliCommand(['abort'])).to.throw('--force');
+      expect(scene.repo.rebaseInProgress()).to.be.true;
+    });
+
     it('Aborts a restack halted by a merge conflict', () => {
       scene.repo.createChange('a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
