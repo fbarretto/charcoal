@@ -6,6 +6,12 @@ import chalk from 'chalk';
 import { version } from '../../package.json';
 import { init } from '../actions/init';
 import {
+  isUndoableCommand,
+  recordUndoSnapshot,
+  takeUndoSnapshot,
+} from '../actions/undo';
+import { TUndoSnapshot } from './spiffy/undo_spf';
+import {
   initContext,
   initContextLite,
   TContext,
@@ -121,6 +127,7 @@ async function graphiteHelper(
   cacheAfter: string;
 }> {
   const cacheBefore = context.engine.debug;
+  let undoSnapshot: TUndoSnapshot | undefined;
 
   try {
     if (
@@ -134,6 +141,9 @@ async function graphiteHelper(
       await init({}, context);
     }
 
+    undoSnapshot = isUndoableCommand(canonicalName)
+      ? takeUndoSnapshot(canonicalName)
+      : undefined;
     await handler.run(context);
   } catch (err) {
     if (
@@ -146,6 +156,13 @@ async function graphiteHelper(
     }
     throw err;
   } finally {
+    try {
+      if (undoSnapshot) {
+        recordUndoSnapshot(undoSnapshot);
+      }
+    } catch {
+      context.splog.debug(`Failed to record undo snapshot`);
+    }
     try {
       context.engine.persist();
     } catch (persistError) {
