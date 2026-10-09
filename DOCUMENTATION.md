@@ -595,6 +595,10 @@ ch children
 ### `trunk`
 Print the trunk branch name.
 
+| Flag | Description |
+| --- | --- |
+| `-a`, `--all` | Show all configured trunks. Charcoal supports one trunk, so this prints it. |
+
 ```
 ch trunk
 ```

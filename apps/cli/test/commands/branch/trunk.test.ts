@@ -11,5 +11,11 @@ for (const scene of allScenes) {
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
       expect(scene.repo.runCliCommandAndGetOutput([`trunk`])).to.equal('main');
     });
+
+    it('Prints the single trunk with --all', () => {
+      expect(scene.repo.runCliCommandAndGetOutput([`trunk`, `-a`])).to.equal(
+        'main'
+      );
+    });
   });
 }
