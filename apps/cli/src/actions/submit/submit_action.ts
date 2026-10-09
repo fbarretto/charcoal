@@ -25,6 +25,7 @@ export async function submitAction(
     dryRun: boolean;
     updateOnly: boolean;
     reviewers: string | undefined;
+    teamReviewers?: string;
     confirm: boolean;
     forcePush: boolean;
     select: boolean;
@@ -51,9 +52,14 @@ export async function submitAction(
     args.editPRFieldsInline = false;
   }
 
+  if (args.teamReviewers === '' && args.reviewers === undefined) {
+    args.reviewers = ''; // a bare -t opens the reviewers prompt, like gt
+  }
   if (!context.interactive) {
     args.editPRFieldsInline = false;
-    args.reviewers = undefined;
+    if (args.reviewers === '') {
+      args.reviewers = undefined; // can't prompt; explicit lists still apply
+    }
 
     context.splog.info(
       `Running in non-interactive mode. Inline prompts to fill PR fields will be skipped${
@@ -109,6 +115,7 @@ export async function submitAction(
     )
   );
   await populateRemoteShasPromise;
+  const teamReviewers = teamSlugs(args.teamReviewers, context);
   const submissionInfos = await getPRInfoForBranches(
     {
       branchNames: branchNames,
@@ -117,6 +124,11 @@ export async function submitAction(
       publish: args.publish,
       updateOnly: args.updateOnly,
       reviewers: args.reviewers,
+      teamReviewers,
+      reviewersForExisting: await askReviewersForExisting(
+        { branchNames, reviewers: args.reviewers, teamReviewers },
+        context
+      ),
       dryRun: args.dryRun,
       select: args.select,
       always: args.always,
@@ -239,6 +251,52 @@ export function updatePrBodyFooter(
   );
 
   return body.replace(footerBlock, '').trimEnd() + footer;
+}
+
+// `-t core` means the repo owner's `core` team; `org/slug` passes through.
+function teamSlugs(teams: string | undefined, context: TContext): string[] {
+  const owner = githubRepoSlug(context).split('/')[0];
+  return (teams ?? '')
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t) => (t.includes('/') ? t : `${owner}/${t}`));
+}
+
+// When a stack mixes new and existing PRs, ask whether explicit reviewers go
+// on all of them or only the new ones (gt 1.7.10).
+async function askReviewersForExisting(
+  args: {
+    branchNames: string[];
+    reviewers: string | undefined;
+    teamReviewers: string[];
+  },
+  context: TContext
+): Promise<boolean> {
+  const hasPr = args.branchNames.map(
+    (b) => context.engine.getPrInfo(b)?.number !== undefined
+  );
+  if (
+    !context.interactive ||
+    !(args.reviewers || args.teamReviewers.length) ||
+    !hasPr.includes(true) ||
+    !hasPr.includes(false)
+  ) {
+    return true;
+  }
+  return (
+    (
+      await context.prompts({
+        type: 'select',
+        name: 'value',
+        message: 'Request these reviewers on which PRs?',
+        choices: [
+          { title: 'All PRs in this submit', value: 'all' },
+          { title: 'Only newly created PRs', value: 'new' },
+        ],
+      })
+    ).value !== 'new'
+  );
 }
 
 async function selectBranches(
