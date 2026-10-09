@@ -60,32 +60,32 @@ ch init --trunk main    # once per repo
 
 `ch` turns prompts off when stdin or stdout isn't a terminal, which is the case for an agent's shell. `--no-interactive` and `-q` force it. A prompt that can't be asked either takes a safe default or fails with a message, so **pass the flag that answers it up front**:
 
-| Situation                                                       | Without the flag                                | Pass                                                             |
-| --------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
-| `create` with neither name nor `-m`                             | fails                                           | a name and `-m`                                                  |
-| `create -m` with nothing staged                                 | makes an **empty** branch and drops the message | `git add` first, or `-a` / `-u`                                  |
-| `modify` with nothing staged                                    | fails ("Cannot run without staged changes")     | `git add` first, or `-a` / `-u`                                  |
-| `create -i` when the parent has several children                | moves all of them                               | (choose with `ch move` afterwards)                               |
-| `delete` with no name                                           | fails                                           | the branch name                                                  |
-| `delete` of an unmerged branch (or `--upstack` / `--downstack`) | fails                                           | `-f`                                                             |
-| `track` when several parents are possible                       | fails                                           | `-p <parent>`, or `-f` (nearest ancestor each time)              |
-| `untrack` of a branch with children                             | does nothing, exits 0                           | `-f`                                                             |
-| `up` / `top` at a fork                                          | fails, lists the children                       | `ch up --to <b>` or `ch co <b>`                                  |
-| `co`, `move` with no target                                     | fails                                           | `ch co <b>`, `ch move --onto <b>`                                |
-| `split` without `--by-file`                                     | fails (by-commit / by-hunk need a terminal)     | `--by-file <pathspec>`                                           |
-| `reorder`                                                       | opens an editor                                 | don't; use `ch move` per branch                                  |
-| `rename` with no name                                           | fails                                           | the name (`-f` if it has an open PR; renaming drops the PR link) |
-| `abort`                                                         | prints "Did not abort", exits 0                 | `-f`                                                             |
-| `undo`, `absorb`, `unstack`                                     | proceed without confirming                      | `absorb -d` first to preview                                     |
-| `submit` with open PRs above the current branch                 | submits only trunk → current                    | `--stack`                                                        |
-| `submit` creating new PRs                                       | creates them as **drafts**                      | `--publish` for ready-for-review                                 |
-| `submit` PR title and body                                      | not prompted; taken from the commits            | set them with `gh pr edit` afterwards                            |
-| `submit` while local trunk differs from remote                  | fails ("Aborting non-interactive submit")       | `ch sync` first, or `--ignore-out-of-sync-trunk`                 |
-| `submit` with an empty or already-merged branch in range        | fails                                           | delete it, or `ch sync`                                          |
-| `sync` when trunk can't fast-forward                            | warns and exits 1                               | `-f` (resets local trunk to remote)                              |
-| `sync` finding merged/closed branches                           | keeps them                                      | `-d` (delete all) or `-f`                                        |
-| `merge` when a local branch differs from its remote             | refuses                                         | `ch submit` first                                                |
-| `get` when a local branch diverged from remote                  | aborts                                          | `-f` (take remote)                                               |
+| Situation                                                       | Without the flag                             | Pass                                                             |
+| --------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------- |
+| `create` with neither name nor `-m`                             | fails                                        | a name and `-m`                                                  |
+| `create -m` with nothing staged                                 | makes an **empty** branch, warns `-m` unused | `git add` first, or `-a` / `-u`                                  |
+| `modify` with nothing staged                                    | fails ("Cannot run without staged changes")  | `git add` first, or `-a` / `-u`                                  |
+| `create -i` when the parent has several children                | moves all of them                            | (choose with `ch move` afterwards)                               |
+| `delete` with no name                                           | fails                                        | the branch name                                                  |
+| `delete` of an unmerged branch (or `--upstack` / `--downstack`) | fails                                        | `-f`                                                             |
+| `track` when several parents are possible                       | fails                                        | `-p <parent>`, or `-f` (nearest ancestor each time)              |
+| `untrack` of a branch with children                             | fails, hints `--force`                       | `-f`                                                             |
+| `up` / `top` at a fork                                          | fails, lists the children                    | `ch up --to <b>` or `ch co <b>`                                  |
+| `co`, `move` with no target                                     | fails                                        | `ch co <b>`, `ch move --onto <b>`                                |
+| `split` without `--by-file`                                     | fails (by-commit / by-hunk need a terminal)  | `--by-file <pathspec>`                                           |
+| `reorder`                                                       | opens an editor                              | don't; use `ch move` per branch                                  |
+| `rename` with no name                                           | fails                                        | the name (`-f` if it has an open PR; renaming drops the PR link) |
+| `abort`                                                         | fails, hints `--force`                       | `-f`                                                             |
+| `undo`, `absorb`, `unstack`                                     | proceed without confirming                   | `absorb -d` first to preview                                     |
+| `submit` with open PRs above the current branch                 | submits only trunk → current                 | `--stack`                                                        |
+| `submit` creating new PRs                                       | creates them as **drafts**                   | `--publish` for ready-for-review                                 |
+| `submit` PR title and body                                      | not prompted; taken from the commits         | set them with `gh pr edit` afterwards                            |
+| `submit` while local trunk differs from remote                  | fails ("Aborting non-interactive submit")    | `ch sync` first, or `--ignore-out-of-sync-trunk`                 |
+| `submit` with an empty or already-merged branch in range        | fails                                        | delete it, or `ch sync`                                          |
+| `sync` when trunk can't fast-forward                            | fails, hints `--force`                       | `-f` (resets local trunk to remote)                              |
+| `sync` finding merged/closed branches                           | keeps them                                   | `-d` (delete all) or `-f`                                        |
+| `merge` when a local branch differs from its remote             | refuses                                      | `ch submit` first                                                |
+| `get` when a local branch diverged from remote                  | aborts                                       | `-f` (take remote)                                               |
 
 ## What makes a good PR
 
@@ -131,7 +131,7 @@ git add src/backoff.ts
 ch modify --into upload-retry/extract-backoff   # never checks it out; restacks above it
 ```
 
-`--into` fails without changing anything if the staged diff doesn't apply cleanly to the target. `ch absorb -a` does the routing per hunk (needs `git-absorb` on PATH); preview with `-d`. It currently leaves HEAD detached afterwards, so follow it with `ch co <branch>`.
+`--into` fails without changing anything if the staged diff doesn't apply cleanly to the target. `ch absorb -a` does the routing per hunk (needs `git-absorb` on PATH); preview with `-d`. You stay on your branch.
 
 **Re-parent / reorder.** `ch move --onto <target>` moves the current branch and everything above it. `--only` moves just one branch, and its children close the gap. To change which branch a single branch sits on without rebasing anything yet, `ch track -p <parent>` then `ch restack`.
 
@@ -152,13 +152,13 @@ ch info -d -s                            # same, via ch
 
 1. `ch ls`: the bottom branch must sit directly on trunk. If not: `ch co <bottom>`, `ch move --onto main`.
 2. Nothing says `(needs restack)`; if something does, run `ch restack`.
-3. Run the project's lint/build/test on every layer, not just the top, and fix failures in the layer that caused them (`ch modify --into`, or check it out), not in a new layer on top. In a linear stack:
+3. Run the project's lint/build/test on every layer, not just the top, and fix failures in the layer that caused them (`ch modify --into`, or check it out), not in a new layer on top:
 
    ```bash
-   ch bottom && while <validate>; do ch up || break; done   # stops on the first failing layer
+   ch test '<validate>'    # runs it on every branch of the stack, returns to where you were
    ```
 
-   (`ch test` would do this, but it currently crashes when stdout isn't a terminal.)
+   Read the `[failed]` lines (each points at an output file under the printed directory): the exit code doesn't reflect failures. `--upstack` / `--downstack` limit the scope.
 
 ## Submitting
 
@@ -187,15 +187,15 @@ When a restack hits a conflict, `ch` stops mid-rebase and prints the unmerged fi
 
 **Use `ch continue`, never `git rebase --continue`.** Git alone finishes the one branch and drops the rest of `ch`'s queued work; the branches above are left `(needs restack)`. If that already happened, run `ch restack`.
 
-**While a conflict is pending, run only `ch continue`, `ch abort -f`, `ch ls` and `git` read/staging commands.** Any other `ch` command, even one that fails, replaces the pending operation, so a later `ch abort` restores the wrong state and can leave HEAD detached. If that happens: `ch co <branch>`, then `ch undo` until `ch ls` looks right.
+**While a conflict is pending, finish it before doing anything else.** `ch` refuses every command that could change state ("This command is blocked while a rebase is in progress") except `ch continue` and `ch abort`; read-only ones like `ch ls` and `ch info` still work.
 
-`ch abort -f` gives up: it aborts the rebase and restores every branch to how it was before the command. Commits that command made aren't put back in the working tree; find them with `git reflog`.
+`ch abort -f` gives up: it aborts the rebase and restores every branch to how it was before the command. If that command was a `create` or `modify`, what it committed comes back as staged changes.
 
 **After a context reset**, `git status` showing "rebase in progress" means a `ch` command is halted. Read the unmerged files: if they're already resolved, `git add` and `ch continue`; if not, resolve first. `ch continue` reports "Rebase conflict is not yet resolved" until every file is staged.
 
 `sync` never stops on a conflict: it restacks what it can and lists the rest ("All branches restacked cleanly, except for: …"). Check each out and `ch restack`.
 
-**Undo.** `ch undo` reverts the last `ch` command in this worktree (up to 10 back): branches, metadata, checked-out branch. It's local only, so it can't undo `submit`, `merge`, `unstack` or `--close`. It refuses mid-rebase or with uncommitted tracked changes. Undoing a `create` or `modify` removes the commit without restoring its changes to the working tree; `git reflog` has them.
+**Undo.** `ch undo` reverts the last `ch` command in this worktree (up to 10 back): branches, metadata, checked-out branch. It's local only, so it can't undo `submit`, `merge`, `unstack` or `--close`. It refuses mid-rebase or with uncommitted tracked changes. Undoing a `create` or `modify` hands the committed changes back as staged changes, so commit or discard them before undoing further.
 
 ## Deleting branches
 
@@ -220,9 +220,9 @@ ch delete <branch> -f -c           # also close its open PR
 | Bottom branch isn't on trunk                                 | `ch co <bottom> && ch move --onto main`                       |
 | `(needs restack)` in `ch ls`                                 | `ch restack`                                                  |
 | `Cannot perform this operation without a branch checked out` | `ch co <branch>` (HEAD is detached)                           |
-| `Cannot undo while a rebase is in progress`                  | `ch continue` or `ch abort -f` first                          |
+| `This command is blocked while a rebase is in progress`      | `ch continue` or `ch abort -f` first                          |
 | `<branch> is frozen`                                         | It isn't yours; stack on it. If it is: `ch unfreeze <branch>` |
-| `cannot rebase: Your index contains uncommitted changes`     | Commit (`ch modify`) or unstage, then retry                   |
+| `There are tracked changes that have not been committed`     | Commit (`ch modify`) or stash, then retry                     |
 | `submit`: trunk out of sync                                  | `ch sync`, then submit                                        |
 | `sync`: `main could not be fast-forwarded`                   | `ch sync -f` (local trunk commits are discarded)              |
 | `Skipped <b>: it is checked out in another worktree`         | Run the command in that worktree                              |
