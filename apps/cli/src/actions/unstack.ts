@@ -8,6 +8,7 @@ import {
 } from '../lib/api/gh_stacks';
 import { TContext } from '../lib/context';
 import { ExitFailedError, KilledError } from '../lib/errors';
+import { forgetGhStack } from './submit/link_gh_stack';
 
 const prList = (prs: number[]) => prs.map((n) => `#${n}`).join(' → ');
 
@@ -54,11 +55,7 @@ export async function unstackAction(
   }
 
   const kept = unstack(repo, stack.number);
-  for (const b of context.engine.allBranchNames) {
-    if (context.engine.getPrInfo(b)?.ghStackNumber === stack.number) {
-      context.engine.upsertPrInfo(b, { ghStackNumber: undefined });
-    }
-  }
+  forgetGhStack(stack.number, context);
   context.splog.info(
     kept
       ? `Unstacked GitHub stack #${stack.number}; GitHub kept ${prList(

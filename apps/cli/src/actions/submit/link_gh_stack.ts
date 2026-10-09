@@ -5,11 +5,13 @@ import {
   createStack,
   findStackForPr,
   GhApiError,
+  openPrNumbersOf,
   prNumbersOf,
   TGhStack,
   unstack,
 } from '../../lib/api/gh_stacks';
 import { TContext } from '../../lib/context';
+import { ExitFailedError } from '../../lib/errors';
 
 const openPr = (branch: string, context: TContext): number | undefined => {
   const prInfo = context.engine.getPrInfo(branch);
@@ -164,4 +166,94 @@ function reconcile(
   const created = createStack(repo, prs);
   context.splog.info(`🥞 Linked ${describe(created)}`);
   return created;
+}
+
+// Drops the recorded stack number from every branch that carries it.
+export function forgetGhStack(stackNumber: number, context: TContext): void {
+  for (const b of context.engine.allBranchNames) {
+    if (context.engine.getPrInfo(b)?.ghStackNumber === stackNumber) {
+      context.engine.upsertPrInfo(b, { ghStackNumber: undefined });
+    }
+  }
+}
+
+/**
+ * Dissolves the GitHub stacks holding `prs` and returns their numbers.
+ * Throws if GitHub keeps one of `prs` stacked (queued for merge or with
+ * auto-merge on). Repos without stacked PRs enabled are a no-op.
+ */
+export function unstackPrs(prs: number[], context: TContext): number[] {
+  const repo = githubRepoSlug(context);
+  const dissolved: number[] = [];
+  const seen = new Set<number>();
+  for (const pr of prs) {
+    if (seen.has(pr)) {
+      continue;
+    }
+    let stack: TGhStack | undefined;
+    try {
+      stack = findStackForPr(repo, pr);
+    } catch (err) {
+      if (err instanceof GhApiError && err.status === 404) {
+        return dissolved;
+      }
+      throw err;
+    }
+    if (!stack) {
+      continue;
+    }
+    prNumbersOf(stack).forEach((n) => seen.add(n));
+    const kept = unstack(repo, stack.number);
+    forgetGhStack(stack.number, context);
+    dissolved.push(stack.number);
+    const stuck = kept
+      ? openPrNumbersOf(kept).filter((n) => prs.includes(n))
+      : [];
+    if (stuck.length) {
+      throw new ExitFailedError(
+        `GitHub kept ${stuck
+          .map((n) => `#${n}`)
+          .join(', ')} stacked (queued for merge or auto-merge).`
+      );
+    }
+  }
+  return dissolved;
+}
+
+/**
+ * GitHub refuses to change the base of a stacked PR, so before anything is
+ * pushed, dissolve the stacks of the PRs whose base this submit changes.
+ * Returns whether it dissolved any; the caller relinks after the push.
+ */
+export function unstackForRetarget(
+  submissions: { head: string; base: string; action: string }[],
+  context: TContext
+): boolean {
+  const retargeted = submissions.flatMap(({ head, base, action }) => {
+    const prInfo = context.engine.getPrInfo(head);
+    return action === 'update' && prInfo?.number && prInfo.base !== base
+      ? [prInfo.number]
+      : [];
+  });
+  if (!retargeted.length) {
+    return false;
+  }
+  let dissolved: number[];
+  try {
+    dissolved = unstackPrs(retargeted, context);
+  } catch (err) {
+    throw new ExitFailedError(
+      `Can't change the base of a stacked PR; nothing was pushed. ${
+        err instanceof Error ? err.message : String(err)
+      }`
+    );
+  }
+  dissolved.forEach((n) =>
+    context.splog.info(
+      `Unstacked GitHub stack ${chalk.cyan(
+        `#${n}`
+      )} to change PR bases; relinking after the push.`
+    )
+  );
+  return dissolved.length > 0;
 }
