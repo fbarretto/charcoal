@@ -2,7 +2,7 @@
 
 > A CLI for managing stacked pull requests, with the same commands and flags as Graphite's `gt`.
 
-<img width="1346" alt="CleanShot 2023-09-09 at 19 48 49@2x" src="https://github.com/danerwilliams/graphite-cli/assets/22798229/17385828-f235-4b56-84dd-ad73350d55b9">
+<img width="840" alt="ch create builds a stack, ch ls shows it as a tree, and ch move --only moves one branch onto main while its siblings stay put" src="docs/images/ch-stack.png">
 
 This is a fork of [danerwilliams/charcoal](https://github.com/danerwilliams/charcoal), the open-source
 continuation of the Graphite CLI. Upstream froze at the 2023 command set; this fork brings it level with
