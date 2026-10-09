@@ -29,7 +29,12 @@ for (const scene of [new BasicScene()]) {
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
       fakeGitSquashAndMerge(scene.repo, 'a', 'squash');
 
-      scene.repo.runCliCommand([`sync`, `--no-pull`, `--no-interactive`]);
+      scene.repo.runCliCommand([
+        `sync`,
+        `--no-pull`,
+        `--no-restack`,
+        `--no-interactive`,
+      ]);
       expectBranches(scene.repo, 'a, main');
 
       fs.writeJsonSync(scene.repo.userConfigPath, {

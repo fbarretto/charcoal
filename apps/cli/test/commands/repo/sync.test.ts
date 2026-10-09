@@ -150,7 +150,9 @@ for (const scene of allScenes) {
       fakeGitSquashAndMerge(scene.repo, 'a', 'squash');
 
       // Non-interactive without -d/-f can't ask, so nothing is deleted.
-      scene.repo.runCliCommand([`sync`, `--no-pull`]);
+      // (--no-restack: restacking `a` onto trunk would leave it empty, and
+      // sync keeps empty branches that have no PR.)
+      scene.repo.runCliCommand([`sync`, `--no-pull`, `--no-restack`]);
       expectBranches(scene.repo, 'a, main');
 
       scene.repo.runCliCommand([`sync`, `-d`, `--no-pull`]);
