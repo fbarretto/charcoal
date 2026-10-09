@@ -65,7 +65,16 @@ export async function submitAction(
     context.splog.newline();
   }
 
-  const currentBranch = context.engine.currentBranchPrecondition;
+  const currentBranch = args.branch ?? context.engine.currentBranchPrecondition;
+  if (
+    args.branch !== undefined &&
+    !context.engine.isTrunk(args.branch) &&
+    !context.engine.isBranchTracked(args.branch)
+  ) {
+    throw new ExitFailedError(
+      `${chalk.yellow(args.branch)} is not a branch tracked by Charcoal.`
+    );
+  }
   const linkStack = () => {
     if (args.ghStack ?? context.repoConfig.getGithubStacks()) {
       linkGithubStack(currentBranch, context);
