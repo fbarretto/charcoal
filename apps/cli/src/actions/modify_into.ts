@@ -6,18 +6,15 @@ import {
   PreconditionsFailedError,
 } from '../lib/errors';
 import {
-  applyToWorkingTree,
   commitTree,
-  createStashCommit,
   getCommitAuthorEnv,
   getCommitMessage,
   getStagedPatch,
   getTree,
   getUnstagedPatch,
-  hardResetToHead,
   treeWithPatch,
 } from '../lib/git/plumbing';
-import { restackBranches } from './restack';
+import { restackBranches, withChangesSetAside } from './restack';
 
 // Commits the staged changes into another branch without checking it out:
 // the new commit is built from the target's tree in a throwaway index.
@@ -70,35 +67,15 @@ export function modifyIntoAction(
   }
   const newRevision = buildCommit(target, staged, opts);
 
-  // The staged changes now live in `newRevision`; set the unstaged ones aside
-  // so restacking can check branches out.
-  const unstaged = getUnstagedPatch();
-  const backup = createStashCommit();
-  hardResetToHead();
-  context.engine.setBranchRevision(target, newRevision);
-
-  const recoveryHint = backup
-    ? `Your uncommitted changes are saved in ${chalk.cyan(
-        backup
-      )}; recover them with \`git stash apply ${backup}\`.`
-    : undefined;
-  try {
+  // The staged changes now live in `newRevision`; only the unstaged ones
+  // come back.
+  withChangesSetAside([getUnstagedPatch()], context, () => {
+    context.engine.setBranchRevision(target, newRevision);
     restackBranches(
       context.engine.getRelativeStack(target, SCOPE.UPSTACK_EXCLUSIVE),
       context
     );
-  } catch (e) {
-    recoveryHint && context.splog.warn(recoveryHint);
-    throw e;
-  }
-  if (unstaged) {
-    try {
-      applyToWorkingTree(unstaged);
-    } catch {
-      context.splog.warn(`Couldn't reapply your unstaged changes.`);
-      recoveryHint && context.splog.warn(recoveryHint);
-    }
-  }
+  });
   context.splog.info(
     `${opts.commit ? 'Committed' : 'Amended'} staged changes into ${chalk.green(
       target
