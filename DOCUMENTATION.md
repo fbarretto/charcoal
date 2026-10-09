@@ -269,7 +269,7 @@ Rebase the current branch onto the latest commit of a target branch and restack 
 
 | Flag | Description |
 | --- | --- |
-| `[branch]`, `--onto` | The target branch to rebase onto. |
+| `[branch]`, `-o`, `--onto` | The target branch to rebase onto. |
 | `-s`, `--source` | Branch to rebase (defaults to current branch). |
 | `--only` | Move only the source branch. Its children stay where they were, re-parented onto the source's old parent and restacked without the source's commits. |
 
