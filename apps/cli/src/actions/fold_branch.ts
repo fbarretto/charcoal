@@ -3,7 +3,6 @@ import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
 import { ExitFailedError, PreconditionsFailedError } from '../lib/errors';
 import { uncommittedTrackedChangesPrecondition } from '../lib/preconditions';
-import { canPrompt } from '../lib/utils/prompts_helpers';
 import { closePr, openPrNumbers } from './delete_branch';
 import { restackBranches } from './restack';
 
@@ -81,7 +80,7 @@ async function pickChild(
   children: string[],
   context: TContext
 ): Promise<string> {
-  if (!canPrompt(context)) {
+  if (!context.interactive) {
     throw new ExitFailedError(
       `Cannot pick the top of the stack; multiple children:\n${children.join(
         '\n'

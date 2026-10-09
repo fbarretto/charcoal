@@ -4,7 +4,6 @@ import { ExitFailedError } from '../lib/errors';
 import { runGitCommand } from '../lib/git/runner';
 import { stageChanges, TStageOpts } from '../lib/preconditions';
 import { newBranchName } from '../lib/utils/branch_name';
-import { canPrompt } from '../lib/utils/prompts_helpers';
 import { restackBranches } from './restack';
 
 export async function createBranchAction(
@@ -82,7 +81,7 @@ function commitOrRollBack(
 }
 
 async function promptForBranchName(context: TContext): Promise<string> {
-  if (!canPrompt(context)) {
+  if (!context.interactive) {
     throw new ExitFailedError(
       `Must specify either a branch name or commit message.`
     );
@@ -143,7 +142,7 @@ async function insertOrTip(
   }
 
   const toMove =
-    siblings.length > 1 && canPrompt(context)
+    siblings.length > 1 && context.interactive
       ? await selectSiblings(siblings, context)
       : siblings;
 
