@@ -148,7 +148,7 @@ Fold a branch's changes into its parent, update descendants' dependencies, and r
 | Flag | Description |
 | --- | --- |
 | `-k`, `--keep` | Keep the current branch's name instead of the parent's name. |
-| `-c`, `--close` | Close the open pull requests of the branches folded away (via `gh pr close`). |
+| `-c`, `--close` | Close the open pull requests of the branches folded away (via `gh pr close`). If a closed PR was in a GitHub stack, that stack is dissolved (GitHub keeps closed PRs listed); the next `ch submit --stack` relinks the remaining PRs. |
 | `--stack` | Fold the whole stack — from the bottom branch through the top (`ch top`'s pick; it asks at a fork) — into one branch: the bottom one, or the current one with `--keep`. Every branch in it must already be restacked. Branches hanging off the stack become children of the retained branch and are restacked. |
 
 ```
@@ -177,7 +177,7 @@ Delete a branch and its corresponding Charcoal metadata. Children of deleted bra
 | `-f`, `--force` | Delete even if a branch is not merged or closed, without confirmation. |
 | `--upstack` | Also delete every branch above it. |
 | `--downstack` | Also delete every branch below it, down to (not including) trunk. |
-| `-c`, `--close` | Close the open GitHub PRs of the deleted branches. Not reverted by `ch undo`. |
+| `-c`, `--close` | Close the open GitHub PRs of the deleted branches. Not reverted by `ch undo`. If a closed PR was in a GitHub stack, that stack is dissolved (GitHub keeps closed PRs listed); the next `ch submit --stack` relinks the remaining PRs. |
 
 ```
 ch delete old-branch -f

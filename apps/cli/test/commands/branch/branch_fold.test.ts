@@ -213,8 +213,9 @@ for (const scene of allScenes) {
         });
         scene.repo.runCliCommand([`f`, `-c`]);
         expectBranches(scene.repo, 'a, main');
+        // The closed PR is then looked up to drop it from its GitHub stack.
         expect(fs.readFileSync(ghLog, 'utf-8').trim()).to.equal(
-          'pr close 2 --repo owner/name'
+          'pr close 2 --repo owner/name\napi repos/owner/name/stacks?pull_request=2'
         );
       } finally {
         process.env.PATH = originalPath;
