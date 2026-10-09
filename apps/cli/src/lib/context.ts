@@ -56,7 +56,9 @@ export function initContextLite(opts?: {
 
   const interactive =
     // Confusing, but if invoked from GTI, behave as if `--no-interactive` was passed
-    !process.env.GRAPHITE_INTERACTIVE && (opts?.interactive ?? true);
+    !process.env.GRAPHITE_INTERACTIVE &&
+    (opts?.interactive ??
+      (!opts?.quiet && !!process.stdin.isTTY && !!process.stdout.isTTY));
 
   return {
     splog,
