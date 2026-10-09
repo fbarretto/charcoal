@@ -1,86 +1,95 @@
 # Charcoal
 
-> A CLI for managing stacked pull requests
+> A CLI for managing stacked pull requests, with the same commands and flags as Graphite's `gt`.
 
 <img width="1346" alt="CleanShot 2023-09-09 at 19 48 49@2x" src="https://github.com/danerwilliams/graphite-cli/assets/22798229/17385828-f235-4b56-84dd-ad73350d55b9">
 
+This is a fork of [danerwilliams/charcoal](https://github.com/danerwilliams/charcoal), the open-source
+continuation of the Graphite CLI. Upstream froze at the 2023 command set; this fork brings it level with
+Graphite's current `gt`: same command names, aliases, flags, defaults and behavior, with `ch` as the binary.
+It needs no Graphite account and talks to GitHub through the [GitHub CLI (`gh`)](https://cli.github.com).
+
 ## Install
 
-`brew install danerwilliams/tap/charcoal`
-
-Homebrew works on both macOS and Linux. Without Homebrew (e.g. on Linux), grab the
-binary for your platform from the [latest release](https://github.com/danerwilliams/charcoal/releases/latest)
-and put it on your `PATH`:
-
 ```sh
-# Linux x64 example
-curl -L -o ch https://github.com/danerwilliams/charcoal/releases/latest/download/ch-linux
-chmod +x ch && sudo mv ch /usr/local/bin/
+brew install fbarretto/tap/charcoal
 ```
 
-(macOS binaries are `ch-macos-arm64` and `ch-macos-x64`.)
-
-The command is `ch`:
-
-```sh
-ch --help
-```
-
-> [!IMPORTANT]
-> As of `v1.0.0` the binary is `ch` (previously `gt`). This avoids colliding with
-> Graphite's own `gt` if you have both installed. If you have muscle memory for
-> `gt`, alias it in your shell:
->
-> ```sh
-> alias gt=ch   # add to ~/.zshrc or ~/.bashrc
-> ```
-
-## Announcement
-
-Check out my blog post announcement [here](https://danewilliams.com/announcing-charcoal) 🙂
-
-## What is Graphite?
-
-From Graphite:
-
-> [Graphite](https://graphite.dev) is a **fast, simple code review platform** designed for engineers who want to **write and review smaller pull requests, stay unblocked, and ship faster**. Anyone can start using Graphite individually without needing their coworkers to change tools - we'll seamlessly sync your code changes and reviews. We built Graphite because we missed internal code review tools like Phabricator (at Facebook) and Critique (Google) that help engineers create, approve, and ship small, incremental changes, and long-term we’re passionate about creating products & workflows that help fast-moving eng teams achieve more.
-
-## What is Charcoal?
-
-Charcoal is simply the Graphite CLI, but open source!
-
-On 7/14/2023 the Graphite team announced that they closed open source development of the Graphite CLI and [moved development to their private monorepo](https://github.com/withgraphite/graphite-cli). They also added a pay wall limiting free users to 10 open stacks at a time per organization starting 8/7/2023.
-
-Graphite is an amazing company and you should absolutely check out their products. In addition to a stacking CLI, they have an entire code review platform, merge queue, and more developer productivity tools.
-
-However, many organizations aren't interested in paying for Graphite's team plan at this time.
-
-The Graphite CLI does not need to depend on Graphite's API, so this project lets you use it with your own GitHub repositories, entirely for free.
-
-> [!NOTE]
-> Charcoal talks to GitHub through the [GitHub CLI (`gh`)](https://cli.github.com) rather than Graphite's API, so PR features (`submit`, `get`, PR-aware `sync`) require `gh` to be installed and authenticated (`ch auth`) and work with **GitHub** repositories. Local stacking commands work with any git repo. (Earlier versions aspired to support GitLab/Bitbucket; that isn't implemented.)
-
-## Commands
-
-Charcoal uses a flat command surface that mirrors modern Graphite, e.g.:
+Homebrew works on macOS and Linux and pulls in `gh` (and `git-absorb`, used by `ch absorb`). Without
+Homebrew, download the binary for your platform from the
+[latest release](https://github.com/fbarretto/charcoal/releases/latest) and put it on your `PATH`:
 
 ```sh
-ch create -m "my change"   # create a branch + commit staged changes
-ch modify -a               # amend the current branch and restack upstack
-ch submit --stack          # push the stack and open/update PRs
-ch sync                    # pull trunk, prune merged branches, restack
-ch ls                      # view your stacks
-ch up / ch down            # move through the stack
-ch checkout                # interactively switch branches
+# macOS Apple silicon; use ch-macos-x64 or ch-linux on other platforms
+curl -L -o ch https://github.com/fbarretto/charcoal/releases/latest/download/ch-macos-arm64
+chmod +x ch && mv ch ~/.local/bin/
 ```
 
-See **[DOCUMENTATION.md](./DOCUMENTATION.md)** for the full command reference.
+From source (needs Node 20 and Bun):
 
-> [!NOTE]
-> Graphite's own docs (<https://graphite.dev/docs/graphite-cli/>) have diverged
-> from this fork — they now require a Graphite account and document commands that
-> differ from Charcoal's. Use [DOCUMENTATION.md](./DOCUMENTATION.md) instead.
+```sh
+git clone https://github.com/fbarretto/charcoal && cd charcoal
+corepack yarn install && corepack yarn turbo run build
+cd apps/cli && bun build --compile ./dist/src/index.js --outfile ~/.local/bin/ch
+```
+
+## Quick start
+
+```sh
+ch auth                        # once: reuses your gh login
+ch init --trunk main           # once per repo: stack metadata lives in .git, nothing is committed
+git add <files>
+ch create my-feature -m "Add the feed API"
+git add <files>
+ch create my-feature-ui -m "Add the feed UI"
+ch ls                          # view the stack
+ch submit --stack              # push every branch and open or update its PR
+ch sync                        # after merges: pull trunk, delete merged branches, restack
+```
+
+Every `gt` command maps to the same `ch` command, so Graphite's own guides apply. If you have muscle memory
+for `gt`, `alias gt=ch`. The full reference is **[DOCUMENTATION.md](./DOCUMENTATION.md)**.
+
+## What this fork adds over upstream Charcoal
+
+| Area                  | Commands                                                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Restructure a stack   | `move --only`, `create --onto`, `delete --upstack/--downstack/--close`, `split --by-file`, `fold --stack/--close` |
+| Edit commits in place | `modify --into <branch>`, `absorb` (wraps [git-absorb](https://github.com/tummychow/git-absorb)), `revert <sha>`  |
+| Safety                | `undo` (per worktree), `abort` (restores the state before the halted command), `freeze` / `unfreeze`              |
+| Inspect and navigate  | `parent`, `children`, `trunk`, `info [branch] --stat`, `up --to`, `checkout --trunk/--stack`                      |
+| GitHub                | `merge` (bottom-up), `pr [--stack]`, `unlink`, `unstack`, and `submit`'s full flag set                            |
+| Setup                 | `config`, `aliases` (stored in `~/.config/charcoal/aliases`), `auth -t`, global `--cwd` and `--quiet`             |
+
+Defaults now match `gt`: `sync` restacks, `modify` opens the editor only with `-e`, `create` with no name
+names the branch from the commit message, `track` is recursive, and scripts (no terminal on stdin/stdout)
+run non-interactively. Branches checked out in another worktree are skipped during restacks, as in `gt`.
+
+### Native GitHub stacks
+
+`ch submit` also links the submitted PRs as a [GitHub stacked PR](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs),
+so reviewers see the stack map on github.com. It creates, extends or recreates the stack to match your local
+chain. Opt out with `ch submit --no-gh-stack` or turn it off per repo in `ch config`. `ch unstack` removes
+the stack on GitHub; `ch ls` shows each stack's number.
+
+### Not supported
+
+Anything that needs Graphite's servers: `--ai`, `gt dash`, Graphite's merge queue, and Graphite's web review
+UI. Multiple trunks (`trunk --add`, the `--all` flags) are not implemented yet.
+
+## Releases
+
+Pushing a `v*` tag runs the test suite, builds the macOS and Linux binaries with Bun, publishes a GitHub
+release, and updates the formula in [fbarretto/homebrew-tap](https://github.com/fbarretto/homebrew-tap).
+
+## Background
+
+On 7/14/2023 Graphite [closed open-source development of its CLI](https://github.com/withgraphite/graphite-cli)
+and later limited free use. The CLI never needed Graphite's API to manage stacks, so
+[Charcoal](https://danewilliams.com/announcing-charcoal) kept it open source and free for any GitHub
+repository. Graphite also offers a full code review platform and merge queue; check them out if your team
+wants more than the CLI.
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md)
+See [CONTRIBUTING.md](./CONTRIBUTING.md). Licensed under [AGPL-3.0](./LICENSE).
