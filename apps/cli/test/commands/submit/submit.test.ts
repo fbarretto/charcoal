@@ -58,6 +58,15 @@ for (const scene of [new CloneScene()]) {
         .filter((c) => c.startsWith('pr create'))
         .map((c) => / --head (\S+)/.exec(c)?.[1]);
 
+    it("doesn't echo gh's expected 'no pull requests found' for new PRs", () => {
+      const { stderr } = scene.repo.runCliCommandAndGetStreams([
+        `submit`,
+        `--no-interactive`,
+      ]);
+      expect(created()).to.deep.equal(['a', 'b']);
+      expect(stderr).not.to.contain('no pull requests found');
+    });
+
     it('the default `ss` alias submits the whole stack', () => {
       scene.repo.checkoutBranch('a');
       scene.repo.runCliCommandAndGetOutput([`ss`, `--no-interactive`]);

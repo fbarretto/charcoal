@@ -110,15 +110,20 @@ async function submitPrToGithub({
   };
   try {
     const prInfo = await JSON.parse(
-      execFileSync('gh', [
-        'pr',
-        'view',
-        request.head,
-        '--repo',
-        repo,
-        '--json',
-        'headRefName,url,number,baseRefName,body,isDraft',
-      ]).toString()
+      execFileSync(
+        'gh',
+        [
+          'pr',
+          'view',
+          request.head,
+          '--repo',
+          repo,
+          '--json',
+          'headRefName,url,number,baseRefName,body,isDraft',
+        ],
+        // Capture stderr: "no pull requests found" is expected for a new PR.
+        { stdio: ['ignore', 'pipe', 'pipe'] }
+      ).toString()
     );
 
     if (prInfo.headRefName !== request.head) {
