@@ -15,6 +15,8 @@ export async function cleanBranches(
   opts: {
     showDeleteProgress: boolean;
     force: boolean;
+    // Only consider these branches for deletion (`get` cleans its stack).
+    only?: Set<string>;
   },
   context: TContext
 ): Promise<string[]> {
@@ -65,13 +67,15 @@ export async function cleanBranches(
     }
 
     context.splog.debug(`Checking if should delete ${branchName}...`);
-    const shouldDelete = await shouldDeleteBranch(
-      {
-        branchName: branchName,
-        force: opts.force,
-      },
-      context
-    );
+    const shouldDelete =
+      (!opts.only || opts.only.has(branchName)) &&
+      (await shouldDeleteBranch(
+        {
+          branchName: branchName,
+          force: opts.force,
+        },
+        context
+      ));
     if (shouldDelete) {
       const children = context.engine.getChildren(branchName);
 

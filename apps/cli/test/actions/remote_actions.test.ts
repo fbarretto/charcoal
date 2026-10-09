@@ -138,11 +138,19 @@ for (const scene of [new CloneScene()]) {
       scene.originRepo.checkoutBranch('main');
 
       await getBranchesFromRemote(
-        { downstack: ['t'], base: 'main', force: false, freeze: true },
+        {
+          branches: [{ branch: 't', parent: 'main' }],
+          force: false,
+          freezeNew: () => true,
+        },
         cloneContext()
       );
       await getBranchesFromRemote(
-        { downstack: ['u'], base: 't', force: false, freeze: false },
+        {
+          branches: [{ branch: 'u', parent: 't' }],
+          force: false,
+          freezeNew: () => false,
+        },
         cloneContext()
       );
       expect(readMetadataRef('t', scene.dir).frozen).to.equal(true);
@@ -153,7 +161,11 @@ for (const scene of [new CloneScene()]) {
       scene.originRepo.createAndCheckoutBranch('t');
       scene.originRepo.createChangeAndCommit('t', 't');
       await getBranchesFromRemote(
-        { downstack: ['t'], base: 'main', force: false, freeze: true },
+        {
+          branches: [{ branch: 't', parent: 'main' }],
+          force: false,
+          freezeNew: () => true,
+        },
         cloneContext()
       );
 
@@ -163,7 +175,11 @@ for (const scene of [new CloneScene()]) {
       scene.repo.checkoutBranch('main');
 
       await getBranchesFromRemote(
-        { downstack: ['t'], base: 'main', force: false, freeze: true },
+        {
+          branches: [{ branch: 't', parent: 'main' }],
+          force: false,
+          freezeNew: () => true,
+        },
         cloneContext()
       );
       expect(scene.repo.getRef('refs/heads/t')).to.equal(

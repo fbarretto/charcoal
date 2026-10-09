@@ -4,7 +4,7 @@ import { NoGraphiteContinue, RebaseConflictError } from '../lib/errors';
 import { clearContinuation, persistContinuation } from './persist_continuation';
 import { printConflictStatus } from './print_conflict_status';
 import { restackBranches, restoreSetAsideChanges } from './restack';
-import { getBranchesFromRemote } from './sync/get';
+import { branchesToSyncAfterContinue, getBranchesFromRemote } from './sync/get';
 
 export async function continueAction(
   opts: { addAll: boolean },
@@ -57,10 +57,13 @@ export async function continueAction(
   if (branchesToSync) {
     await getBranchesFromRemote(
       {
-        downstack: branchesToSync,
-        base: context.engine.currentBranchPrecondition,
+        branches: branchesToSyncAfterContinue(
+          branchesToSync,
+          context.engine.currentBranchPrecondition,
+          context
+        ),
         force: false,
-        freeze: false,
+        freezeNew: () => false,
       },
       context
     );

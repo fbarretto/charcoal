@@ -3,7 +3,7 @@ import { execFileSync } from 'child_process';
 // GitHub's native stacked-PR REST API (what `gh stack` uses), called via `gh api`.
 export type TGhStack = {
   number: number;
-  pull_requests: { number: number }[];
+  pull_requests: { number: number; head?: { ref: string } }[];
 };
 
 export class GhApiError extends Error {
