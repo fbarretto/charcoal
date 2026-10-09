@@ -4,6 +4,7 @@ export function persistContinuation(
   args: {
     branchesToRestack?: string[];
     branchesToSync?: string[];
+    pendingParents?: Record<string, string>;
     rebasedBranchBase: string;
   },
   context: TContext
@@ -27,6 +28,7 @@ export function persistContinuation(
   context.continueConfig.update((data) => {
     data.branchesToSync = branchesToSync;
     data.branchesToRestack = branchesToRestack;
+    data.pendingParents = Object.entries(args.pendingParents ?? {});
     data.currentBranchOverride = context.engine.currentBranch;
     data.rebasedBranchBase = args.rebasedBranchBase;
   });
@@ -36,6 +38,7 @@ export function clearContinuation(context: TContext): void {
   context.continueConfig.update((data) => {
     data.branchesToSync = [];
     data.branchesToRestack = [];
+    data.pendingParents = undefined;
     data.currentBranchOverride = undefined;
     data.rebasedBranchBase = undefined;
   });

@@ -11,13 +11,20 @@ const args = {
     positional: true,
     hidden: true,
     type: 'string',
+    alias: 'onto',
   },
   source: {
     describe: `Optional branch to rebase (defaults to current branch).`,
     demandOption: false,
     positional: false,
     type: 'string',
-    aliases: ['s'],
+    alias: 's',
+  },
+  only: {
+    describe: `Only move the source branch; its children are restacked onto its old parent.`,
+    demandOption: false,
+    default: false,
+    type: 'boolean',
   },
 } as const;
 
@@ -47,7 +54,7 @@ export const handler = async (argv: argsT): Promise<void> => {
         context
       ));
 
-    currentBranchOnto(dest, context);
+    currentBranchOnto(dest, context, { only: argv.only });
 
     originalBranch && context.engine.checkoutBranch(originalBranch);
   });

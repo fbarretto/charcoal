@@ -220,11 +220,13 @@ Rebase the current branch onto the latest commit of a target branch and restack 
 
 | Flag | Description |
 | --- | --- |
-| `[branch]` | Positional: the target branch to rebase onto. |
-| `--source` | Branch to rebase (defaults to current branch). |
+| `[branch]`, `--onto` | The target branch to rebase onto. |
+| `-s`, `--source` | Branch to rebase (defaults to current branch). |
+| `--only` | Move only the source branch. Its children stay where they were, re-parented onto the source's old parent and restacked without the source's commits. |
 
 ```
 ch move main
+ch move --only --source b --onto main
 ```
 
 ### `reorder` (alias `ro`)
