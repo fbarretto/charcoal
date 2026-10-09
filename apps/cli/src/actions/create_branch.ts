@@ -42,7 +42,7 @@ export async function createBranchAction(
   if (hasStagedChanges) {
     commitOrRollBack(opts, originalBranch, context);
   } else {
-    context.splog.info(`No staged changes; created a branch with no commit.`);
+    warnNoCommit(opts.message, context);
   }
   if (!branchName) {
     context.engine.renameCurrentBranch(nameFromLastCommit(context));
@@ -52,6 +52,19 @@ export async function createBranchAction(
     context.engine.currentBranchPrecondition,
     opts.insert,
     context
+  );
+}
+
+function warnNoCommit(message: string | undefined, context: TContext): void {
+  if (!message) {
+    context.splog.info(`No staged changes; created a branch with no commit.`);
+    return;
+  }
+  context.splog.warn(
+    [
+      `No staged changes; created a branch with no commit, so the message "${message}" was not used.`,
+      `Stage changes and run \`ch modify -m <message>\` to commit them (\`--all\` stages everything).`,
+    ].join('\n')
   );
 }
 
