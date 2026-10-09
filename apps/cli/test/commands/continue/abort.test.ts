@@ -46,5 +46,38 @@ for (const scene of allScenes) {
       scene.repo.checkoutBranch('b');
       expectCommits(scene.repo, 'b, a, 1');
     });
+
+    it('Restores every branch the halted command had already moved, and undo then targets the previous command', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.createChange('c', 'a');
+      scene.repo.runCliCommand([`create`, `c`, `-m`, `c`]);
+      const [bBefore, cBefore] = [
+        scene.repo.getRef('refs/heads/b'),
+        scene.repo.getRef('refs/heads/c'),
+      ];
+
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChangeAndAmend('a2', 'a');
+      // b restacks cleanly, then c conflicts on a_test.txt.
+      expect(() => scene.repo.runCliCommand(['restack'])).to.throw();
+      expect(scene.repo.getRef('refs/heads/b')).not.to.equal(bBefore);
+
+      const output = scene.repo.runCliCommandAndGetOutput(['abort', '-f']);
+      expect(output).to.contain('Aborted ch restack');
+      expect(scene.repo.rebaseInProgress()).to.be.false;
+      expect(scene.repo.getRef('refs/heads/b')).to.equal(bBefore);
+      expect(scene.repo.getRef('refs/heads/c')).to.equal(cBefore);
+      expect(scene.repo.currentBranchName()).to.equal('a');
+
+      expect(scene.repo.runCliCommandAndGetOutput(['undo', '-f'])).to.contain(
+        'Undoing ch create'
+      );
+      expect(
+        scene.repo.runGitCommandAndGetOutput(['for-each-ref', 'refs/heads/c'])
+      ).to.equal('');
+    });
   });
 }

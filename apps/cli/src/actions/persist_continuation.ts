@@ -45,5 +45,6 @@ export function clearContinuation(context: TContext): void {
     data.stashToRestore = undefined;
     data.currentBranchOverride = undefined;
     data.rebasedBranchBase = undefined;
+    data.undoSnapshot = undefined;
   });
 }
