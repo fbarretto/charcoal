@@ -103,6 +103,33 @@ const args = {
       'Link the submitted PRs as a GitHub stack (default: the `repo github-stacks` setting, on by default). Pass --no-gh-stack to skip.',
     type: 'boolean',
   },
+  comment: {
+    describe: 'Add a comment with the given message to every submitted PR.',
+    type: 'string',
+  },
+  'merge-when-ready': {
+    describe:
+      'Enable auto-merge (`gh pr merge --auto --squash`) on every submitted PR, so each merges once its requirements are met.',
+    type: 'boolean',
+    default: false,
+    alias: 'm',
+  },
+  'rerequest-review': {
+    describe: 'Re-request review from current reviewers on updated PRs.',
+    type: 'boolean',
+    default: false,
+  },
+  view: {
+    describe: 'Open the PR in your browser after submitting.',
+    type: 'boolean',
+    default: false,
+    alias: 'v',
+  },
+  cli: {
+    describe:
+      'Edit PR metadata via the CLI. Always the case in Charcoal; accepted for gt compatibility.',
+    type: 'boolean',
+  },
   branch: {
     describe: 'Which branch to run this command from (default: current branch)',
     type: 'string',
@@ -141,6 +168,10 @@ export const handler = async (argv: argsT): Promise<void> => {
         always: argv.always,
         branch: argv.branch,
         ghStack: argv['gh-stack'],
+        comment: argv.comment,
+        mergeWhenReady: argv['merge-when-ready'],
+        rerequestReview: argv['rerequest-review'],
+        view: argv.view,
       },
       context
     );

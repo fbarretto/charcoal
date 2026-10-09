@@ -143,9 +143,67 @@ export async function setPrBase(
   );
 }
 
-async function gh(args: string[], failure: string): Promise<void> {
+export async function commentOnPr(
+  prNumber: number,
+  repo: string,
+  body: string
+): Promise<void> {
+  await gh(
+    ['pr', 'comment', `${prNumber}`, '--repo', repo, '--body', body],
+    `Failed to comment on pull request #${prNumber}`
+  );
+}
+
+// Re-requests review from everyone who was requested or has reviewed.
+export async function rerequestReview(
+  prNumber: number,
+  repo: string
+): Promise<void> {
+  const pr = JSON.parse(
+    await gh(
+      [
+        'pr',
+        'view',
+        `${prNumber}`,
+        '--repo',
+        repo,
+        '--json',
+        'author,reviewRequests,reviews',
+      ],
+      `Failed to read the reviewers of pull request #${prNumber}`
+    )
+  ) as {
+    author?: { login: string };
+    reviewRequests?: { login?: string; slug?: string }[];
+    reviews?: { author?: { login: string } }[];
+  };
+  const owner = repo.split('/')[0];
+  const reviewers = new Set([
+    ...(pr.reviewRequests ?? []).map((r) =>
+      r.login ? r.login : `${owner}/${r.slug}`
+    ),
+    ...(pr.reviews ?? []).flatMap((r) => (r.author ? [r.author.login] : [])),
+  ]);
+  reviewers.delete(pr.author?.login ?? '');
+  if (reviewers.size) {
+    await gh(
+      [
+        'pr',
+        'edit',
+        `${prNumber}`,
+        '--repo',
+        repo,
+        '--add-reviewer',
+        [...reviewers].join(','),
+      ],
+      `Failed to re-request review on pull request #${prNumber}`
+    );
+  }
+}
+
+async function gh(args: string[], failure: string): Promise<string> {
   try {
-    await execFileAsync('gh', args);
+    return (await execFileAsync('gh', args)).stdout;
   } catch (error) {
     throw new ExitFailedError(
       [

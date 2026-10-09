@@ -121,6 +121,36 @@ for (const scene of [new CloneScene()]) {
       expect(gh.calls()).to.include('pr ready 1 --repo owner/name');
     });
 
+    it('--comment, -m and -v act on each submitted PR', () => {
+      submit(`--comment`, `hello there`, `-m`, `-v`, `--cli`);
+      expect(
+        gh.calls().filter((c) => /^pr (comment|merge|view)/.test(c))
+      ).to.deep.equal([
+        'pr comment 1 --repo owner/name --body hello there',
+        'pr merge 1 --repo owner/name --squash --auto',
+        'pr comment 2 --repo owner/name --body hello there',
+        'pr merge 2 --repo owner/name --squash --auto',
+        'pr view 2 --repo owner/name --web',
+      ]);
+    });
+
+    it('--rerequest-review re-requests current reviewers on updated PRs', () => {
+      submit();
+      gh.edit((s) =>
+        Object.assign(s.prs.b, {
+          reviewRequests: [{ login: 'alice' }],
+          reviews: [{ author: { login: 'bob' } }, { author: { login: 'me' } }],
+        })
+      );
+      scene.repo.createChange('a2', 'a2');
+      scene.repo.runCliCommand([`modify`, `-n`, `-a`]);
+      gh.clearCalls();
+      submit(`--rerequest-review`);
+      expect(
+        gh.calls().filter((c) => c.includes('--add-reviewer'))
+      ).to.deep.equal(['pr edit 2 --repo owner/name --add-reviewer alice,bob']);
+    });
+
     it('is aliased as `s`', () => {
       scene.repo.runCliCommand([`s`, `--no-interactive`]);
       expect(created()).to.deep.equal(['a', 'b']);

@@ -1,5 +1,11 @@
 import chalk from 'chalk';
 import { githubRepoSlug } from '../../lib/api/github_repo';
+import {
+  commentOnPr,
+  mergePr,
+  openPrInBrowser,
+  rerequestReview,
+} from '../../lib/api/pr_info';
 import { TContext } from '../../lib/context';
 import { TScopeSpec } from '../../lib/engine/scope_spec';
 import { ExitFailedError, KilledError } from '../../lib/errors';
@@ -33,6 +39,10 @@ export async function submitAction(
     always: boolean;
     branch: string | undefined;
     ghStack?: boolean;
+    comment?: string;
+    mergeWhenReady?: boolean;
+    rerequestReview?: boolean;
+    view?: boolean;
   },
   context: TContext
 ): Promise<void> {
@@ -82,6 +92,12 @@ export async function submitAction(
       `${chalk.yellow(args.branch)} is not a branch tracked by Charcoal.`
     );
   }
+  const viewPr = async () => {
+    const prNumber = context.engine.getPrInfo(currentBranch)?.number;
+    if (args.view && prNumber !== undefined) {
+      await openPrInBrowser(prNumber, githubRepoSlug(context));
+    }
+  };
   const linkStack = () => {
     if (args.ghStack ?? context.repoConfig.getGithubStacks()) {
       linkGithubStack(currentBranch, context);
@@ -146,6 +162,7 @@ export async function submitAction(
   ) {
     if (!args.dryRun) {
       linkStack(); // PRs may be up to date but not yet linked
+      await viewPr();
     }
     return;
   }
@@ -176,6 +193,7 @@ export async function submitAction(
     }
 
     await submitPullRequest([submissionInfo], context);
+    await afterSubmit(submissionInfo, args, context);
   }
 
   context.splog.info(
@@ -224,6 +242,32 @@ export async function submitAction(
   }
 
   linkStack();
+  await viewPr();
+}
+
+async function afterSubmit(
+  submission: { head: string; action: 'create' | 'update' },
+  args: {
+    comment?: string;
+    mergeWhenReady?: boolean;
+    rerequestReview?: boolean;
+  },
+  context: TContext
+): Promise<void> {
+  const prNumber = context.engine.getPrInfo(submission.head)?.number;
+  if (prNumber === undefined) {
+    return;
+  }
+  const repo = githubRepoSlug(context);
+  if (args.comment) {
+    await commentOnPr(prNumber, repo, args.comment);
+  }
+  if (args.rerequestReview && submission.action === 'update') {
+    await rerequestReview(prNumber, repo);
+  }
+  if (args.mergeWhenReady) {
+    await mergePr(prNumber, repo, { method: 'squash', auto: true });
+  }
 }
 
 export function updatePrBodyFooter(
