@@ -398,6 +398,24 @@ ch sync
 ch sync -fr
 ```
 
+### `merge`
+Merge the PRs from trunk up to the current branch, bottom-up, via `gh pr merge`. Every branch in the downstack must have an open PR; otherwise the command lists the ones that don't and merges nothing.
+
+| Flag | Description |
+| --- | --- |
+| `--dry-run` | Print the PRs that would be merged, in order, and exit. |
+| `-c`, `--confirm` | Print the plan and ask before merging. Ignored with `--no-interactive`. |
+| `--method` | `squash` (default), `merge`, or `rebase`. |
+| `--auto` | Enable auto-merge on the bottom PR instead of merging it now, then stop; later PRs can't merge until it lands, so run `ch merge` again afterwards. |
+
+After each merge, the next branch is reparented onto trunk (pulled fresh), restacked so it drops the merged parent's commits (this works after a squash because Charcoal remembers the parent revision it was based on), retargeted to trunk on GitHub, and force-pushed (with lease) before its own PR is merged. If a merge fails (required checks or approvals, conflicts), the command stops, names that PR, and leaves the PRs above it untouched. Merged branches stay local until `ch sync` deletes them. `ch undo` does not cover `merge`.
+
+```
+ch merge --dry-run
+ch merge -c
+ch merge --method rebase
+```
+
 ### `auth`
 Authenticate with the GitHub CLI so Charcoal can create and manage PRs.
 

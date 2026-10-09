@@ -12,8 +12,8 @@ const MAX_SNAPSHOTS = 10;
 // Commands that can change branch heads or Charcoal metadata. Everything else
 // (navigation, inspection, config, `continue`, `undo`) records nothing, so
 // `undo` after `continue` reverts the whole interrupted command.
-// `submit` is excluded: undoing it locally would drop PR info for PRs that
-// still exist remotely.
+// `submit` and `merge` are excluded: undoing them locally would rewind
+// branches and PR info that no longer match GitHub.
 const MUTATING_COMMANDS = new Set([
   'absorb',
   'create',

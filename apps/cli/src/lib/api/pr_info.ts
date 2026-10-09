@@ -107,19 +107,49 @@ export async function openPrInBrowser(
   prNumber: number,
   repo: string
 ): Promise<void> {
-  try {
-    await execFileAsync('gh', [
+  await gh(
+    ['pr', 'view', `${prNumber}`, '--repo', repo, '--web'],
+    `Failed to open pull request #${prNumber}`
+  );
+}
+
+export async function mergePr(
+  prNumber: number,
+  repo: string,
+  opts: { method: 'squash' | 'merge' | 'rebase'; auto: boolean }
+): Promise<void> {
+  await gh(
+    [
       'pr',
-      'view',
+      'merge',
       `${prNumber}`,
       '--repo',
       repo,
-      '--web',
-    ]);
+      `--${opts.method}`,
+      ...(opts.auto ? ['--auto'] : []),
+    ],
+    `Failed to merge pull request #${prNumber}`
+  );
+}
+
+export async function setPrBase(
+  prNumber: number,
+  repo: string,
+  base: string
+): Promise<void> {
+  await gh(
+    ['pr', 'edit', `${prNumber}`, '--repo', repo, '--base', base],
+    `Failed to change the base of pull request #${prNumber}`
+  );
+}
+
+async function gh(args: string[], failure: string): Promise<void> {
+  try {
+    await execFileAsync('gh', args);
   } catch (error) {
     throw new ExitFailedError(
       [
-        `Failed to open pull request #${prNumber} (via \`gh\`).`,
+        `${failure} (via \`gh\`).`,
         `Ensure the GitHub CLI is installed and authenticated (run \`ch auth\`).`,
         error instanceof Error ? error.message : String(error),
       ].join('\n')
