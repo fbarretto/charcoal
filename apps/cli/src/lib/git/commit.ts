@@ -6,6 +6,8 @@ export type TCommitOpts = {
   noEdit?: boolean;
   edit?: boolean;
   patch?: boolean;
+  verbose?: number;
+  resetAuthor?: boolean;
 };
 export function commit(opts: TCommitOpts & { noVerify: boolean }): void {
   runGitCommand({
@@ -16,6 +18,8 @@ export function commit(opts: TCommitOpts & { noVerify: boolean }): void {
       ...(opts.noEdit ? [`--no-edit`] : []),
       ...(opts.edit ? [`-e`] : []),
       ...(opts.patch ? [`-p`] : []),
+      ...Array(opts.verbose ?? 0).fill('-v'),
+      ...(opts.resetAuthor ? ['--reset-author'] : []),
       ...(opts.noVerify ? ['-n'] : []),
     ],
     options: {
@@ -24,4 +28,11 @@ export function commit(opts: TCommitOpts & { noVerify: boolean }): void {
     onError: 'throw',
     resource: 'commit',
   });
+}
+
+// yargs collects a repeated `-m` into an array; git joins them as paragraphs.
+export function joinMessages(
+  message: string | string[] | undefined
+): string | undefined {
+  return Array.isArray(message) ? message.join('\n\n') : message;
 }

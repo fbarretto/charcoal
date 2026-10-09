@@ -1,5 +1,6 @@
 import yargs from 'yargs';
 import { createBranchAction } from '../actions/create_branch';
+import { joinMessages } from '../lib/git/commit';
 import { graphite } from '../lib/runner';
 
 const args = {
@@ -12,13 +13,13 @@ const args = {
     hidden: true,
   },
   message: {
-    describe: `Commit staged changes on the new branch with this message.`,
+    describe: `Commit staged changes on the new branch with this message. Repeat for multiple paragraphs.`,
     demandOption: false,
     type: 'string',
     alias: 'm',
   },
   all: {
-    describe: `Stage all unstaged changes on the new branch with this message.`,
+    describe: `Stage all unstaged changes before creating the branch, including to untracked files.`,
     demandOption: false,
     default: false,
     type: 'boolean',
@@ -31,8 +32,21 @@ const args = {
     type: 'boolean',
     alias: 'p',
   },
+  update: {
+    describe: `Stage all updates to tracked files before creating the branch.`,
+    demandOption: false,
+    default: false,
+    type: 'boolean',
+    alias: 'u',
+  },
+  verbose: {
+    describe: `Show the diff in the commit message template. Pass twice to also show unstaged changes.`,
+    demandOption: false,
+    type: 'count',
+    alias: 'v',
+  },
   insert: {
-    describe: `When true, any existing children of the current branch will become children of the new branch.`,
+    describe: `Insert this branch between the current branch and its children. If there are multiple children, prompts you to select which should be moved onto the new branch.`,
     demandOption: false,
     default: false,
     type: 'boolean',
@@ -51,15 +65,17 @@ export const aliases = ['c'];
 export const command = 'create [name]';
 export const canonical = 'create';
 export const description =
-  'Create a new branch stacked on top of the current branch and commit staged changes. If no branch name is specified but a commit message is passed, generate a branch name from the commit message.';
+  "Create a new branch stacked on top of the current branch and commit staged changes. If no branch name is specified, generate a branch name from the commit message (opening the editor if no message is passed). If you have unstaged changes and nothing staged, you will be asked whether you'd like to stage them.";
 export const builder = args;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
     await createBranchAction(
       {
         branchName: argv.name,
-        message: argv.message,
+        message: joinMessages(argv.message),
         all: argv.all,
+        update: argv.update,
+        verbose: argv.verbose,
         insert: argv.insert,
         patch: argv.patch,
         onto: argv.onto,
