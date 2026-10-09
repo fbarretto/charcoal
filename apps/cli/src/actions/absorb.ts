@@ -7,11 +7,7 @@ import {
   ExitFailedError,
   PreconditionsFailedError,
 } from '../lib/errors';
-import {
-  detachAt,
-  getStagedPatch,
-  getUnstagedPatch,
-} from '../lib/git/plumbing';
+import { detachAt } from '../lib/git/plumbing';
 import { runGitCommand } from '../lib/git/runner';
 import { ensureSomeStagedChangesPrecondition } from '../lib/preconditions';
 import { restackBranches, withChangesSetAside } from './restack';
@@ -59,7 +55,7 @@ export async function absorbAction(
   }
 
   // Whatever git-absorb couldn't place stays uncommitted and comes back.
-  withChangesSetAside([getStagedPatch(), getUnstagedPatch()], context, () => {
+  withChangesSetAside('ALL', context, () => {
     const after = squashFixups(base, original, before.length);
     if (!after) {
       context.engine.checkoutBranch(current);

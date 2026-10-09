@@ -155,10 +155,6 @@ export function getStagedPatch(): string {
   });
 }
 
-export function getUnstagedPatch(): string {
-  return git(['diff', '--binary', '--no-ext-diff'], { noTrim: true });
-}
-
 export function applyToWorkingTree(patch: string): void {
   git(['apply'], { input: patch, atRoot: true });
 }
@@ -167,6 +163,29 @@ export function applyToWorkingTree(patch: string): void {
 // stack; empty string when there is nothing to save.
 export function createStashCommit(): string {
   return git(['stash', 'create']);
+}
+
+export type TStashPart = 'UNSTAGED' | 'ALL';
+
+const stashRef = (sha: string) => `refs/charcoal/stash/${sha}`;
+
+// Keeps a stash commit reachable (safe from gc) until it is restored.
+export function keepStashCommit(sha: string): void {
+  git(['update-ref', stashRef(sha), sha]);
+}
+
+// Reapplies a stash commit's changes to the working tree as unstaged ones,
+// then releases its ref. 'UNSTAGED' diffs from its index parent (the staged
+// part is dropped), 'ALL' from its HEAD parent.
+export function restoreFromStash(sha: string, part: TStashPart): void {
+  const base = part === 'UNSTAGED' ? `${sha}^2` : `${sha}^1`;
+  const patch = git(['diff', '--binary', '--no-ext-diff', base, sha], {
+    noTrim: true,
+  });
+  if (patch) {
+    applyToWorkingTree(patch);
+  }
+  git(['update-ref', '-d', stashRef(sha)]);
 }
 
 export function hardResetToHead(): void {

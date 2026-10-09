@@ -1,6 +1,7 @@
 import { TContext } from '../lib/context';
 import { NoGraphiteContinue } from '../lib/errors';
 import { clearContinuation } from './persist_continuation';
+import { restoreSetAsideChanges } from './restack';
 
 export async function abortAction(
   opts: { force: boolean },
@@ -31,6 +32,10 @@ export async function abortAction(
   }
 
   context.engine.abortRebase();
+  const stash = context.continueConfig.data.stashToRestore;
   clearContinuation(context);
+  if (stash) {
+    restoreSetAsideChanges(stash, context);
+  }
   context.splog.info('Aborted the halted Charcoal command.');
 }

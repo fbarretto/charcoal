@@ -63,6 +63,45 @@ for (const scene of allScenes) {
       ).to.equal('new_test.txt');
     });
 
+    it('Reapplies leftover changes after continuing a restack conflict', () => {
+      // c also edits b_test.txt, so restacking it onto the absorbed b conflicts.
+      scene.repo.runGitCommand([`stash`]);
+      scene.repo.checkoutBranch('c');
+      scene.repo.createChangeAndAmend('cb', 'b');
+      scene.repo.checkoutBranch('b');
+      scene.repo.runGitCommand([`stash`, `pop`, `--index`]);
+      scene.repo.createChange('new', 'new');
+      scene.repo.createChange('wip', '1', true);
+
+      expect(() => scene.repo.runCliCommand([`absorb`, `-f`])).to.throw();
+      expect(scene.repo.rebaseInProgress()).to.be.true;
+      scene.repo.resolveMergeConflicts();
+      scene.repo.markMergeConflictsAsResolved();
+      scene.repo.runCliCommand([`continue`]);
+
+      expect(scene.repo.rebaseInProgress()).to.be.false;
+      expect(scene.repo.currentBranchName()).to.equal('b');
+      expect(show('a:a_test.txt')).to.equal('a2');
+      expect(show('b:b_test.txt')).to.equal('b2');
+      expect(show('c:a_test.txt')).to.equal('a2');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`diff`, `--name-only`])
+      ).to.equal('1_test.txt');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([
+          `ls-files`,
+          `--others`,
+          `--exclude-standard`,
+        ])
+      ).to.equal('new_test.txt');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([
+          `for-each-ref`,
+          `refs/charcoal/stash/`,
+        ])
+      ).to.equal('');
+    });
+
     it('Changes nothing with --dry-run', () => {
       const before = refs();
       scene.repo.runCliCommand([`absorb`, `--dry-run`]);

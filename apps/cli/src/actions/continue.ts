@@ -3,7 +3,7 @@ import { TContext } from '../lib/context';
 import { NoGraphiteContinue, RebaseConflictError } from '../lib/errors';
 import { clearContinuation, persistContinuation } from './persist_continuation';
 import { printConflictStatus } from './print_conflict_status';
-import { restackBranches } from './restack';
+import { restackBranches, restoreSetAsideChanges } from './restack';
 import { getBranchesFromRemote } from './sync/get';
 
 export async function continueAction(
@@ -72,5 +72,9 @@ export async function continueAction(
       branchesToDelete,
     });
   }
+  const stash = context.continueConfig.data.stashToRestore;
   clearContinuation(context);
+  if (stash) {
+    restoreSetAsideChanges(stash, context);
+  }
 }

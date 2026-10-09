@@ -42,6 +42,7 @@ export function clearContinuation(context: TContext): void {
     data.branchesToRestack = [];
     data.pendingParents = undefined;
     data.branchesToDelete = undefined;
+    data.stashToRestore = undefined;
     data.currentBranchOverride = undefined;
     data.rebasedBranchBase = undefined;
   });

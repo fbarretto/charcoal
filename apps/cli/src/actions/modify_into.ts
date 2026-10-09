@@ -11,7 +11,6 @@ import {
   getCommitMessage,
   getStagedPatch,
   getTree,
-  getUnstagedPatch,
   treeWithPatch,
 } from '../lib/git/plumbing';
 import { restackBranches, withChangesSetAside } from './restack';
@@ -69,7 +68,7 @@ export function modifyIntoAction(
 
   // The staged changes now live in `newRevision`; only the unstaged ones
   // come back.
-  withChangesSetAside([getUnstagedPatch()], context, () => {
+  withChangesSetAside('UNSTAGED', context, () => {
     context.engine.setBranchRevision(target, newRevision);
     restackBranches(
       context.engine.getRelativeStack(target, SCOPE.UPSTACK_EXCLUSIVE),

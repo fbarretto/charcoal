@@ -2,9 +2,11 @@ import chalk from 'chalk';
 import { TContext } from '../lib/context';
 import { RebaseConflictError } from '../lib/errors';
 import {
-  applyToWorkingTree,
   createStashCommit,
   hardResetToHead,
+  keepStashCommit,
+  restoreFromStash,
+  TStashPart,
 } from '../lib/git/plumbing';
 import { assertUnreachable } from '../lib/utils/assert_unreachable';
 import { persistContinuation } from './persist_continuation';
@@ -108,30 +110,53 @@ export function restackBranches(
 }
 
 // Clears the working tree so `fn` can rewrite and restack branches, then
-// reapplies `patches` (diffs captured beforehand) as unstaged changes. A backup
-// of everything set aside is printed if `fn` or the reapply fails.
+// reapplies `part` of what was set aside as unstaged changes. The set-aside
+// stash commit is kept under refs/charcoal/stash/ until reapplied; if `fn`
+// stops on a restack conflict, `ch continue` / `ch abort` reapply it.
 export function withChangesSetAside(
-  patches: string[],
+  part: TStashPart,
   context: TContext,
   fn: () => void
 ): void {
-  const backup = createStashCommit();
+  const sha = createStashCommit();
+  if (!sha) {
+    fn();
+    return;
+  }
+  keepStashCommit(sha);
   hardResetToHead();
-  const recoveryHint = backup
-    ? `Your uncommitted changes are saved in ${chalk.cyan(
-        backup
-      )}; recover them with \`git stash apply ${backup}\`.`
-    : undefined;
   try {
     fn();
   } catch (e) {
-    recoveryHint && context.splog.warn(recoveryHint);
+    if (e instanceof RebaseConflictError) {
+      context.continueConfig.update((data) => {
+        data.stashToRestore = { sha, part };
+      });
+      context.splog.info(
+        'Your uncommitted changes will be reapplied after `ch continue` or `ch abort`.'
+      );
+    } else {
+      context.splog.warn(recoveryHint(sha));
+    }
     throw e;
   }
+  restoreSetAsideChanges({ sha, part }, context);
+}
+
+export function restoreSetAsideChanges(
+  stash: { sha: string; part: TStashPart },
+  context: TContext
+): void {
   try {
-    patches.filter((p) => p).forEach(applyToWorkingTree);
+    restoreFromStash(stash.sha, stash.part);
   } catch {
     context.splog.warn(`Couldn't reapply your uncommitted changes.`);
-    recoveryHint && context.splog.warn(recoveryHint);
+    context.splog.warn(recoveryHint(stash.sha));
   }
+}
+
+function recoveryHint(sha: string): string {
+  return `Your uncommitted changes are saved in ${chalk.cyan(
+    sha
+  )}; recover them with \`git stash apply ${sha}\`.`;
 }
