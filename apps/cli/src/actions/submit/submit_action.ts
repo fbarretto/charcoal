@@ -65,7 +65,14 @@ export async function submitAction(
 
   const allBranchNames = context.engine
     .getRelativeStack(context.engine.currentBranchPrecondition, args.scope)
-    .filter((branchName) => !context.engine.isTrunk(branchName));
+    .filter((branchName) => !context.engine.isTrunk(branchName))
+    .filter((branchName) => {
+      const frozen = context.engine.isBranchFrozen(branchName);
+      if (frozen) {
+        context.splog.info(`Skipping frozen branch ${chalk.cyan(branchName)}.`);
+      }
+      return !frozen;
+    });
 
   const branchNames = args.select
     ? await selectBranches(context, allBranchNames)
@@ -158,7 +165,7 @@ export async function submitAction(
 
     // A branch with no open PR (e.g. an unsubmitted leaf under --update-only)
     // has no body to update; skip it rather than `gh pr edit undefined` (#109).
-    if (!prInfo?.number) {
+    if (!prInfo?.number || context.engine.isBranchFrozen(branch)) {
       continue;
     }
 

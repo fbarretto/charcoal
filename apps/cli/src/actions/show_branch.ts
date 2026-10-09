@@ -59,6 +59,10 @@ export function getBranchInfo(
       context.engine.isBranchFixed(args.branchName)
         ? ''
         : chalk.yellow(`(needs restack)`)
+    }${
+      context.engine.isBranchFrozen(args.branchName)
+        ? chalk.blue(' (frozen)')
+        : ''
     }`,
     `${chalk.dim(
       context.engine.getAllCommits(args.branchName, 'COMMITTER_DATE')[0] ?? ''
