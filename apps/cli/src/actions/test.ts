@@ -5,6 +5,7 @@ import path from 'path';
 import tmp from 'tmp';
 import { TContext } from '../lib/context';
 import { TScopeSpec } from '../lib/engine/scope_spec';
+import { ExitFailedError } from '../lib/errors';
 
 type TTestStatus =
   | '[pending]'
@@ -59,6 +60,13 @@ export function testStack(
 
   // Finish off.
   context.engine.checkoutBranch(currentBranch);
+
+  const failed = branches.filter((b) =>
+    ['[failed]', '[killed]'].includes(state[b].status)
+  );
+  if (failed.length) {
+    throw new ExitFailedError(`The command failed on: ${failed.join(', ')}.`);
+  }
 }
 
 function testBranch(
