@@ -13,7 +13,7 @@ import {
   getTree,
   treeWithPatch,
 } from '../lib/git/plumbing';
-import { runGitCommand } from '../lib/git/runner';
+import { worktreeOf } from '../lib/git/worktrees';
 import { stageChanges, TStageOpts } from '../lib/preconditions';
 import { restackBranches, withChangesSetAside } from './restack';
 
@@ -44,9 +44,12 @@ export async function modifyIntoAction(
       `${chalk.yellow(target)} is not downstack of the current branch.`
     );
   }
-  if (isCheckedOutInAnotherWorktree(target)) {
+  const worktree = worktreeOf(target);
+  if (worktree) {
     throw new PreconditionsFailedError(
-      `${chalk.yellow(target)} is checked out in another worktree.`
+      `${chalk.yellow(
+        target
+      )} is checked out in another worktree (${worktree}).`
     );
   }
   // setBranchRevision would refuse too, but only after the working tree reset.
@@ -107,15 +110,4 @@ function buildCommit(
         message: opts.message ?? getCommitMessage(tip),
         authorEnv: opts.resetAuthor ? undefined : getCommitAuthorEnv(tip),
       });
-}
-
-// ponytail: local until WP1's shared lib/git/worktrees.ts lands.
-function isCheckedOutInAnotherWorktree(branch: string): boolean {
-  return runGitCommand({
-    args: ['worktree', 'list', '--porcelain'],
-    onError: 'throw',
-    resource: 'isCheckedOutInAnotherWorktree',
-  })
-    .split('\n')
-    .includes(`branch refs/heads/${branch}`);
 }

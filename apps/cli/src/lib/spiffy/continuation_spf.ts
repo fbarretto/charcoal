@@ -44,7 +44,7 @@ export const continueConfigFactory = spiffy({
   defaultLocations: [
     {
       relativePath: '.gtcontinue',
-      relativeTo: 'REPO',
+      relativeTo: 'WORKTREE',
     },
   ],
   initialize: () => {

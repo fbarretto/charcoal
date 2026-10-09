@@ -8,6 +8,7 @@ import {
   restoreFromStash,
   TStashPart,
 } from '../lib/git/plumbing';
+import { branchesInOtherWorktrees } from '../lib/git/worktrees';
 import { assertUnreachable } from '../lib/utils/assert_unreachable';
 import { persistContinuation } from './persist_continuation';
 import { printConflictStatus } from './print_conflict_status';
@@ -35,6 +36,7 @@ export function restackBranches(
   context.splog.debug(
     branchNames.reduce((acc, curr) => `${acc}\n${curr}`, 'RESTACKING:')
   );
+  const otherWorktrees = branchesInOtherWorktrees();
   while (branchNames.length > 0) {
     const branchName = branchNames.shift() as string;
 
@@ -47,6 +49,12 @@ export function restackBranches(
 
     if (context.engine.isBranchFrozen(branchName)) {
       context.splog.info(`Skipped frozen branch ${chalk.cyan(branchName)}.`);
+      continue;
+    }
+
+    const worktree = otherWorktrees.get(branchName);
+    if (worktree) {
+      context.splog.info(skippedInWorktreeMessage(branchName, worktree));
       continue;
     }
 
@@ -124,6 +132,15 @@ export function restackBranches(
     context.engine.deleteBranch(b);
     context.splog.info(`Deleted branch ${chalk.red(b)}`);
   });
+}
+
+export function skippedInWorktreeMessage(
+  branchName: string,
+  worktree: string
+): string {
+  return `Skipped ${chalk.cyan(
+    branchName
+  )}: it is checked out in another worktree (${worktree}). Run this command there to update it.`;
 }
 
 // Clears the working tree so `fn` can rewrite and restack branches, then
