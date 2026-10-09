@@ -11,7 +11,7 @@ const args = {
     positional: true,
     hidden: true,
     type: 'string',
-    alias: 'onto',
+    alias: ['onto', 'o'],
   },
   source: {
     describe: `Optional branch to rebase (defaults to current branch).`,
