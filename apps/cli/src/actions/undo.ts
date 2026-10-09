@@ -28,6 +28,7 @@ const MUTATING_COMMANDS = new Set([
   'reorder',
   'repo sync',
   'restack',
+  'revert',
   'split',
   'squash',
   'sync',
