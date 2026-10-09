@@ -433,6 +433,13 @@ Print the current branch's parent. Errors on trunk or an untracked branch.
 ch parent
 ```
 
+### `children`
+Print the current branch's children, one per line.
+
+```
+ch children
+```
+
 ---
 
 ## Config
