@@ -268,18 +268,11 @@ ch bottom
 ## Stack operations
 
 ### `restack` (alias `r`)
-Ensure each branch in the current stack is based on its parent, rebasing if necessary. Use scope flags to limit which branches are restacked.
+Ensure each branch in the current stack is based on its parent, rebasing if necessary. Use scope flags to limit which branches are restacked. Refuses to start if a branch needs rebasing and there are uncommitted changes to tracked files.
 
 | Flag | Description |
 | --- | --- |
-| `--comment <msg>` | Add a comment with `<msg>` to every submitted PR. |
-| `-m`, `--merge-when-ready` | Enable auto-merge (`gh pr merge --auto --squash`) on every submitted PR. |
-| `--rerequest-review` | Re-request review from the current reviewers of every updated PR. |
-| `-v`, `--view` | Open the PR in the browser after submitting. |
-| `--restack` | Restack the branches before submitting. Branches that would conflict are left unrestacked and listed (the submit then stops on them). |
-| `--ignore-out-of-sync-trunk` | Submit even if trunk differs from its remote. Otherwise submit warns, then asks (or, with `--no-interactive`, fails). |
-| `--cli` | Accepted for gt compatibility; Charcoal always edits PR metadata in the CLI. |
-| `--branch` | Submit as if `<branch>` were checked out (default: current branch). |
+| `--branch` | Restack as if `<branch>` were checked out (default: current branch). |
 | `-d`, `--downstack` | Only restack this branch and its ancestors. |
 | `-u`, `--upstack` | Only restack this branch and its descendants. |
 | `-o`, `--only` | Only restack this branch. |

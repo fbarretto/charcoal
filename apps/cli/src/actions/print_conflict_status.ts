@@ -41,6 +41,8 @@ export function printConflictStatus(
     )} to continue executing your previous Charcoal command`
   );
   context.splog.info(
-    "It's safe to cancel the ongoing rebase with `ch rebase --abort`."
+    `Or run ${chalk.cyan(
+      `ch abort`
+    )} to cancel the rebase and restore the state from before the command.`
   );
 }

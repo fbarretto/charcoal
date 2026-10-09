@@ -70,7 +70,9 @@ for (const scene of allScenes) {
       scene.repo.checkoutBranch('a');
       scene.repo.createChangeAndAmend('1');
 
-      expect(() => scene.repo.runCliCommand(['restack', '-q'])).to.throw();
+      expect(() => scene.repo.runCliCommand(['restack'])).to.throw(
+        /ch continue[\s\S]*ch abort/
+      );
       expect(scene.repo.rebaseInProgress()).to.be.true;
 
       scene.repo.runCliCommand(['abort', '-f']);
