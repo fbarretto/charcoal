@@ -259,11 +259,15 @@ export function composeEngine({
 
   const removeChild = (parentBranchName: string, childBranchName: string) => {
     assertBranch(parentBranchName);
-    const parentCachedChildren = cache.branches[parentBranchName].children;
-    const index = parentCachedChildren.indexOf(childBranchName);
-    if (index > -1) {
-      parentCachedChildren.splice(index, 1);
-    }
+    // Replace rather than splice: callers iterate a parent's children while
+    // reparenting them, and an in-place splice would skip every other child.
+    const parentCachedMeta = cache.branches[parentBranchName];
+    cache.branches[parentBranchName] = {
+      ...parentCachedMeta,
+      children: parentCachedMeta.children.filter(
+        (child) => child !== childBranchName
+      ),
+    };
   };
 
   const validateNewParent = (branchName: string, parentBranchName: string) => {

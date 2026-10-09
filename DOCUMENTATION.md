@@ -127,15 +127,19 @@ ch rename better-name
 ```
 
 ### `delete` (alias `dl`)
-Delete a branch and its corresponding Charcoal metadata.
+Delete a branch and its corresponding Charcoal metadata. Children of deleted branches are restacked onto the nearest surviving ancestor. When more than one branch would be deleted, Charcoal lists them and asks for confirmation once (skipped with `--force` or `--no-interactive`).
 
 | Flag | Description |
 | --- | --- |
-| `[name]` | Positional: branch to delete. |
-| `-f`, `--force` | Delete even if the branch is not merged or closed. |
+| `[name]` | Positional: branch to delete. Defaults to the current branch. |
+| `-f`, `--force` | Delete even if a branch is not merged or closed, without confirmation. |
+| `--upstack` | Also delete every branch above it. |
+| `--downstack` | Also delete every branch below it, down to (not including) trunk. |
+| `-c`, `--close` | Close the open GitHub PRs of the deleted branches. Not reverted by `ch undo`. |
 
 ```
 ch delete old-branch -f
+ch delete --upstack       # current branch and everything above it
 ```
 
 ### `pop`

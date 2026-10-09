@@ -1,14 +1,16 @@
 import yargs from 'yargs';
-import { deleteBranchAction } from '../actions/delete_branch';
+import { deleteStackAction } from '../actions/delete_branch';
+import { SCOPE } from '../lib/engine/scope_spec';
 import { graphite } from '../lib/runner';
 
 const args = {
   name: {
     type: 'string',
     positional: true,
-    demandOption: true,
-    optional: false,
-    describe: 'The name of the branch to delete.',
+    demandOption: false,
+    optional: true,
+    describe:
+      'The name of the branch to delete. Defaults to the current branch.',
     hidden: true,
   },
   force: {
@@ -18,6 +20,24 @@ const args = {
     alias: 'f',
     default: false,
   },
+  upstack: {
+    describe: `Also delete all branches upstack of the target branch.`,
+    demandOption: false,
+    type: 'boolean',
+    conflicts: 'downstack',
+  },
+  downstack: {
+    describe: `Also delete all branches downstack of the target branch, down to (not including) trunk.`,
+    demandOption: false,
+    type: 'boolean',
+  },
+  close: {
+    describe: `Close the open GitHub PRs of the deleted branches.`,
+    demandOption: false,
+    type: 'boolean',
+    alias: 'c',
+    default: false,
+  },
 } as const;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
@@ -25,9 +45,21 @@ export const aliases = ['dl'];
 export const command = 'delete [name]';
 export const canonical = 'delete';
 export const description =
-  'Delete a branch and its corresponding Charcoal metadata.';
+  'Delete a branch (optionally with its upstack or downstack) and its corresponding Charcoal metadata.';
 export const builder = args;
 export const handler = async (argv: argsT): Promise<void> =>
   graphite(argv, canonical, async (context) =>
-    deleteBranchAction({ branchName: argv.name, force: argv.force }, context)
+    deleteStackAction(
+      {
+        branchName: argv.name,
+        force: argv.force,
+        close: argv.close,
+        scope: argv.upstack
+          ? SCOPE.UPSTACK
+          : argv.downstack
+          ? SCOPE.DOWNSTACK
+          : SCOPE.BRANCH,
+      },
+      context
+    )
   );
