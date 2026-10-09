@@ -102,3 +102,27 @@ export async function getPrInfoForBranches(
     return shouldAssociatePrWithBranch || shouldUpdateExistingBranch;
   });
 }
+
+export async function openPrInBrowser(
+  prNumber: number,
+  repo: string
+): Promise<void> {
+  try {
+    await execFileAsync('gh', [
+      'pr',
+      'view',
+      `${prNumber}`,
+      '--repo',
+      repo,
+      '--web',
+    ]);
+  } catch (error) {
+    throw new ExitFailedError(
+      [
+        `Failed to open pull request #${prNumber} (via \`gh\`).`,
+        `Ensure the GitHub CLI is installed and authenticated (run \`ch auth\`).`,
+        error instanceof Error ? error.message : String(error),
+      ].join('\n')
+    );
+  }
+}

@@ -363,6 +363,21 @@ ch auth
 ch auth -t <token>
 ```
 
+### `pr`
+Open a PR page in the browser (via `gh pr view --web`). Defaults to the current branch's PR. A numeric argument that isn't a branch name is treated as a PR number. Errors if a branch has no PR.
+
+| Flag | Description |
+| --- | --- |
+| `[branch-or-pr]` | Positional: branch name or PR number to open. |
+| `-s`, `--stack` | Open the PR of every branch in the stack (ancestors and descendants, excluding trunk). Errors without opening anything if any branch has no PR. |
+
+```
+ch pr
+ch pr feature-x
+ch pr 123
+ch pr --stack
+```
+
 ---
 
 ## Collaborate
