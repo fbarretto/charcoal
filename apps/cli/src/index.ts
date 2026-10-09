@@ -11,6 +11,7 @@ import { registerCommands } from './lib/register_commands';
 import { registerCompletion } from './commands/completion';
 
 import * as abort from './commands/abort';
+import * as aliases from './commands/aliases';
 import * as auth from './commands/auth';
 import * as bottom from './commands/bottom';
 import * as checkout from './commands/checkout';
@@ -76,6 +77,7 @@ process.on('uncaughtException', (err) => {
 // bundled into the single-file binary built with `bun build --compile`.
 const commandModules = [
   abort,
+  aliases,
   auth,
   bottom,
   checkout,
@@ -122,8 +124,16 @@ const commandModules = [
   user,
 ] as unknown as CommandModule[];
 
+const builtinNames = [
+  'completion',
+  ...commandModules.flatMap((m) => [
+    String(m.command).split(' ')[0],
+    ...[m.aliases ?? []].flat(),
+  ]),
+];
+
 const cli = registerCompletion(
-  registerCommands(yargs(getYargsInput()), commandModules)
+  registerCommands(yargs(getYargsInput(builtinNames)), commandModules)
 );
 
 void cli
