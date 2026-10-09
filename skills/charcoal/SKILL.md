@@ -210,7 +210,7 @@ ch delete <branch> -f -c           # also close its open PR
 
 ## Merging
 
-`ch merge --dry-run` lists the PRs from trunk up to the current branch; `ch merge` merges them bottom-up, retargeting and re-pushing each next PR as it goes. It stops at the first PR GitHub won't merge. Run `ch sync` afterwards to clean up the merged branches.
+`ch merge --dry-run` lists the PRs from trunk up to the current branch; `ch merge` merges them bottom-up: a GitHub stack in one async merge request, unstacked PRs one at a time, retargeting and re-pushing each next PR as it goes. It stops at the first PR GitHub won't merge. Run `ch sync` afterwards to clean up the merged branches.
 
 ## Troubleshooting
 

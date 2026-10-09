@@ -9,13 +9,54 @@ import {
 import { CloneScene } from '../../lib/scenes/clone_scene';
 import { configureTest } from '../../lib/utils/configure_test';
 
+const FAKE_GH = `
+const fs = require('fs');
+const { execFileSync } = require('child_process');
+const args = process.argv.slice(2);
+const input = args.includes('--input') ? fs.readFileSync(0, 'utf-8') : '';
+fs.appendFileSync(process.env.FAKE_GH_LOG, [...args, input].join(' ').trim() + '\\n');
+const fail = (msg) => { process.stderr.write(msg + '\\n'); process.exit(1); };
+const out = (o) => process.stdout.write(JSON.stringify(o));
+const stacked = process.env.FAKE_GH_STACK === '1';
+const merge = (n) => {
+  const branch = 'abc'[n - 1];
+  const git = (...a) => execFileSync('git', ['-C', process.env.FAKE_GH_ORIGIN, ...a]);
+  git('merge', '-q', '--squash', branch);
+  git('commit', '-qm', branch + ' (#' + n + ')');
+};
+const [cmd, sub, id] = args;
+if (cmd === 'pr' && sub === 'merge') {
+  if (stacked) fail('GraphQL: This pull request is part of a stack and must be merged using the asynchronous merge REST API.');
+  if (id === process.env.FAKE_GH_FAIL) fail('GraphQL: Pull Request is not mergeable');
+  merge(Number(id));
+  process.exit(0);
+}
+if (cmd === 'pr' && sub === 'edit' && stacked) fail('GraphQL: Cannot change the base branch because the pull request is part of a stack.');
+if (cmd === 'pr') process.exit(0);
+if (cmd === 'api' && sub.includes('/stacks?pull_request=')) {
+  if (!stacked) fail('gh: Not Found (HTTP 404)');
+  out([{ number: 9, open: true, pull_requests: [1, 2, 3].map((number) => ({ number, state: 'open' })) }]);
+  process.exit(0);
+}
+let m;
+if (cmd === 'api' && (m = /pulls\\/(\\d+)\\/merge-async$/.exec(sub))) {
+  for (let n = 1; n <= Number(m[1]); n++) merge(n);
+  out({ status: 'pending', details: { uuid: 'u' + m[1] } });
+  process.exit(0);
+}
+if (cmd === 'api' && /merge-async\\/u\\d+$/.test(sub)) { out({ status: 'merged', details: { sha: 'abc' } }); process.exit(0); }
+fail('fake gh: unexpected ' + args.join(' '));
+`;
+
 for (const scene of [new CloneScene()]) {
   // eslint-disable-next-line max-lines-per-function
   describe(`(${scene}): merge`, function () {
     configureTest(this, scene);
 
-    // A fake `gh` on PATH records its arguments; `pr merge N` squash-merges
-    // branch N (a=1, b=2, c=3) into origin's main, unless N is FAKE_GH_FAIL.
+    // A fake `gh` on PATH logs its arguments. PRs 1-3 are branches a-c;
+    // merging one squash-merges its branch into origin's main. With
+    // FAKE_GH_STACK=1, PRs 1-3 form GitHub stack #9: GitHub then refuses
+    // `pr merge`/`pr edit --base` on them and merges through merge-async.
     let ghLog: string;
     let originalPath: string | undefined;
     beforeEach(() => {
@@ -23,17 +64,11 @@ for (const scene of [new CloneScene()]) {
       ghLog = path.join(binDir, 'gh.log');
       fs.writeFileSync(
         path.join(binDir, 'gh'),
-        [
-          '#!/bin/sh',
-          `echo "$@" >> "${ghLog}"`,
-          '[ "$1 $2" = "pr merge" ] || exit 0',
-          '[ "$3" = "$FAKE_GH_FAIL" ] && exit 1',
-          'branch=$(echo "a b c" | cut -d" " -f"$3")',
-          `git -C "${scene.originDir}" merge -q --squash "$branch" >/dev/null`,
-          `git -C "${scene.originDir}" commit -qm "$branch (#$3)"`,
-        ].join('\n'),
+        `#!${process.execPath}\n${FAKE_GH}`,
         { mode: 0o755 }
       );
+      process.env.FAKE_GH_LOG = ghLog;
+      process.env.FAKE_GH_ORIGIN = scene.originDir;
       originalPath = process.env.PATH;
       process.env.PATH = `${binDir}${path.delimiter}${process.env.PATH}`;
 
@@ -48,6 +83,7 @@ for (const scene of [new CloneScene()]) {
     afterEach(() => {
       process.env.PATH = originalPath;
       delete process.env.FAKE_GH_FAIL;
+      delete process.env.FAKE_GH_STACK;
     });
 
     const setPrNumbers = (branches: string[]) =>
@@ -88,6 +124,7 @@ for (const scene of [new CloneScene()]) {
       setPrNumbers(['a', 'b', 'c']);
       scene.repo.runCliCommand([`merge`]);
       expect(ghCalls()).to.deep.equal([
+        'api repos/owner/name/stacks?pull_request=1',
         'pr merge 1 --repo owner/name --squash',
         'pr edit 2 --repo owner/name --base main',
         'pr merge 2 --repo owner/name --squash',
@@ -129,10 +166,40 @@ for (const scene of [new CloneScene()]) {
         /Stopped at #2 \(b\); left untouched: #3/
       );
       expect(ghCalls()).to.deep.equal([
+        'api repos/owner/name/stacks?pull_request=1',
         'pr merge 1 --repo owner/name --squash',
         'pr edit 2 --repo owner/name --base main',
         'pr merge 2 --repo owner/name --squash',
       ]);
+    });
+
+    it('Merges a GitHub stack through the async merge API', () => {
+      setPrNumbers(['a', 'b', 'c']);
+      process.env.FAKE_GH_STACK = '1';
+      const output = scene.repo.runCliCommandAndGetOutput([`merge`]);
+      expect(ghCalls()).to.deep.equal([
+        'api repos/owner/name/stacks?pull_request=1',
+        'api repos/owner/name/pulls/3/merge-async --method PUT --input - {"merge_method":"squash","merge_action":"default"}',
+        'api repos/owner/name/pulls/3/merge-async/u3',
+      ]);
+      expect(output).to.match(/Merged #1 \(a\)[\s\S]*Merged #3 \(c\)/);
+      expect(
+        scene.originRepo.runGitCommandAndGetOutput([`log`, `--format=%s`, `-3`])
+      ).to.equal('c (#3)\nb (#2)\na (#1)');
+    });
+
+    it('Refuses when the GitHub stack does not match the local stack', () => {
+      setPrNumbers(['a', 'b', 'c']);
+      process.env.FAKE_GH_STACK = '1';
+      scene.repo.checkoutBranch('a');
+      writeMetadataRef(
+        'a',
+        { ...readMetadataRef('a', scene.dir), prInfo: { number: 2 } },
+        scene.dir
+      );
+      expect(() => scene.repo.runCliCommand([`merge`])).to.throw(
+        /GitHub stack #9 \(#1, #2, #3\) does not match this stack \(#2\)/
+      );
     });
 
     it('Only enables auto-merge on the bottom PR with --auto', () => {

@@ -1,4 +1,13 @@
 import chalk from 'chalk';
+import {
+  findStackForPr,
+  getAsyncMerge,
+  GhApiError,
+  mergeAsync,
+  openPrNumbersOf,
+  TAsyncMerge,
+  TGhStack,
+} from '../lib/api/gh_stacks';
 import { githubRepoSlug } from '../lib/api/github_repo';
 import { mergePr, setPrBase } from '../lib/api/pr_info';
 import { TContext } from '../lib/context';
@@ -63,6 +72,14 @@ export async function mergeAction(
   uncommittedTrackedChangesPrecondition();
 
   const repo = githubRepoSlug(context);
+  const stack = opts.auto ? undefined : ghStackOf(prs, repo);
+  if (stack) {
+    await mergeStack({ prs, stack, repo, method: opts.method }, context);
+    context.splog.tip(
+      `Run ${chalk.cyan('ch sync')} to delete the merged branches locally.`
+    );
+    return;
+  }
   const trunk = context.engine.trunk;
   for (const [i, { branch, number }] of prs.entries()) {
     if (i > 0) {
@@ -107,6 +124,116 @@ export async function mergeAction(
   context.splog.tip(
     `Run ${chalk.cyan('ch sync')} to delete the merged branches locally.`
   );
+}
+
+// The GitHub stack holding these PRs, if they are stacked. Its open PRs must
+// start with them, since GitHub merges a stack bottom-up.
+function ghStackOf(
+  prs: { number: number }[],
+  repo: string
+): TGhStack | undefined {
+  let stack: TGhStack | undefined;
+  try {
+    stack = findStackForPr(repo, prs[0].number);
+  } catch (err) {
+    if (err instanceof GhApiError && err.status === 404) {
+      return undefined; // stacked PRs are not enabled for this repo
+    }
+    throw err;
+  }
+  if (!stack) {
+    return undefined;
+  }
+  const open = openPrNumbersOf(stack);
+  if (!prs.every((pr, i) => open[i] === pr.number)) {
+    throw new PreconditionsFailedError(
+      `GitHub stack #${stack.number} (${prList(
+        open
+      )}) does not match this stack (${prList(
+        prs.map((pr) => pr.number)
+      )}). Run ${chalk.cyan('ch submit --stack')} to relink it, then retry.`
+    );
+  }
+  return stack;
+}
+
+// GitHub refuses `gh pr merge` on a stacked PR; its async merge API merges
+// the whole stack up to and including the PR it is called on.
+async function mergeStack(
+  opts: {
+    prs: { branch: string; number: number }[];
+    stack: TGhStack;
+    repo: string;
+    method: 'squash' | 'merge' | 'rebase';
+  },
+  context: TContext
+): Promise<void> {
+  const { prs, stack } = opts;
+  const top = prs[prs.length - 1].number;
+  const fail = (reason: string) =>
+    new ExitFailedError(
+      `GitHub stack #${stack.number} (${prList(
+        prs.map((p) => p.number)
+      )}) ${reason}`
+    );
+  let result: TAsyncMerge;
+  try {
+    result = mergeAsync(opts.repo, top, opts.method);
+  } catch (err) {
+    throw fail(`was not merged: ${err instanceof Error ? err.message : err}`);
+  }
+  const uuid = result.details?.uuid;
+  if (result.status === 'pending' && uuid) {
+    context.splog.info(`Waiting for GitHub to merge stack #${stack.number}...`);
+    result = await poll(
+      () => getAsyncMerge(opts.repo, top, uuid),
+      (r) => r.status !== 'pending',
+      STACK_MERGE_TIMEOUT_MS
+    );
+  }
+  switch (result.status) {
+    case 'merged':
+      prs.forEach(({ branch, number }) =>
+        context.splog.info(`Merged #${number} (${chalk.green(branch)}).`)
+      );
+      return;
+    case 'enqueued':
+      context.splog.info(
+        `Added ${prList(prs.map((p) => p.number))} to the merge queue.`
+      );
+      return;
+    case 'pending':
+      throw fail(
+        `was still merging after ${
+          STACK_MERGE_TIMEOUT_MS / 1000
+        }s; check the PRs on GitHub.`
+      );
+    default:
+      throw fail(
+        `was not merged: ${result.details?.message ?? result.status}.`
+      );
+  }
+}
+
+const STACK_MERGE_TIMEOUT_MS = 5 * 60 * 1000;
+
+const prList = (prs: number[]) => prs.map((n) => `#${n}`).join(', ');
+
+// Polls `get` with exponential backoff (1s doubling, capped at 10s) until
+// `done` or the timeout, returning the last value either way.
+async function poll<T>(
+  get: () => T | Promise<T>,
+  done: (value: T) => boolean,
+  timeoutMs: number
+): Promise<T> {
+  const deadline = Date.now() + timeoutMs;
+  for (let delay = 1000; ; delay = Math.min(delay * 2, 10000)) {
+    const value = await get();
+    if (done(value) || Date.now() + delay > deadline) {
+      return value;
+    }
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
 }
 
 function stackPrs(context: TContext): { branch: string; number: number }[] {

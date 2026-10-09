@@ -205,11 +205,17 @@ async function gh(args: string[], failure: string): Promise<string> {
   try {
     return (await execFileAsync('gh', args)).stdout;
   } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
     throw new ExitFailedError(
       [
         `${failure} (via \`gh\`).`,
-        `Ensure the GitHub CLI is installed and authenticated (run \`ch auth\`).`,
-        error instanceof Error ? error.message : String(error),
+        // Only for failures that can be gh's setup, not e.g. a refused merge.
+        ...(/ENOENT|auth|log ?in|credentials/i.test(detail)
+          ? [
+              `Ensure the GitHub CLI is installed and authenticated (run \`ch auth\`).`,
+            ]
+          : []),
+        detail,
       ].join('\n')
     );
   }

@@ -446,7 +446,7 @@ ch sync --no-restack
 ```
 
 ### `merge` (alias `mg`)
-Merge the PRs from trunk up to the current branch, bottom-up, via `gh pr merge`. Every branch in the downstack must have an open PR; otherwise the command lists the ones that don't and merges nothing.
+Merge the PRs from trunk up to the current branch, bottom-up. PRs in a GitHub stack are merged through GitHub's async merge API (`PUT pulls/{n}/merge-async` on the topmost PR, which merges the stack up to it; GitHub refuses `gh pr merge` on stacked PRs), and other PRs one at a time via `gh pr merge`. Every branch in the downstack must have an open PR; otherwise the command lists the ones that don't and merges nothing.
 
 | Flag | Description |
 | --- | --- |
@@ -455,7 +455,9 @@ Merge the PRs from trunk up to the current branch, bottom-up, via `gh pr merge`.
 | `--method` | `squash` (default), `merge`, or `rebase`. |
 | `--auto` | Enable auto-merge on the bottom PR instead of merging it now, then stop; later PRs can't merge until it lands, so run `ch merge` again afterwards. |
 
-After each merge, the next branch is reparented onto trunk (pulled fresh), restacked so it drops the merged parent's commits (this works after a squash because Charcoal remembers the parent revision it was based on), retargeted to trunk on GitHub, and force-pushed (with lease) before its own PR is merged. If a merge fails (required checks or approvals, conflicts), the command stops, names that PR, and leaves the PRs above it untouched. Merged branches stay local until `ch sync` deletes them. `ch undo` does not cover `merge`.
+**Stacked PRs.** When the bottom PR is in a GitHub stack, its open PRs must start with the PRs being merged (otherwise `merge` refuses and asks you to `ch submit --stack` to relink). `merge` then makes one async merge request on the current branch's PR and waits (up to 5 minutes) for GitHub to finish; GitHub retargets and rewrites the PRs itself, and adds them to the merge queue instead if the base branch has one. `--auto` keeps using `gh pr merge --auto` on the bottom PR.
+
+**Unstacked PRs.** After each merge, the next branch is reparented onto trunk (pulled fresh), restacked so it drops the merged parent's commits (this works after a squash because Charcoal remembers the parent revision it was based on), retargeted to trunk on GitHub, and force-pushed (with lease) before its own PR is merged. If a merge fails (required checks or approvals, conflicts), the command stops, names that PR, and leaves the PRs above it untouched. Merged branches stay local until `ch sync` deletes them. `ch undo` does not cover `merge`.
 
 ```
 ch merge --dry-run
