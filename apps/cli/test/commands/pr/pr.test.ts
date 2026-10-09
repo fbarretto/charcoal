@@ -7,6 +7,8 @@ import {
   writeMetadataRef,
 } from '../../../src/lib/engine/metadata_ref';
 import { allScenes } from '../../lib/scenes/all_scenes';
+import { CloneScene } from '../../lib/scenes/clone_scene';
+import { FakeGh } from '../../lib/utils/fake_gh';
 import { configureTest } from '../../lib/utils/configure_test';
 
 for (const scene of allScenes) {
@@ -47,7 +49,11 @@ for (const scene of allScenes) {
       );
     const ghCalls = () =>
       fs.existsSync(ghLog)
-        ? fs.readFileSync(ghLog, 'utf-8').trim().split('\n')
+        ? fs
+            .readFileSync(ghLog, 'utf-8')
+            .trim()
+            .split('\n')
+            .filter((c) => !c.startsWith('api '))
         : [];
 
     it('Errors when the current branch has no PR', () => {
@@ -89,6 +95,40 @@ for (const scene of allScenes) {
       expect(ghCalls()).to.deep.equal([
         'pr view 1 --repo owner/name --web',
         'pr view 2 --repo owner/name --web',
+      ]);
+    });
+  });
+}
+
+{
+  const scene = new CloneScene();
+  describe(`(${scene}): pr --stack with a GitHub stack`, function () {
+    configureTest(this, scene);
+    const gh = new FakeGh();
+    afterEach(() => gh.uninstall());
+
+    it("Opens every PR of the branch's GitHub stack", () => {
+      gh.install({
+        prs: {
+          a: { number: 1, headRefName: 'a', baseRefName: 'main' },
+          x: { number: 7, headRefName: 'x', baseRefName: 'a' },
+        },
+        stacks: [{ number: 100, prs: [1, 7] }],
+      });
+      scene.repo.runCliCommand([`repo`, `owner`, `--set`, `owner`]);
+      scene.repo.runCliCommand([`repo`, `name`, `--set`, `name`]);
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      writeMetadataRef(
+        'a',
+        { ...readMetadataRef('a', scene.dir), prInfo: { number: 1 } },
+        scene.dir
+      );
+
+      scene.repo.runCliCommand([`pr`, `--stack`]);
+      expect(gh.calls().filter((c) => c.endsWith('--web'))).to.deep.equal([
+        'pr view 1 --repo owner/name --web',
+        'pr view 7 --repo owner/name --web',
       ]);
     });
   });

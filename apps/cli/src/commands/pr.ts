@@ -10,7 +10,7 @@ const args = {
     type: 'string',
   },
   stack: {
-    describe: `Open the PR of every branch in the current stack.`,
+    describe: `Open every PR of the branch's GitHub stack, or, if it isn't in one, of every branch in the current stack.`,
     demandOption: false,
     default: false,
     type: 'boolean',

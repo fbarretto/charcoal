@@ -485,7 +485,7 @@ Open a PR page in the browser (via `gh pr view --web`). Defaults to the current 
 | Flag | Description |
 | --- | --- |
 | `[branch-or-pr]` | Positional: branch name or PR number to open. |
-| `-s`, `--stack` | Open the PR of every branch in the stack (ancestors and descendants, excluding trunk). Errors without opening anything if any branch has no PR. |
+| `-s`, `--stack` | If the branch's PR is in a GitHub stack, open every PR in that stack (including ones not tracked locally). Otherwise open the PR of every branch in the local stack (ancestors and descendants, excluding trunk), erroring without opening anything if any branch has no PR. |
 
 ```
 ch pr
