@@ -34,7 +34,8 @@ type TPRSubmissionAction = { branchName: string } & (
 export async function getPRInfoForBranches(
   args: {
     branchNames: string[];
-    editPRFieldsInline: boolean | undefined;
+    editTitle: boolean | undefined;
+    editDescription: boolean | undefined;
     draft: boolean;
     publish: boolean;
     updateOnly: boolean;
@@ -65,7 +66,8 @@ export async function getPRInfoForBranches(
         publish: args.publish,
         dryRun: args.dryRun,
         select: args.select,
-        editPRFieldsInline: args.editPRFieldsInline,
+        editTitle: args.editTitle,
+        editDescription: args.editDescription,
         always: args.always,
       },
       context
@@ -85,7 +87,8 @@ export async function getPRInfoForBranches(
         ? await getPRCreationInfo(
             {
               branchName: action.branchName,
-              editPRFieldsInline: args.editPRFieldsInline,
+              editTitle: args.editTitle,
+              editDescription: args.editDescription,
               draft: args.draft,
               publish: args.publish,
               reviewers: () => reviewers(false),
@@ -111,7 +114,8 @@ export async function getPRInfoForBranches(
             ...(await getPRUpdateInfo(
               {
                 branchName: action.branchName,
-                editPRFieldsInline: args.editPRFieldsInline,
+                editTitle: args.editTitle,
+                editDescription: args.editDescription,
                 draft: args.draft,
                 publish: args.publish,
                 reviewers: () => reviewers(true),
@@ -138,7 +142,8 @@ async function getPRAction(
     dryRun: boolean;
     always: boolean;
     select: boolean;
-    editPRFieldsInline: boolean | undefined;
+    editTitle: boolean | undefined;
+    editDescription: boolean | undefined;
   },
   context: TContext
 ): Promise<TPRSubmissionAction | undefined> {
@@ -159,10 +164,9 @@ async function getPRAction(
       : parentBranchName !== prInfo?.base
       ? 'RESTACK'
       : !context.engine.branchMatchesRemote(args.branchName) ||
-        args.editPRFieldsInline
+        args.editTitle ||
+        args.editDescription
       ? 'CHANGE'
-      : args.draft === true && prInfo.isDraft !== true
-      ? 'DRAFT'
       : args.publish === true && prInfo.isDraft !== false
       ? 'PUBLISH'
       : 'NOOP';
@@ -173,7 +177,6 @@ async function getPRAction(
       CREATE: `▸ ${chalk.cyan(args.branchName)} (Create)`,
       RESTACK: `▸ ${chalk.cyan(args.branchName)} (New parent)`,
       CHANGE: `▸ ${chalk.cyan(args.branchName)} (Update)`,
-      DRAFT: `▸ ${chalk.blueBright(args.branchName)} (Mark as draft)`,
       PUBLISH: `▸ ${chalk.blueBright(args.branchName)} (Ready for review)`,
     }[status]
   );
@@ -194,7 +197,8 @@ async function getPRAction(
 async function getPRCreationInfo(
   args: {
     branchName: string;
-    editPRFieldsInline: boolean | undefined;
+    editTitle: boolean | undefined;
+    editDescription: boolean | undefined;
     draft: boolean;
     publish: boolean;
     reviewers: () => Promise<string[]>;
@@ -206,7 +210,7 @@ async function getPRCreationInfo(
   reviewers: string[];
   draft: boolean;
 }> {
-  if (args.editPRFieldsInline) {
+  if (args.editTitle !== false || args.editDescription !== false) {
     context.splog.newline();
     context.splog.info(
       `Enter info for new pull request for ${chalk.cyan(
@@ -221,18 +225,12 @@ async function getPRCreationInfo(
 
   try {
     submitInfo.title = await getPRTitle(
-      {
-        branchName: args.branchName,
-        editPRFieldsInline: args.editPRFieldsInline,
-      },
+      { branchName: args.branchName, editPRFieldsInline: args.editTitle },
       context
     );
 
     submitInfo.body = await getPRBody(
-      {
-        branchName: args.branchName,
-        editPRFieldsInline: args.editPRFieldsInline,
-      },
+      { branchName: args.branchName, editPRFieldsInline: args.editDescription },
       context
     );
   } finally {
@@ -259,7 +257,8 @@ async function getPRCreationInfo(
 async function getPRUpdateInfo(
   args: {
     branchName: string;
-    editPRFieldsInline: boolean | undefined;
+    editTitle: boolean | undefined;
+    editDescription: boolean | undefined;
     draft: boolean;
     publish: boolean;
     reviewers: () => Promise<string[]>;
@@ -272,7 +271,7 @@ async function getPRUpdateInfo(
   draft: boolean | undefined;
 }> {
   const submitInfo: TBranchPRInfo = {};
-  if (args.editPRFieldsInline) {
+  if (args.editTitle || args.editDescription) {
     context.splog.newline();
     context.splog.info(
       `Enter updated info for pull request for ${chalk.cyan(
@@ -283,22 +282,22 @@ async function getPRUpdateInfo(
     );
 
     try {
-      submitInfo.title = await getPRTitle(
-        {
-          branchName: args.branchName,
-          editPRFieldsInline: args.editPRFieldsInline,
-        },
-        context
-      );
-
-      const prInfo = context.engine.getPrInfo(args.branchName);
-      if (prInfo === undefined) {
-        context.splog.warn(
-          'Cannot find existing PR body; starting from scratch'
+      if (args.editTitle) {
+        submitInfo.title = await getPRTitle(
+          { branchName: args.branchName, editPRFieldsInline: true },
+          context
         );
       }
-      const body = prInfo?.body || '';
-      submitInfo.body = await editPRBody(body, context);
+
+      if (args.editDescription) {
+        const prInfo = context.engine.getPrInfo(args.branchName);
+        if (prInfo === undefined) {
+          context.splog.warn(
+            'Cannot find existing PR body; starting from scratch'
+          );
+        }
+        submitInfo.body = await editPRBody(prInfo?.body || '', context);
+      }
     } finally {
       // Save locally in case this command fails
       context.engine.upsertPrInfo(args.branchName, submitInfo);

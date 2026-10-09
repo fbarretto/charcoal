@@ -391,9 +391,11 @@ Idempotently force-push all branches from trunk to the current branch to GitHub,
 | Flag | Description |
 | --- | --- |
 | `-s`, `--stack` | Also submit the current branch's descendants, in addition to its ancestors. |
-| `-d`, `--draft` | Mark PRs as draft. In `--no-interactive` mode, new PRs are created as drafts. |
-| `-p`, `--publish` | Publish PRs (the inverse of draft). |
-| `-e`, `--edit` / `-n`, `--no-edit` | Edit PR fields inline. `--no-edit` takes precedence. |
+| `-d`, `--draft` | Create new PRs as drafts (existing PRs are left as they are). In `--no-interactive` mode, new PRs are created as drafts. |
+| `-p`, `--publish` | Publish PRs: new PRs are created ready for review, and existing drafts are marked ready. |
+| `-e`, `--edit` / `-n`, `--no-edit` | Edit the title and description of every PR (`--edit`) or none (`--no-edit`, which wins). By default only new PRs prompt. |
+| `--edit-title` / `--no-edit-title` | Prompt (or don't) for the PR title. `--edit-title` beats `--no-edit`; `--no-edit-title` beats `--edit-title` and `--edit`. |
+| `--edit-description` / `--no-edit-description` | Same, for the PR description. |
 | `-r`, `--reviewers` | Prompt for reviewers, or pass a comma-separated list. An explicit list also applies with `--no-interactive`. When a submit mixes new and existing PRs, you're asked whether the reviewers go on all of them or only the new ones. |
 | `-t`, `--team-reviewers` | Comma-separated team slugs (`slug` means the repo owner's team; `org/slug` also works). Without a value, opens the reviewers prompt. |
 | `--dry-run` | Report which PRs would be submitted, then exit. Nothing is pushed. |
