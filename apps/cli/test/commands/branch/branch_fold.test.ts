@@ -1,4 +1,11 @@
 import { expect } from 'chai';
+import fs from 'fs-extra';
+import path from 'path';
+import tmp from 'tmp';
+import {
+  readMetadataRef,
+  writeMetadataRef,
+} from '../../../src/lib/engine/metadata_ref';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
 import { expectBranches } from '../../lib/utils/expect_branches';
@@ -13,16 +20,12 @@ for (const scene of allScenes) {
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
 
       expect(() => scene.repo.runCliCommand([`fold`])).to.throw();
-      expect(() =>
-        scene.repo.runCliCommand([`fold`, `--keep`])
-      ).to.throw();
+      expect(() => scene.repo.runCliCommand([`fold`, `--keep`])).to.throw();
 
       scene.repo.runCliCommand([`down`]);
 
       expect(() => scene.repo.runCliCommand([`fold`])).to.throw();
-      expect(() =>
-        scene.repo.runCliCommand([`fold`, `--keep`])
-      ).to.throw();
+      expect(() => scene.repo.runCliCommand([`fold`, `--keep`])).to.throw();
     });
 
     it('Can fold without --keep and restack children accordingly', () => {
@@ -132,9 +135,7 @@ for (const scene of allScenes) {
     it('Re-parents siblings queued behind a conflict after continue with --keep', () => {
       buildConflictingSiblings();
 
-      expect(() =>
-        scene.repo.runCliCommand([`fold`, `--keep`])
-      ).to.throw();
+      expect(() => scene.repo.runCliCommand([`fold`, `--keep`])).to.throw();
       resolveBothConflicts();
 
       expectBranches(scene.repo, 'b, c, d, main');
@@ -144,6 +145,80 @@ for (const scene of allScenes) {
       expectCommits(scene.repo, 'd, b, a, 1');
       expectParent('c', 'b');
       expectParent('d', 'b');
+    });
+
+    function buildStackWithOffshoot(): void {
+      ['a', 'b', 'c'].forEach((b) => {
+        scene.repo.createChange(b, b);
+        scene.repo.runCliCommand([`create`, b, `-m`, b]);
+      });
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChange('d', 'd');
+      scene.repo.runCliCommand([`create`, `d`, `-m`, `d`]);
+      scene.repo.checkoutBranch('b');
+    }
+
+    it('Folds the whole stack into the bottom branch with --stack', () => {
+      buildStackWithOffshoot();
+      scene.repo.runCliCommand([`fold`, `--stack`]);
+      expect(scene.repo.currentBranchName()).to.equal('a');
+      expectBranches(scene.repo, 'a, d, main');
+      expectCommits(scene.repo, 'c, b, a, 1');
+      expectParent('d', 'a');
+      scene.repo.checkoutBranch('d');
+      expectCommits(scene.repo, 'd, c, b, a, 1');
+    });
+
+    it('Folds the whole stack into the current branch with --stack --keep', () => {
+      buildStackWithOffshoot();
+      scene.repo.runCliCommand([`fold`, `--stack`, `--keep`]);
+      expect(scene.repo.currentBranchName()).to.equal('b');
+      expectBranches(scene.repo, 'b, d, main');
+      expectCommits(scene.repo, 'c, b, a, 1');
+      expectParent('b', 'main');
+      expectParent('d', 'b');
+    });
+
+    it('Refuses --stack at a fork without a prompt', () => {
+      buildStackWithOffshoot();
+      scene.repo.checkoutBranch('a');
+      expect(() => scene.repo.runCliCommand([`fold`, `--stack`])).to.throw();
+      expectBranches(scene.repo, 'a, b, c, d, main');
+    });
+
+    it('Closes the folded-away PR with f -c', () => {
+      const binDir = tmp.dirSync().name;
+      const ghLog = path.join(binDir, 'gh.log');
+      fs.writeFileSync(
+        path.join(binDir, 'gh'),
+        `#!/bin/sh\necho "$@" >> "${ghLog}"\n`,
+        { mode: 0o755 }
+      );
+      const originalPath = process.env.PATH;
+      process.env.PATH = `${binDir}${path.delimiter}${process.env.PATH}`;
+      try {
+        scene.repo.runCliCommand([`repo`, `owner`, `--set`, `owner`]);
+        scene.repo.runCliCommand([`repo`, `name`, `--set`, `name`]);
+        ['a', 'b'].forEach((b, i) => {
+          scene.repo.createChange(b, b);
+          scene.repo.runCliCommand([`create`, b, `-m`, b]);
+          writeMetadataRef(
+            b,
+            {
+              ...readMetadataRef(b, scene.dir),
+              prInfo: { number: i + 1, state: 'OPEN' },
+            },
+            scene.dir
+          );
+        });
+        scene.repo.runCliCommand([`f`, `-c`]);
+        expectBranches(scene.repo, 'a, main');
+        expect(fs.readFileSync(ghLog, 'utf-8').trim()).to.equal(
+          'pr close 2 --repo owner/name'
+        );
+      } finally {
+        process.env.PATH = originalPath;
+      }
     });
   });
 }
