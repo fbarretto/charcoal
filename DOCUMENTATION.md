@@ -296,6 +296,8 @@ Undo the most recent Charcoal mutation (e.g. `create`, `modify`, `restack`, `del
 
 ```
 ch undo
+```
+
 ### `abort`
 Abort the most recent Charcoal command halted by a merge conflict: aborts the in-progress rebase, discards the queued continuation, and returns to the branch the command started from. Branches the command had already restacked before the conflict stay restacked.
 
