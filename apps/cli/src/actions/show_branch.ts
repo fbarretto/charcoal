@@ -63,6 +63,10 @@ export function getBranchInfo(
       context.engine.isBranchFrozen(args.branchName)
         ? chalk.blue(' (frozen)')
         : ''
+    }${
+      prInfo?.ghStackNumber
+        ? chalk.magenta(` (stack #${prInfo.ghStackNumber})`)
+        : ''
     }`,
     `${chalk.dim(
       context.engine.getAllCommits(args.branchName, 'COMMITTER_DATE')[0] ?? ''

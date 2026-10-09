@@ -131,6 +131,12 @@ function repoSettings(repo: TRepoConfig): TSetting[] {
       input: 'toggle',
       set: (v) => repo.setIsGithubIntegrationEnabled(v as boolean),
     },
+    {
+      name: 'repo github-stacks',
+      get: () => onOff(repo.getGithubStacks()),
+      input: 'toggle',
+      set: (v) => repo.setGithubStacks(v as boolean),
+    },
   ];
 }
 
