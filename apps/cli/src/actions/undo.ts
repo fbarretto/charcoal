@@ -15,6 +15,7 @@ const MAX_SNAPSHOTS = 10;
 // `submit` is excluded: undoing it locally would drop PR info for PRs that
 // still exist remotely.
 const MUTATING_COMMANDS = new Set([
+  'absorb',
   'create',
   'delete',
   'edit',
