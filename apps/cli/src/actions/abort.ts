@@ -1,7 +1,9 @@
+import chalk from 'chalk';
 import { TContext } from '../lib/context';
 import { NoGraphiteContinue } from '../lib/errors';
 import { clearContinuation } from './persist_continuation';
 import { restoreSetAsideChanges } from './restack';
+import { popUndoSnapshot, restoreUndoSnapshot } from './undo';
 
 export async function abortAction(
   opts: { force: boolean },
@@ -32,10 +34,20 @@ export async function abortAction(
   }
 
   context.engine.abortRebase();
-  const stash = context.continueConfig.data.stashToRestore;
+  const { stashToRestore: stash, undoSnapshot } = context.continueConfig.data;
+  if (undoSnapshot) {
+    restoreUndoSnapshot(undoSnapshot, context);
+    popUndoSnapshot(undoSnapshot);
+  }
   clearContinuation(context);
   if (stash) {
     restoreSetAsideChanges(stash, context);
   }
-  context.splog.info('Aborted the halted Charcoal command.');
+  context.splog.info(
+    undoSnapshot
+      ? `Aborted ${chalk.cyan(
+          `ch ${undoSnapshot.command}`
+        )} and restored the state from before it ran.`
+      : 'Aborted the halted Charcoal command.'
+  );
 }

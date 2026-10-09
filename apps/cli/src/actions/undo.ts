@@ -164,6 +164,52 @@ async function shouldProceed(
   );
 }
 
+type TRestorePlan = {
+  branchChanges: TRefChange[];
+  metadataChanges: TRefChange[];
+  checkout?: string;
+};
+
+function planRestore(snapshot: TUndoSnapshot): TRestorePlan {
+  const current = takeUndoSnapshot('undo');
+  const plan = {
+    branchChanges: diffRefs(current.branches, snapshot.branches),
+    metadataChanges: diffRefs(current.metadata, snapshot.metadata),
+    checkout:
+      snapshot.currentBranch && snapshot.currentBranch !== current.currentBranch
+        ? snapshot.currentBranch
+        : undefined,
+  };
+  return plan;
+}
+
+// Drops the top undo step if it is `snapshot` (it may not have been recorded
+// when the command changed nothing).
+export function popUndoSnapshot(snapshot: TUndoSnapshot): void {
+  const undoStack = undoStackFactory.load();
+  const top = undoStack.data.snapshots?.at(-1);
+  if (JSON.stringify(top) !== JSON.stringify(snapshot)) {
+    return;
+  }
+  undoStack.update((data) => {
+    data.snapshots = data.snapshots?.slice(0, -1);
+    if (!data.snapshots?.length) {
+      delete data.snapshots;
+    }
+  });
+}
+
+// Restores branches, metadata and the checked-out branch to `snapshot`.
+export function restoreUndoSnapshot(
+  snapshot: TUndoSnapshot,
+  context: TContext,
+  plan = planRestore(snapshot)
+): void {
+  restoreSnapshot(snapshot, plan.branchChanges, plan.metadataChanges);
+  context.engine.clear();
+  context.engine.rebuild();
+}
+
 export async function undoAction(
   { force }: { force: boolean },
   context: TContext
@@ -177,28 +223,21 @@ export async function undoAction(
   }
   uncommittedTrackedChangesPrecondition();
 
-  const undoStack = undoStackFactory.load();
-  const snapshot = undoStack.data.snapshots?.at(-1);
+  const snapshot = undoStackFactory.load().data.snapshots?.at(-1);
   if (!snapshot) {
     context.splog.info('Nothing to undo.');
     return;
   }
 
-  const current = takeUndoSnapshot('undo');
-  const branchChanges = diffRefs(current.branches, snapshot.branches);
-  const metadataChanges = diffRefs(current.metadata, snapshot.metadata);
-  const checkoutChange =
-    snapshot.currentBranch && snapshot.currentBranch !== current.currentBranch
-      ? [`check out ${chalk.cyan(snapshot.currentBranch)}`]
-      : [];
-
+  const plan = planRestore(snapshot);
+  const { branchChanges, metadataChanges, checkout } = plan;
   context.splog.info(
     `Undoing ${chalk.cyan(`ch ${snapshot.command}`)} (local state only):`
   );
   [
     ...branchChanges.map(describeBranchChange),
     ...metadataChanges.map(describeMetadataChange),
-    ...checkoutChange,
+    ...(checkout ? [`check out ${chalk.cyan(checkout)}`] : []),
   ].forEach((line) => context.splog.info(`  - ${line}`));
 
   if (!(await shouldProceed(force, context))) {
@@ -206,14 +245,7 @@ export async function undoAction(
     return;
   }
 
-  restoreSnapshot(snapshot, branchChanges, metadataChanges);
-  undoStack.update((data) => {
-    data.snapshots = data.snapshots?.slice(0, -1);
-    if (!data.snapshots?.length) {
-      delete data.snapshots;
-    }
-  });
-  context.engine.clear();
-  context.engine.rebuild();
+  restoreUndoSnapshot(snapshot, context, plan);
+  popUndoSnapshot(snapshot);
   context.splog.info(`Undid ${chalk.cyan(`ch ${snapshot.command}`)}.`);
 }

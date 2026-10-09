@@ -159,6 +159,13 @@ async function graphiteHelper(
     try {
       if (undoSnapshot) {
         recordUndoSnapshot(undoSnapshot);
+        if (context.continueConfig.data.rebasedBranchBase) {
+          // Halted on a conflict: `ch abort` restores this state.
+          const snapshot = undoSnapshot;
+          context.continueConfig.update((data) => {
+            data.undoSnapshot = snapshot;
+          });
+        }
       }
     } catch {
       context.splog.debug(`Failed to record undo snapshot`);

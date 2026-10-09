@@ -1,5 +1,6 @@
 import * as t from '@withgraphite/retype';
 import { spiffy } from './spiffy';
+import { undoSnapshotSchema } from './undo_spf';
 
 /**
  * After Graphite is interrupted by a merge conflict, upon continuing, there
@@ -20,6 +21,7 @@ import { spiffy } from './spiffy';
  * children keep a valid parent until they move off it.
  * stashToRestore is a stash commit (kept alive under refs/charcoal/stash/)
  * whose `part` is reapplied once the command finishes or aborts.
+ * undoSnapshot is the state before the halted command; `ch abort` restores it.
  */
 const ContinueSchema = t.shape({
   branchesToSync: t.array(t.string),
@@ -34,6 +36,7 @@ const ContinueSchema = t.shape({
   ),
   currentBranchOverride: t.optional(t.string),
   rebasedBranchBase: t.optional(t.string),
+  undoSnapshot: t.optional(undoSnapshotSchema),
 });
 
 export const continueConfigFactory = spiffy({
