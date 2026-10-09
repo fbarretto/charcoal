@@ -58,6 +58,22 @@ for (const scene of [new CloneScene()]) {
         .filter((c) => c.startsWith('pr create'))
         .map((c) => / --head (\S+)/.exec(c)?.[1]);
 
+    it('the default `ss` alias submits the whole stack', () => {
+      scene.repo.checkoutBranch('a');
+      scene.repo.runCliCommandAndGetOutput([`ss`, `--no-interactive`]);
+      expect(created()).to.deep.equal(['a', 'b']);
+    });
+
+    it('`ss --no-stack` submits only downstack', () => {
+      scene.repo.checkoutBranch('a');
+      scene.repo.runCliCommandAndGetOutput([
+        `ss`,
+        `--no-stack`,
+        `--no-interactive`,
+      ]);
+      expect(created()).to.deep.equal(['a']);
+    });
+
     it('submits from --branch instead of the current branch', () => {
       submit(`--branch`, `a`);
       expect(created()).to.deep.equal(['a']);
