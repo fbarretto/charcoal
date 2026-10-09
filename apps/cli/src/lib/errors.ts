@@ -84,10 +84,10 @@ export class BlockedDuringRebaseError extends Error {
   constructor() {
     super(
       [
-        `This operation is blocked during a rebase.`,
-        `You may still use git directly, and continue with ${chalk.cyan(
+        `This command is blocked while a rebase is in progress.`,
+        `Resolve the conflict and run ${chalk.cyan(
           'ch continue'
-        )}.`,
+        )}, or run ${chalk.cyan('ch abort')} to undo the halted command.`,
       ].join('\n')
     );
     this.name = 'BlockedDuringRebase';
