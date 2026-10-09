@@ -160,14 +160,17 @@ function deleteBranches(branchNames: string[], context: TContext): void {
   });
 }
 
-function openPrNumbers(branchNames: string[], context: TContext): number[] {
+export function openPrNumbers(
+  branchNames: string[],
+  context: TContext
+): number[] {
   return branchNames.flatMap((b) => {
     const prInfo = context.engine.getPrInfo(b);
     return prInfo?.number && prInfo.state === 'OPEN' ? [prInfo.number] : [];
   });
 }
 
-function closePr(prNumber: number, context: TContext): void {
+export function closePr(prNumber: number, context: TContext): void {
   try {
     execFileSync(
       'gh',
