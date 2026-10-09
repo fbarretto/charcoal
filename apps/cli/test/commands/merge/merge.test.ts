@@ -25,13 +25,27 @@ const merge = (n) => {
   git('commit', '-qm', branch + ' (#' + n + ')');
 };
 const [cmd, sub, id] = args;
+// Retargeting a PR resets its mergeability to UNKNOWN until a later view.
+const unknownPath = process.env.FAKE_GH_LOG + '.unknown';
+const unknown = () => (fs.existsSync(unknownPath) ? fs.readFileSync(unknownPath, 'utf-8').split(',') : []);
+const setUnknown = (ids) => fs.writeFileSync(unknownPath, ids.join(','));
 if (cmd === 'pr' && sub === 'merge') {
   if (stacked) fail('GraphQL: This pull request is part of a stack and must be merged using the asynchronous merge REST API.');
-  if (id === process.env.FAKE_GH_FAIL) fail('GraphQL: Pull Request is not mergeable');
+  if (id === process.env.FAKE_GH_FAIL || unknown().includes(id)) fail('GraphQL: Pull Request is not mergeable');
   merge(Number(id));
   process.exit(0);
 }
 if (cmd === 'pr' && sub === 'edit' && stacked) fail('GraphQL: Cannot change the base branch because the pull request is part of a stack.');
+if (cmd === 'pr' && sub === 'edit') { setUnknown([...unknown(), id]); process.exit(0); }
+if (cmd === 'pr' && sub === 'view') {
+  const pending = unknown().includes(id);
+  setUnknown(unknown().filter((u) => u !== id));
+  const blocked = id === process.env.FAKE_GH_BLOCKED;
+  out(pending
+    ? { mergeable: 'UNKNOWN', mergeStateStatus: 'UNKNOWN' }
+    : { mergeable: 'MERGEABLE', mergeStateStatus: blocked ? 'BLOCKED' : 'CLEAN' });
+  process.exit(0);
+}
 if (cmd === 'pr') process.exit(0);
 if (cmd === 'api' && sub.includes('/stacks?pull_request=')) {
   if (!stacked) fail('gh: Not Found (HTTP 404)');
@@ -84,6 +98,7 @@ for (const scene of [new CloneScene()]) {
       process.env.PATH = originalPath;
       delete process.env.FAKE_GH_FAIL;
       delete process.env.FAKE_GH_STACK;
+      delete process.env.FAKE_GH_BLOCKED;
     });
 
     const setPrNumbers = (branches: string[]) =>
@@ -127,8 +142,12 @@ for (const scene of [new CloneScene()]) {
         'api repos/owner/name/stacks?pull_request=1',
         'pr merge 1 --repo owner/name --squash',
         'pr edit 2 --repo owner/name --base main',
+        'pr view 2 --repo owner/name --json mergeable,mergeStateStatus',
+        'pr view 2 --repo owner/name --json mergeable,mergeStateStatus',
         'pr merge 2 --repo owner/name --squash',
         'pr edit 3 --repo owner/name --base main',
+        'pr view 3 --repo owner/name --json mergeable,mergeStateStatus',
+        'pr view 3 --repo owner/name --json mergeable,mergeStateStatus',
         'pr merge 3 --repo owner/name --squash',
       ]);
       const log = (range: string) =>
@@ -169,8 +188,19 @@ for (const scene of [new CloneScene()]) {
         'api repos/owner/name/stacks?pull_request=1',
         'pr merge 1 --repo owner/name --squash',
         'pr edit 2 --repo owner/name --base main',
+        'pr view 2 --repo owner/name --json mergeable,mergeStateStatus',
+        'pr view 2 --repo owner/name --json mergeable,mergeStateStatus',
         'pr merge 2 --repo owner/name --squash',
       ]);
+    });
+
+    it('Stops with a clear message when a PR is blocked', () => {
+      setPrNumbers(['a', 'b', 'c']);
+      process.env.FAKE_GH_BLOCKED = '2';
+      expect(() => scene.repo.runCliCommand([`merge`])).to.throw(
+        /#2 is blocked by required checks or reviews/
+      );
+      expect(ghCalls()).not.to.contain('pr merge 2 --repo owner/name --squash');
     });
 
     it('Merges a GitHub stack through the async merge API', () => {
