@@ -789,7 +789,7 @@ export function composeEngine({
       const branchName = getCurrentBranchOrThrow();
       const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
       assertNotFrozen(branchName);
-      git.commit({ ...opts, noVerify });
+      git.commit({ ...opts, noVerify: noVerify || !!opts.noVerify });
       cache.branches[branchName] = {
         ...cachedMeta,
         branchRevision: git.getShaOrThrow(branchName),
