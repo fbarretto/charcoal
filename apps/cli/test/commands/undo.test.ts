@@ -30,6 +30,19 @@ for (const scene of allScenes) {
       ).to.equal('');
     });
 
+    it('Removes a branch created by create --onto and returns to the original branch', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.checkoutBranch('main');
+      scene.repo.createChange('c', 'c');
+      scene.repo.runCliCommand([`create`, `c`, `-m`, `c`, `--onto`, `a`]);
+      expectBranches(scene.repo, 'a, c, main');
+
+      scene.repo.runCliCommand([`undo`, `-f`]);
+      expectBranches(scene.repo, 'a, main');
+      expect(scene.repo.currentBranchName()).to.equal('main');
+    });
+
     it('Restores the previous sha and the restacked children after modify', () => {
       scene.repo.createChange('a', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
