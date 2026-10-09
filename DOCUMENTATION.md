@@ -124,7 +124,7 @@ ch edit
 ```
 
 ### `split` (alias `sp`)
-Split the current branch into multiple single-commit branches.
+Split the current branch into multiple branches. With no flag, a branch with one commit goes straight to `--by-hunk`; otherwise it asks for a strategy (by commit, by hunk, or by file, which then asks for the pathspecs). New branch names are suggested from their commit messages, as `ch create` would name them (for `--by-commit`, the oldest commit of each new branch). Git hooks don't run on the commits split creates.
 
 | Flag | Description |
 | --- | --- |

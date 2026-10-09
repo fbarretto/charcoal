@@ -8,6 +8,7 @@ export type TCommitOpts = {
   patch?: boolean;
   verbose?: number;
   resetAuthor?: boolean;
+  noVerify?: boolean;
 };
 export function commit(opts: TCommitOpts & { noVerify: boolean }): void {
   runGitCommand({
