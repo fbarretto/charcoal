@@ -87,6 +87,22 @@ for (const scene of allScenes) {
       expect(scene.repo.runCliCommandAndGetOutput([`info`])).to.contain('main');
     });
 
+    it('Brings back every branch deleted by delete --upstack', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      const bSha = scene.repo.getRef('refs/heads/b');
+
+      scene.repo.runCliCommand([`delete`, `a`, `--upstack`, `-f`]);
+      expectBranches(scene.repo, 'main');
+
+      scene.repo.runCliCommand([`undo`, `-f`]);
+      expectBranches(scene.repo, 'a, b, main');
+      expect(scene.repo.getRef('refs/heads/b')).to.equal(bSha);
+      expect(scene.repo.currentBranchName()).to.equal('b');
+    });
+
     it('Steps back twice with two undos', () => {
       scene.repo.createChange('a', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
