@@ -46,7 +46,10 @@ export function newBranchName(
       ).slice(-2)}-`
     : '';
 
-  const branchMessage = replaceUnsupportedCharacters(commitMessage, context);
+  const branchMessage = replaceUnsupportedCharacters(
+    commitMessage.split('\n')[0],
+    context
+  );
 
   // https://stackoverflow.com/questions/60045157/what-is-the-maximum-length-of-a-github-branch-name
   // GitHub's max branch name size is computed based on a maximum ref name length of 256 bytes.
