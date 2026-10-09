@@ -36,6 +36,30 @@ for (const scene of allScenes) {
       expectCommits(scene.repo, '4, 3.5, 3, 2.5, 2, 1.5, 1');
     });
 
+    it('Refuses with a precondition message when there are uncommitted changes to restack over', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChangeAndAmend('a2', 'a');
+      const bBefore = scene.repo.getRef('refs/heads/b');
+      scene.repo.createChange('staged', 'staged');
+
+      expect(() => scene.repo.runCliCommand(['restack'])).to.throw(
+        'tracked changes that have not been committed'
+      );
+      expect(scene.repo.getRef('refs/heads/b')).to.equal(bBefore);
+      expect(scene.repo.rebaseInProgress()).to.be.false;
+    });
+
+    it('Allows uncommitted changes when nothing needs restacking', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('staged', 'staged');
+      scene.repo.runCliCommand(['restack']);
+    });
+
     it('Can handle merge conflicts', () => {
       scene.repo.createChange('2');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `2`]);
@@ -46,9 +70,7 @@ for (const scene of allScenes) {
       scene.repo.checkoutBranch('main');
       scene.repo.createChangeAndCommit('1.5');
 
-      expect(() =>
-        scene.repo.runCliCommand(['restack', '-q'])
-      ).to.throw();
+      expect(() => scene.repo.runCliCommand(['restack', '-q'])).to.throw();
       expect(scene.repo.rebaseInProgress()).to.eq(true);
 
       scene.repo.resolveMergeConflicts();

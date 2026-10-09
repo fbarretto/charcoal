@@ -1,6 +1,7 @@
 import yargs from 'yargs';
 import { restackBranches } from '../actions/restack';
 import { SCOPE } from '../lib/engine/scope_spec';
+import { uncommittedTrackedChangesPrecondition } from '../lib/preconditions';
 import { graphite } from '../lib/runner';
 
 const args = {
@@ -44,11 +45,13 @@ export const handler = async (argv: argsT): Promise<void> =>
       : argv.downstack
       ? SCOPE.DOWNSTACK
       : SCOPE.STACK;
-    return restackBranches(
-      context.engine.getRelativeStack(
-        argv.branch ?? context.engine.currentBranchPrecondition,
-        scope
-      ),
-      context
+    const branches = context.engine.getRelativeStack(
+      argv.branch ?? context.engine.currentBranchPrecondition,
+      scope
     );
+    // git rebase refuses to run over uncommitted changes.
+    if (branches.some((b) => !context.engine.isBranchFixed(b))) {
+      uncommittedTrackedChangesPrecondition();
+    }
+    return restackBranches(branches, context);
   });
