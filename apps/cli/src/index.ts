@@ -10,6 +10,7 @@ import { getYargsInput } from './lib/pre-yargs/preprocess_command';
 import { registerCommands } from './lib/register_commands';
 import { registerCompletion } from './commands/completion';
 
+import * as abort from './commands/abort';
 import * as auth from './commands/auth';
 import * as bottom from './commands/bottom';
 import * as checkout from './commands/checkout';
@@ -70,6 +71,7 @@ process.on('uncaughtException', (err) => {
 // Registered explicitly (not via `.commandDir()`) so the command modules are
 // bundled into the single-file binary built with `bun build --compile`.
 const commandModules = [
+  abort,
   auth,
   bottom,
   checkout,
