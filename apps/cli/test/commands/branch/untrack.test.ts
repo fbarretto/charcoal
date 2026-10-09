@@ -29,7 +29,7 @@ for (const scene of allScenes) {
       // can't navigate to an untracked branch
       scene.repo.checkoutBranch('a');
       expectCommits(scene.repo, 'a, 1');
-      scene.repo.runCliCommand([`up`]);
+      expect(() => scene.repo.runCliCommand([`up`])).to.throw();
       expectCommits(scene.repo, 'a, 1');
     });
 
