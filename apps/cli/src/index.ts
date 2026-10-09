@@ -46,6 +46,7 @@ import * as test from './commands/test';
 import * as top from './commands/top';
 import * as track from './commands/track';
 import * as undo from './commands/undo';
+import * as trunk from './commands/trunk';
 import * as untrack from './commands/untrack';
 import * as up from './commands/up';
 import * as user from './commands/user';
@@ -105,6 +106,7 @@ const commandModules = [
   top,
   track,
   undo,
+  trunk,
   untrack,
   up,
   user,

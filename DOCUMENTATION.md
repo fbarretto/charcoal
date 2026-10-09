@@ -440,6 +440,13 @@ Print the current branch's children, one per line.
 ch children
 ```
 
+### `trunk`
+Print the trunk branch name.
+
+```
+ch trunk
+```
+
 ---
 
 ## Config
