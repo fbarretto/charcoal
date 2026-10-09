@@ -36,7 +36,28 @@ export async function mergeAction(
   if (opts.dryRun) {
     return;
   }
-  if (opts.confirm && context.interactive && !(await confirm(context))) {
+  await context.engine.populateRemoteShas();
+  const diverged = prs
+    .map(({ branch }) => branch)
+    .filter((branch) => !context.engine.branchMatchesRemote(branch));
+  if (diverged.length) {
+    context.splog.warn(
+      `Local branches differ from remote: ${diverged
+        .map((b) => chalk.yellow(b))
+        .join(', ')}. GitHub merges the remote version; run ${chalk.cyan(
+        'ch submit'
+      )} first to merge your local changes.`
+    );
+    if (!context.interactive) {
+      throw new ExitFailedError('Aborting non-interactive merge.');
+    }
+  }
+  // Like gt, divergence asks for confirmation even without --confirm.
+  if (
+    (opts.confirm || diverged.length) &&
+    context.interactive &&
+    !(await confirm(context))
+  ) {
     throw new KilledError();
   }
   uncommittedTrackedChangesPrecondition();

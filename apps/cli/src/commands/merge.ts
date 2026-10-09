@@ -10,7 +10,7 @@ const args = {
     type: 'boolean',
   },
   confirm: {
-    describe: `Ask for confirmation before merging.`,
+    describe: `Ask for confirmation before merging. Merge always asks if local branches differ from remote.`,
     demandOption: false,
     default: false,
     type: 'boolean',
@@ -34,6 +34,7 @@ type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
 export const command = 'merge';
 export const canonical = 'merge';
+export const aliases = ['mg'];
 export const description =
   'Merge the PRs from trunk to the current branch, bottom-up, via gh.';
 export const builder = args;
