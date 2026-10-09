@@ -33,7 +33,17 @@ if (args[0] === 'pr' && args[1] === 'create') {
   console.log(url(n));
   process.exit(0);
 }
-if (args[0] === 'pr' && args[1] === 'edit') process.exit(0);
+if (args[0] === 'pr' && args[1] === 'edit') {
+  if (args.includes('--base')) {
+    const pr = Object.values(st.prs).find((p) => p.headRefName === args[2] || String(p.number) === args[2]);
+    if (st.stacks.some((s) => s.prs.includes(pr.number))) {
+      fail('GraphQL: Cannot change the base branch because the pull request is part of a stack. (updatePullRequest)');
+    }
+    pr.baseRefName = flag('--base');
+    save();
+  }
+  process.exit(0);
+}
 if (args[0] === 'api') {
   const input = args.includes('--input') ? fs.readFileSync(0, 'utf-8') : '';
   fs.appendFileSync(logPath, [...args, input].join(' ').trim() + '\\n');
@@ -69,7 +79,7 @@ fail('fake gh: unexpected ' + args.join(' '));
 `;
 
 type TState = {
-  prs: Record<string, { number: number }>;
+  prs: Record<string, { number: number; baseRefName?: string; state?: string }>;
   nextPr: number;
   stacks: { number: number; prs: number[] }[];
   nextStack: number;
@@ -185,6 +195,38 @@ for (const scene of [new CloneScene()]) {
         CREATE([1, 2]),
       ]);
       expect(readState().stacks).to.deep.equal([{ number: 100, prs: [1, 2] }]);
+    });
+
+    it('unstacks before changing the base of a stacked PR, then relinks', () => {
+      submit();
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChange('ins', 'ins');
+      scene.repo.runCliCommand([`create`, `ins`, `-m`, `ins`, `--insert`]);
+      const output = submit(`--stack`);
+      expect(apiCalls()).to.deep.equal([
+        GET(2),
+        'api repos/owner/name/stacks/100/unstack --method POST',
+        GET(1),
+        CREATE([1, 3, 2]),
+      ]);
+      expect(readState().prs['b'].baseRefName).to.equal('ins');
+      expect(output).to.contain('Unstacked GitHub stack #100');
+      expect(scene.repo.runCliCommandAndGetOutput([`ls`])).to.match(
+        / a \(stack #101\)/
+      );
+    });
+
+    it('fails before pushing when GitHub keeps a retargeted PR stacked', () => {
+      submit();
+      editState((s) => (s.queued = [2]));
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChange('ins', 'ins');
+      scene.repo.runCliCommand([`create`, `ins`, `-m`, `ins`, `--insert`]);
+      fs.rmSync(logPath, { force: true });
+      expect(() =>
+        scene.repo.runCliCommand([`submit`, `--no-interactive`, `--stack`])
+      ).to.throw(/nothing was pushed\. GitHub kept #2 stacked/);
+      expect(prOf('ins')).to.equal(undefined);
     });
 
     it('makes no call for a single-PR chain', () => {

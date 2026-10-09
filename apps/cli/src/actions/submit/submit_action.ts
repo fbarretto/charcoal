@@ -12,8 +12,8 @@ import { ExitFailedError, KilledError } from '../../lib/errors';
 import { CommandFailedError } from '../../lib/git/runner';
 import { getPRInfoForBranches } from './prepare_branches';
 import { validateBranchesToSubmit } from './validate_branches';
-import { submitPullRequest } from './submit_prs';
-import { linkGithubStack } from './link_gh_stack';
+import { submitPullRequest, TPRSubmissionInfo } from './submit_prs';
+import { linkGithubStack, unstackForRetarget } from './link_gh_stack';
 import {
   createPrBodyFooter,
   footerFooter,
@@ -103,8 +103,9 @@ export async function submitAction(
       await openPrInBrowser(prNumber, githubRepoSlug(context));
     }
   };
+  let unstacked = false;
   const linkStack = () => {
-    if (args.ghStack ?? context.repoConfig.getGithubStacks()) {
+    if (unstacked || (args.ghStack ?? context.repoConfig.getGithubStacks())) {
       linkGithubStack(currentBranch, context);
     }
   };
@@ -182,33 +183,14 @@ export async function submitAction(
     return;
   }
 
-  context.splog.info(
-    chalk.blueBright('📨 Pushing to remote and creating/updating PRs...')
-  );
-
-  for (const submissionInfo of submissionInfos) {
-    try {
-      context.engine.pushBranch(submissionInfo.head, args.forcePush);
-    } catch (err) {
-      if (
-        err instanceof CommandFailedError &&
-        err.message.includes('stale info')
-      ) {
-        throw new ExitFailedError(
-          [
-            `Force-with-lease push of ${chalk.yellow(
-              submissionInfo.head
-            )} failed due to external changes to the remote branch.`,
-            'If you are collaborating on this stack, try `ch get` to pull in changes.',
-            'Alternatively, use the `--force` option of this command to bypass the stale info warning.',
-          ].join('\n')
-        );
-      }
-      throw err;
+  unstacked = unstackForRetarget(submissionInfos, context);
+  try {
+    await pushAndSubmit(submissionInfos, args, context);
+  } catch (err) {
+    if (unstacked) {
+      linkStack(); // best effort: don't leave the dissolved stack unlinked
     }
-
-    await submitPullRequest([submissionInfo], context);
-    await afterSubmit(submissionInfo, args, context);
+    throw err;
   }
 
   context.splog.info(
@@ -258,6 +240,40 @@ export async function submitAction(
 
   linkStack();
   await viewPr();
+}
+
+async function pushAndSubmit(
+  submissionInfos: TPRSubmissionInfo,
+  args: { forcePush: boolean } & Parameters<typeof afterSubmit>[1],
+  context: TContext
+): Promise<void> {
+  context.splog.info(
+    chalk.blueBright('📨 Pushing to remote and creating/updating PRs...')
+  );
+  for (const submissionInfo of submissionInfos) {
+    try {
+      context.engine.pushBranch(submissionInfo.head, args.forcePush);
+    } catch (err) {
+      if (
+        err instanceof CommandFailedError &&
+        err.message.includes('stale info')
+      ) {
+        throw new ExitFailedError(
+          [
+            `Force-with-lease push of ${chalk.yellow(
+              submissionInfo.head
+            )} failed due to external changes to the remote branch.`,
+            'If you are collaborating on this stack, try `ch get` to pull in changes.',
+            'Alternatively, use the `--force` option of this command to bypass the stale info warning.',
+          ].join('\n')
+        );
+      }
+      throw err;
+    }
+
+    await submitPullRequest([submissionInfo], context);
+    await afterSubmit(submissionInfo, args, context);
+  }
 }
 
 async function afterSubmit(
