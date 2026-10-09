@@ -32,11 +32,25 @@ const setUnknown = (ids) => fs.writeFileSync(unknownPath, ids.join(','));
 if (cmd === 'pr' && sub === 'merge') {
   if (stacked) fail('GraphQL: This pull request is part of a stack and must be merged using the asynchronous merge REST API.');
   if (id === process.env.FAKE_GH_FAIL || unknown().includes(id)) fail('GraphQL: Pull Request is not mergeable');
+  // FAKE_GH_BASE_MODIFIED: GitHub's own retarget lands after mergeability
+  // was computed, so the first merge attempt is refused.
+  const modified = process.env.FAKE_GH_LOG + '.modified';
+  if (id === process.env.FAKE_GH_BASE_MODIFIED && !fs.existsSync(modified)) {
+    fs.writeFileSync(modified, '');
+    fail('GraphQL: Base branch was modified. Review and try the merge again. (mergePullRequest)');
+  }
   merge(Number(id));
   process.exit(0);
 }
 if (cmd === 'pr' && sub === 'edit' && stacked) fail('GraphQL: Cannot change the base branch because the pull request is part of a stack.');
+// FAKE_GH_RETARGETED: GitHub already retargeted the PR when its base branch
+// was deleted on merge, and refuses a redundant base edit.
+if (cmd === 'pr' && sub === 'edit' && process.env.FAKE_GH_RETARGETED) {
+  setUnknown([...unknown(), id]);
+  fail("GraphQL: A pull request already exists for base branch 'main' and head branch '" + 'abc'[id - 1] + "' (updatePullRequest)");
+}
 if (cmd === 'pr' && sub === 'edit') { setUnknown([...unknown(), id]); process.exit(0); }
+if (cmd === 'pr' && sub === 'view' && args.includes('baseRefName')) { out({ baseRefName: 'main' }); process.exit(0); }
 if (cmd === 'pr' && sub === 'view') {
   const pending = unknown().includes(id);
   setUnknown(unknown().filter((u) => u !== id));
@@ -99,6 +113,8 @@ for (const scene of [new CloneScene()]) {
       delete process.env.FAKE_GH_FAIL;
       delete process.env.FAKE_GH_STACK;
       delete process.env.FAKE_GH_BLOCKED;
+      delete process.env.FAKE_GH_RETARGETED;
+      delete process.env.FAKE_GH_BASE_MODIFIED;
     });
 
     const setPrNumbers = (branches: string[]) =>
@@ -192,6 +208,27 @@ for (const scene of [new CloneScene()]) {
         'pr view 2 --repo owner/name --json mergeable,mergeStateStatus',
         'pr merge 2 --repo owner/name --squash',
       ]);
+    });
+
+    it('Carries on when GitHub already retargeted the next PR', () => {
+      setPrNumbers(['a', 'b', 'c']);
+      process.env.FAKE_GH_RETARGETED = '1';
+      scene.repo.runCliCommand([`merge`]);
+      expect(
+        scene.originRepo.runGitCommandAndGetOutput([`log`, `--format=%s`, `-3`])
+      ).to.equal('c (#3)\nb (#2)\na (#1)');
+    });
+
+    it('Retries a merge GitHub refuses because the base just changed', () => {
+      setPrNumbers(['a', 'b', 'c']);
+      process.env.FAKE_GH_BASE_MODIFIED = '2';
+      scene.repo.runCliCommand([`merge`]);
+      expect(
+        ghCalls().filter((c) => c === 'pr merge 2 --repo owner/name --squash')
+      ).to.have.length(2);
+      expect(
+        scene.originRepo.runGitCommandAndGetOutput([`log`, `--format=%s`, `-3`])
+      ).to.equal('c (#3)\nb (#2)\na (#1)');
     });
 
     it('Stops with a clear message when a PR is blocked', () => {

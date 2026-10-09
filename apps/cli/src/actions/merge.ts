@@ -9,7 +9,12 @@ import {
   TGhStack,
 } from '../lib/api/gh_stacks';
 import { githubRepoSlug } from '../lib/api/github_repo';
-import { getPrMergeState, mergePr, setPrBase } from '../lib/api/pr_info';
+import {
+  getPrBase,
+  getPrMergeState,
+  mergePr,
+  setPrBase,
+} from '../lib/api/pr_info';
 import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
 import {
@@ -92,17 +97,16 @@ export async function mergeAction(
       }
       context.engine.setParent(branch, trunk);
       restackBranches([branch], context);
-      await setPrBase(number, repo, trunk);
+      await retarget(number, repo, trunk);
       context.engine.pushBranch(branch, false);
     }
     try {
+      const mergeOpts = { method: opts.method, auto: opts.auto };
       if (i > 0) {
-        await waitUntilMergeable(number, repo);
+        await mergeAfterRetarget(number, repo, mergeOpts);
+      } else {
+        await mergePr(number, repo, mergeOpts);
       }
-      await mergePr(number, repo, {
-        method: opts.method,
-        auto: opts.auto,
-      });
     } catch (e) {
       const rest = prs.slice(i + 1).map((pr) => `#${pr.number}`);
       context.splog.error(
@@ -218,6 +222,44 @@ async function mergeStack(
   }
 }
 
+// GitHub can still refuse with "Base branch was modified" when its own
+// retarget lands after mergeability was computed; wait again and retry.
+async function mergeAfterRetarget(
+  number: number,
+  repo: string,
+  opts: { method: 'squash' | 'merge' | 'rebase'; auto: boolean }
+): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    await waitUntilMergeable(number, repo);
+    try {
+      return await mergePr(number, repo, opts);
+    } catch (err) {
+      const baseModified =
+        err instanceof Error && /Base branch was modified/.test(err.message);
+      if (!baseModified || attempt === 3) {
+        throw err;
+      }
+      await sleep(attempt * 2000); // let GitHub's retarget settle
+    }
+  }
+}
+
+// With delete-branch-on-merge, GitHub retargets the next PR itself once its
+// base branch is deleted, and then refuses the same edit from us.
+async function retarget(
+  number: number,
+  repo: string,
+  base: string
+): Promise<void> {
+  try {
+    await setPrBase(number, repo, base);
+  } catch (err) {
+    if ((await getPrBase(number, repo)) !== base) {
+      throw err;
+    }
+  }
+}
+
 // Right after a retarget and push GitHub reports mergeability as UNKNOWN
 // while it recomputes, and refuses to merge until it knows.
 async function waitUntilMergeable(number: number, repo: string): Promise<void> {
@@ -248,6 +290,8 @@ const STACK_MERGE_TIMEOUT_MS = 5 * 60 * 1000;
 
 const prList = (prs: number[]) => prs.map((n) => `#${n}`).join(', ');
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // Polls `get` with exponential backoff (1s doubling, capped at 10s) until
 // `done` or the timeout, returning the last value either way.
 async function poll<T>(
@@ -261,7 +305,7 @@ async function poll<T>(
     if (done(value) || Date.now() + delay > deadline) {
       return value;
     }
-    await new Promise((resolve) => setTimeout(resolve, delay));
+    await sleep(delay);
   }
 }
 
