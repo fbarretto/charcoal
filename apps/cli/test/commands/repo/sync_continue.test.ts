@@ -9,7 +9,7 @@ import { fakeGitSquashAndMerge } from '../../lib/utils/fake_squash_and_merge';
 
 for (const scene of allScenes) {
   // eslint-disable-next-line max-lines-per-function
-  describe(`(${scene}): repo sync continue`, function () {
+  describe(`(${scene}): sync conflicts`, function () {
     configureTest(this, scene);
 
     beforeEach(() => {
@@ -42,7 +42,15 @@ for (const scene of allScenes) {
       nock.restore();
     });
 
-    it('Can continue a repo sync with one merge conflict', async () => {
+    // gt's sync restacks what it can and lists conflicting branches for
+    // `restack` instead of stopping in conflict resolution.
+    const syncListingConflicts = () =>
+      scene.repo
+        .runCliCommandAndGetOutput([`sync`, `-f`, `--no-pull`])
+        // eslint-disable-next-line no-control-regex
+        .replace(/\u001b\[[0-9;]*m/g, '');
+
+    it('Leaves a conflicting branch for `restack` and lists it', async () => {
       scene.repo.checkoutBranch('main');
       scene.repo.createChange('a', 'file_with_no_merge_conflict_a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
@@ -71,15 +79,14 @@ for (const scene of allScenes) {
       fakeGitSquashAndMerge(scene.repo, 'd', 'squash');
       fakeGitSquashAndMerge(scene.repo, 'e', 'squash');
 
-      expect(() =>
-        scene.repo.runCliCommand([
-          `repo`,
-          `sync`,
-          `-f`,
-          `--no-pull`,
-          `--restack`,
-        ])
-      ).to.throw();
+      expect(syncListingConflicts()).to.match(
+        /restacked cleanly, except for:\n▸ c\n/
+      );
+      expect(scene.repo.rebaseInProgress()).to.be.false;
+      expectBranches(scene.repo, 'c, main');
+
+      scene.repo.checkoutBranch('c');
+      expect(() => scene.repo.runCliCommand([`restack`])).to.throw();
       expect(scene.repo.rebaseInProgress()).to.be.true;
 
       scene.repo.resolveMergeConflicts();
@@ -87,9 +94,10 @@ for (const scene of allScenes) {
       scene.repo.runCliCommand(['continue']);
 
       expectBranches(scene.repo, 'c, main');
+      expect(scene.repo.runCliCommandAndGetOutput([`parent`])).to.equal('main');
     });
 
-    it('Can continue a repo sync with multiple merge conflicts', () => {
+    it('Leaves a conflicting stack for `restack`, which continues through it', () => {
       scene.repo.checkoutBranch('main');
       scene.repo.createChange('a', 'file_with_no_merge_conflict_a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
@@ -119,15 +127,13 @@ for (const scene of allScenes) {
       fakeGitSquashAndMerge(scene.repo, 'e', 'squash');
       fakeGitSquashAndMerge(scene.repo, 'f', 'squash');
 
-      expect(() =>
-        scene.repo.runCliCommand([
-          `repo`,
-          `sync`,
-          `-f`,
-          `--no-pull`,
-          `--restack`,
-        ])
-      ).to.throw();
+      expect(syncListingConflicts()).to.match(
+        /restacked cleanly, except for:\n▸ c\n/
+      );
+      expect(scene.repo.rebaseInProgress()).to.be.false;
+
+      scene.repo.checkoutBranch('c');
+      expect(() => scene.repo.runCliCommand([`restack`])).to.throw();
       expect(scene.repo.rebaseInProgress()).to.be.true;
 
       scene.repo.resolveMergeConflicts();

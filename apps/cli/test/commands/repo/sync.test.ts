@@ -120,19 +120,41 @@ for (const scene of allScenes) {
       expectBranches(scene.repo, 'a, b, main');
 
       fakeGitSquashAndMerge(scene.repo, 'a', 'squash');
-      scene.repo.runCliCommand([
-        `repo`,
-        `sync`,
-        `-f`,
-        `--no-pull`,
-        `--restack`,
-      ]);
+      // Restacking is on by default.
+      scene.repo.runCliCommand([`sync`, `-f`, `--no-pull`]);
 
       expectBranches(scene.repo, 'b, main');
       expectCommits(scene.repo, 'squash, 1');
 
       scene.repo.checkoutBranch('b');
       expectCommits(scene.repo, 'b, squash, 1');
+    });
+
+    it('Leaves branches unrestacked with --no-restack', () => {
+      scene.repo.createChange('2', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('3', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      fakeGitSquashAndMerge(scene.repo, 'a', 'squash');
+
+      scene.repo.runCliCommand([`sync`, `-f`, `--no-pull`, `--no-restack`]);
+
+      expectBranches(scene.repo, 'b, main');
+      scene.repo.checkoutBranch('b');
+      expectCommits(scene.repo, 'b, a, 1');
+    });
+
+    it('Deletes merged branches without prompting with -d (--delete-all)', () => {
+      scene.repo.createChange('2', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      fakeGitSquashAndMerge(scene.repo, 'a', 'squash');
+
+      // Non-interactive without -d/-f can't ask, so nothing is deleted.
+      scene.repo.runCliCommand([`sync`, `--no-pull`]);
+      expectBranches(scene.repo, 'a, main');
+
+      scene.repo.runCliCommand([`sync`, `-d`, `--no-pull`]);
+      expectBranches(scene.repo, 'main');
     });
 
     it('Can delete two branches off a three-stack', async () => {
