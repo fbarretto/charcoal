@@ -458,6 +458,18 @@ ch unlink
 ch unlink feature-x
 ```
 
+### `unstack`
+Dissolve the GitHub stack that contains the current branch's PR. The PRs and local branches are untouched; GitHub keeps PRs that are queued for merge or have auto-merge enabled stacked, and `unstack` lists them. Asks for confirmation unless `--force` or `--no-interactive`. Remote-only, so it isn't undoable with `ch undo` (the next `submit` re-links the stack unless `--no-gh-stack` is passed).
+
+| Flag | Description |
+| --- | --- |
+| `-f`, `--force` | Don't ask for confirmation. |
+
+```
+ch unstack
+ch unstack -f
+```
+
 ---
 
 ## Collaborate

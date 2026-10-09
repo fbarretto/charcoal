@@ -240,5 +240,26 @@ for (const scene of [new CloneScene()]) {
       expect(apiCalls()).to.deep.equal([GET(a), CREATE([a, c, d])]);
       expect(output).to.contain('linked a → c → d and left out b');
     });
+
+    it('`ch unstack` dissolves the stack and reports PRs GitHub kept', () => {
+      submit();
+      editState((s) => (s.queued = [1]));
+      fs.rmSync(logPath, { force: true });
+      const output = scene.repo.runCliCommandAndGetOutput([`unstack`, `-f`]);
+      expect(apiCalls()).to.deep.equal([
+        GET(2),
+        'api repos/owner/name/stacks/100/unstack --method POST',
+      ]);
+      expect(output).to.contain('GitHub kept #1 stacked');
+      expect(scene.repo.runCliCommandAndGetOutput([`ls`])).not.to.contain(
+        'stack #'
+      );
+
+      editState((s) => (s.queued = []));
+      scene.repo.checkoutBranch('a');
+      expect(
+        scene.repo.runCliCommandAndGetOutput([`unstack`, `--no-interactive`])
+      ).to.contain('Dissolved GitHub stack #100');
+    });
   });
 }
