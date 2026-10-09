@@ -19,7 +19,8 @@ import { execFileSync } from 'child_process';
 export async function submitAction(
   args: {
     scope: TScopeSpec;
-    editPRFieldsInline: boolean | undefined;
+    editTitle: boolean | undefined;
+    editDescription: boolean | undefined;
     draft: boolean;
     publish: boolean;
     dryRun: boolean;
@@ -49,14 +50,14 @@ export async function submitAction(
       )
     );
     context.splog.newline();
-    args.editPRFieldsInline = false;
+    args.editTitle = args.editDescription = false;
   }
 
   if (args.teamReviewers === '' && args.reviewers === undefined) {
     args.reviewers = ''; // a bare -t opens the reviewers prompt, like gt
   }
   if (!context.interactive) {
-    args.editPRFieldsInline = false;
+    args.editTitle = args.editDescription = false;
     if (args.reviewers === '') {
       args.reviewers = undefined; // can't prompt; explicit lists still apply
     }
@@ -119,7 +120,8 @@ export async function submitAction(
   const submissionInfos = await getPRInfoForBranches(
     {
       branchNames: branchNames,
-      editPRFieldsInline: args.editPRFieldsInline && context.interactive,
+      editTitle: args.editTitle,
+      editDescription: args.editDescription,
       draft: args.draft,
       publish: args.publish,
       updateOnly: args.updateOnly,

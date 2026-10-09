@@ -44,7 +44,8 @@ describe(`(${scene}): correctly get PR information for branches`, function () {
       getPRInfoForBranches(
         {
           branchNames: ['a'],
-          editPRFieldsInline: true,
+          editTitle: true,
+          editDescription: true,
           draft: false,
           publish: true,
           updateOnly: false,
