@@ -57,6 +57,7 @@ import * as undo from './commands/undo';
 import * as trunk from './commands/trunk';
 import * as unfreeze from './commands/unfreeze';
 import * as unlink from './commands/unlink';
+import * as unstack from './commands/unstack';
 import * as untrack from './commands/untrack';
 import * as up from './commands/up';
 import * as user from './commands/user';
@@ -127,6 +128,7 @@ const commandModules = [
   trunk,
   unfreeze,
   unlink,
+  unstack,
   untrack,
   up,
   user,
