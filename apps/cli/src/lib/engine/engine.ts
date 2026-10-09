@@ -102,6 +102,7 @@ export type TEngine = {
     branchPoints: number[];
   }) => void;
   forceCheckoutBranch: (branchToSplit: string) => void;
+  setBranchRevision: (branchName: string, sha: string) => void;
 
   restackBranch: (branchName: string) =>
     | {
@@ -827,6 +828,11 @@ export function composeEngine({
       }
       cache.currentBranch = lastBranch.name;
       git.switchBranch(lastBranch.name);
+    },
+    setBranchRevision: (branchName: string, sha: string) => {
+      const cachedMeta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      git.forceCreateBranch(branchName, sha);
+      cache.branches[branchName] = { ...cachedMeta, branchRevision: sha };
     },
     forceCheckoutBranch: (branchToSplit: string) => {
       git.switchBranch(branchToSplit, { force: true });

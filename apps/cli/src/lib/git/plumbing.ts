@@ -140,3 +140,35 @@ export function commitTree({
 export function detachAt(rev: string): void {
   git(['switch', '-q', '--detach', rev]);
 }
+
+// Throws if the patch doesn't apply cleanly to `rev`'s tree.
+export function treeWithPatch(rev: string, patch: string): string {
+  return withTempIndex(rev, (indexGit) => {
+    indexGit(['apply', '--cached'], { input: patch, atRoot: true });
+    return indexGit(['write-tree']);
+  });
+}
+
+export function getStagedPatch(): string {
+  return git(['diff', '--cached', '--binary', '--no-ext-diff'], {
+    noTrim: true,
+  });
+}
+
+export function getUnstagedPatch(): string {
+  return git(['diff', '--binary', '--no-ext-diff'], { noTrim: true });
+}
+
+export function applyToWorkingTree(patch: string): void {
+  git(['apply'], { input: patch, atRoot: true });
+}
+
+// A stash commit of the index + working tree that isn't put on the stash
+// stack; empty string when there is nothing to save.
+export function createStashCommit(): string {
+  return git(['stash', 'create']);
+}
+
+export function hardResetToHead(): void {
+  git(['reset', '--hard', '-q', 'HEAD']);
+}
