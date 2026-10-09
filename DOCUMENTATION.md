@@ -451,10 +451,13 @@ ch unfreeze teammate-branch
 ### `get` (alias `g`)
 Get branches from trunk to the specified branch from remote, prompting to resolve conflicts. With no argument, gets downstack from the current branch. Useful for pulling a teammate's stack.
 
+Fetched branches are [frozen](#freeze) by default, so you can stack on top of them without rewriting them. A frozen local branch that differs from remote is overwritten with the remote version, without prompting.
+
 | Flag | Description |
 | --- | --- |
 | `[branch]` | Positional: branch to fetch down to. |
 | `-f`, `--force` | Overwrite all fetched branches with the remote source of truth. |
+| `-U`, `--unfrozen` | Don't freeze the fetched branches. Branches that are already frozen stay frozen. |
 
 ```
 ch get teammate-branch

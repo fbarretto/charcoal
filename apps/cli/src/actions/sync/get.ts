@@ -12,7 +12,7 @@ import { persistContinuation } from '../persist_continuation';
 import { printConflictStatus } from '../print_conflict_status';
 
 export async function getAction(
-  args: { branchName: string | undefined; force: boolean },
+  args: { branchName: string | undefined; force: boolean; unfrozen: boolean },
   context: TContext
 ): Promise<void> {
   const trunk = context.engine.trunk;
@@ -67,7 +67,7 @@ export async function getAction(
   }
 
   await getBranchesFromRemote(
-    { downstack, base: trunk, force: args.force },
+    { downstack, base: trunk, force: args.force, freeze: !args.unfrozen },
     context
   );
 
@@ -110,7 +110,7 @@ function prFieldOrThrow(
 }
 
 export async function getBranchesFromRemote(
-  args: { downstack: string[]; base: string; force: boolean },
+  args: { downstack: string[]; base: string; force: boolean; freeze: boolean },
   context: TContext
 ): Promise<void> {
   let parentBranchName = args.base;
@@ -127,12 +127,19 @@ export async function getBranchesFromRemote(
       await handleDifferentParents(branchName, parentBranchName, context);
     } else if (context.engine.branchMatchesFetched(branchName)) {
       context.splog.info(`${chalk.cyan(branchName)} is up to date.`);
+    } else if (context.engine.isBranchFrozen(branchName)) {
+      // A frozen branch has no local changes of ours to keep.
+      context.engine.checkoutBranchFromFetched(branchName, parentBranchName);
+      context.splog.info(`Synced ${chalk.cyan(branchName)} from remote.`);
     } else {
       const remainingBranchesToSync = args.downstack.slice(index + 1);
       await handleSameParent(
         { branchName, parentBranchName, remainingBranchesToSync },
         context
       );
+    }
+    if (args.freeze) {
+      context.engine.setBranchFrozen(branchName, true);
     }
     parentBranchName = branchName;
   }

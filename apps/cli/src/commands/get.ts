@@ -17,6 +17,14 @@ const args = {
     default: false,
     alias: 'f',
   },
+  unfrozen: {
+    describe:
+      'Leave fetched branches unfrozen, so you can modify them locally. By default, `get` freezes the branches it fetches.',
+    demandOption: false,
+    type: 'boolean',
+    default: false,
+    alias: 'U',
+  },
 } as const;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
@@ -31,5 +39,12 @@ export const handler = async (argv: argsT): Promise<void> =>
     argv,
     canonical,
     async (context) =>
-      await getAction({ branchName: argv.branch, force: argv.force }, context)
+      await getAction(
+        {
+          branchName: argv.branch,
+          force: argv.force,
+          unfrozen: argv.unfrozen,
+        },
+        context
+      )
   );

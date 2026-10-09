@@ -1,5 +1,7 @@
 import { expect, use } from 'chai';
+import { getBranchesFromRemote } from '../../src/actions/sync/get';
 import { syncAction } from '../../src/actions/sync/sync';
+import { readMetadataRef } from '../../src/lib/engine/metadata_ref';
 import { composeGit } from '../../src/lib/git/git';
 import { initContext, initContextLite } from '../../src/lib/context';
 import { CloneScene } from '../lib/scenes/clone_scene';
@@ -126,6 +128,48 @@ for (const scene of [new CloneScene()]) {
       expect(scene.repo.getRef('refs/heads/main')).to.equal(
         scene.originRepo.getRef('refs/heads/main')
       );
+    });
+
+    it('get freezes fetched branches unless asked not to', async () => {
+      for (const b of ['t', 'u']) {
+        scene.originRepo.createAndCheckoutBranch(b);
+        scene.originRepo.createChangeAndCommit(b, b);
+      }
+      scene.originRepo.checkoutBranch('main');
+
+      await getBranchesFromRemote(
+        { downstack: ['t'], base: 'main', force: false, freeze: true },
+        cloneContext()
+      );
+      await getBranchesFromRemote(
+        { downstack: ['u'], base: 't', force: false, freeze: false },
+        cloneContext()
+      );
+      expect(readMetadataRef('t', scene.dir).frozen).to.equal(true);
+      expect(readMetadataRef('u', scene.dir).frozen).to.equal(undefined);
+    });
+
+    it('get overwrites a frozen branch that diverged from remote', async () => {
+      scene.originRepo.createAndCheckoutBranch('t');
+      scene.originRepo.createChangeAndCommit('t', 't');
+      await getBranchesFromRemote(
+        { downstack: ['t'], base: 'main', force: false, freeze: true },
+        cloneContext()
+      );
+
+      scene.originRepo.createChangeAndCommit('t2', 't');
+      scene.repo.checkoutBranch('t');
+      scene.repo.createChangeAndCommit('local', 'local');
+      scene.repo.checkoutBranch('main');
+
+      await getBranchesFromRemote(
+        { downstack: ['t'], base: 'main', force: false, freeze: true },
+        cloneContext()
+      );
+      expect(scene.repo.getRef('refs/heads/t')).to.equal(
+        scene.originRepo.getRef('refs/heads/t')
+      );
+      expect(readMetadataRef('t', scene.dir).frozen).to.equal(true);
     });
 
     it('get errors clearly when a branch cannot be traced to trunk', () => {

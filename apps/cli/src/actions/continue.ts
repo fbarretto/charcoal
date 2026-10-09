@@ -50,6 +50,7 @@ export async function continueAction(
         downstack: branchesToSync,
         base: context.engine.currentBranchPrecondition,
         force: false,
+        freeze: false,
       },
       context
     );
