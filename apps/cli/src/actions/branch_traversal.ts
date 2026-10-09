@@ -76,12 +76,11 @@ async function traverseBranches(
       return await traverseUpward(fromBranchName, context);
     }
     case 'UP': {
-      return await traverseUpward(
-        fromBranchName,
-        context,
-        branchNavigation.numSteps > 1 ? branchNavigation.numSteps : 1,
-        branchNavigation.to
-      );
+      return await traverseUpward(fromBranchName, context, {
+        stepsRemaining:
+          branchNavigation.numSteps > 1 ? branchNavigation.numSteps : 1,
+        to: branchNavigation.to,
+      });
     }
   }
 }
@@ -110,8 +109,9 @@ function traverseDownward(
 async function traverseUpward(
   currentBranchName: string,
   context: TContext,
-  stepsRemaining: number | 'top' = 'top',
-  to?: string
+  { stepsRemaining, to }: { stepsRemaining: number | 'top'; to?: string } = {
+    stepsRemaining: 'top',
+  }
 ): Promise<string> {
   if (stepsRemaining === 0) {
     return currentBranchName;
@@ -130,15 +130,16 @@ async function traverseUpward(
       ? children[0]
       : towardTo || (await handleMultipleChildren(children, context));
   context.splog.info('⮑  ' + childBranchName);
-  return await traverseUpward(
-    childBranchName,
-    context,
-    stepsRemaining === 'top' ? 'top' : stepsRemaining - 1,
-    to
-  );
+  return await traverseUpward(childBranchName, context, {
+    stepsRemaining: stepsRemaining === 'top' ? 'top' : stepsRemaining - 1,
+    to,
+  });
 }
 
-async function handleMultipleChildren(children: string[], context: TContext) {
+export async function handleMultipleChildren(
+  children: string[],
+  context: TContext
+): Promise<string> {
   if (!context.interactive) {
     throw new ExitFailedError(
       `Cannot get upstack branch in non-interactive mode; multiple choices available:\n${children.join(

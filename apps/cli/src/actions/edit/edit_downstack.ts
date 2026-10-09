@@ -1,17 +1,18 @@
 import { TContext } from '../../lib/context';
 import { SCOPE } from '../../lib/engine/scope_spec';
 import { performInTmpDir } from '../../lib/utils/perform_in_tmp_dir';
+import { handleMultipleChildren } from '../branch_traversal';
 import { restackBranches } from '../restack';
 import { createStackEditFile, parseEditFile } from './stack_edit_file';
 
 export async function editDownstack(
-  inputPath: string | undefined,
+  opts: { inputPath: string | undefined; stack?: boolean },
   context: TContext
 ): Promise<void> {
   // First, reorder the parent pointers of the branches
-  const branchNames = inputPath
-    ? parseEditFile(inputPath) // allow users to pass a pre-written file, mostly for unit tests.
-    : await promptForEdit(context);
+  const branchNames = opts.inputPath
+    ? parseEditFile(opts.inputPath) // allow users to pass a pre-written file, mostly for unit tests.
+    : await promptForEdit(opts.stack ?? false, context);
   reorderBranches(context.engine.trunk, branchNames, context);
 
   // Restack starting from the bottom of the new stack upwards
@@ -38,11 +39,26 @@ function reorderBranches(
   reorderBranches(branchNames[0], branchNames.slice(1), context);
 }
 
-async function promptForEdit(context: TContext): Promise<string[]> {
+async function promptForEdit(
+  stack: boolean,
+  context: TContext
+): Promise<string[]> {
   const branchNames = context.engine.getRelativeStack(
     context.engine.currentBranchPrecondition,
     SCOPE.DOWNSTACK
   );
+  // --stack: extend through the tip that `top` would select.
+  for (let tip = context.engine.currentBranchPrecondition; stack; ) {
+    const children = context.engine.getChildren(tip);
+    if (!children.length) {
+      break;
+    }
+    tip =
+      children.length === 1
+        ? children[0]
+        : await handleMultipleChildren(children, context);
+    branchNames.push(tip);
+  }
   return performInTmpDir((tmpDir) => {
     const editFilePath = createStackEditFile({ branchNames, tmpDir }, context);
     context.userConfig.execEditor(editFilePath);

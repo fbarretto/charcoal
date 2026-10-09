@@ -9,6 +9,11 @@ const args = {
     hidden: true,
     type: 'string',
   },
+  stack: {
+    describe: `Include every upstack branch through the tip that \`ch top\` would select. Prompts if ambiguous.`,
+    demandOption: false,
+    type: 'boolean',
+  },
 } as const;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
@@ -21,6 +26,6 @@ export const aliases = ['ro'];
 
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {
-    await editDownstack(argv.input, context);
+    await editDownstack({ inputPath: argv.input, stack: argv.stack }, context);
   });
 };

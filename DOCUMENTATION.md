@@ -279,10 +279,15 @@ ch move --only --source b --onto main
 ```
 
 ### `reorder` (alias `ro`)
-Reorder the branches between trunk and the current branch, restacking all descendants. Opens an interactive editor.
+Reorder the branches between trunk and the current branch, restacking all descendants. Opens an interactive editor listing one branch per line, with trunk shown at the bottom for orientation.
+
+| Flag | Description |
+| --- | --- |
+| `--stack` | Also include every upstack branch through the tip that `ch top` would select. Prompts if ambiguous. |
 
 ```
 ch reorder
+ch reorder --stack
 ```
 
 ### `track` (alias `tr`)
