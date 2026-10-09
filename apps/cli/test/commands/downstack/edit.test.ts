@@ -66,5 +66,49 @@ for (const scene of [new BasicScene()]) {
         expectCommits(scene.repo, '2, 3, 1');
       });
     });
+
+    it('Shows the downstack, plus the upstack path with --stack, in the editor', () => {
+      scene.repo.createChange('2', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `2`]);
+      scene.repo.createChange('3', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `3`]);
+      scene.repo.createChange('4', 'c');
+      scene.repo.runCliCommand([`create`, `c`, `-m`, `4`]);
+      scene.repo.checkoutBranch('b');
+
+      performInTmpDir((dirPath) => {
+        const captured = path.join(dirPath, 'captured');
+        // Leaves the file unchanged (a no-op reorder) and keeps a copy.
+        const editor = `sh -c 'cp "$0" ${captured}'`;
+        const runReorder = (args: string[]) => {
+          const old = process.env.CH_EDITOR;
+          process.env.CH_EDITOR = editor;
+          try {
+            scene.repo.runCliCommand([`reorder`, ...args]);
+          } finally {
+            if (old === undefined) {
+              delete process.env.CH_EDITOR;
+            } else {
+              process.env.CH_EDITOR = old;
+            }
+          }
+          return fs.readFileSync(captured).toString().split('\n');
+        };
+
+        expect(runReorder([]).slice(0, 3)).to.deep.equal([
+          'b',
+          'a',
+          '# main (trunk, shown for orientation)',
+        ]);
+        scene.repo.checkoutBranch('b');
+        expect(runReorder([`--stack`]).slice(0, 4)).to.deep.equal([
+          'c',
+          'b',
+          'a',
+          '# main (trunk, shown for orientation)',
+        ]);
+      });
+      expectCommits(scene.repo, '4, 3, 2, 1');
+    });
   });
 }
