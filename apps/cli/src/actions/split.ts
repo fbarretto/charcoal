@@ -3,6 +3,16 @@ import { GRAPHITE_COLORS } from '../lib/colors';
 import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
 import { KilledError, PreconditionsFailedError } from '../lib/errors';
+import {
+  commitTree,
+  detachAt,
+  getChangedPaths,
+  getCommitAuthorEnv,
+  getCommitMessage,
+  getTree,
+  indexInfoFrom,
+  treeWithIndexInfo,
+} from '../lib/git/plumbing';
 import { uncommittedTrackedChangesPrecondition } from '../lib/preconditions';
 import { replaceUnsupportedCharacters } from '../lib/utils/branch_name';
 import { clearPromptResultLine } from '../lib/utils/prompts_helpers';
@@ -21,9 +31,12 @@ type TSplit = {
   branchPoints: number[];
 };
 export async function splitCurrentBranch(
-  args: { style: 'hunk' | 'commit' | undefined },
+  args: { style: 'hunk' | 'commit' | undefined; byFile?: string[] },
   context: TContext
 ): Promise<void> {
+  if (args.byFile?.length) {
+    return splitByFile(args.byFile, context);
+  }
   if (!context.interactive) {
     throw new PreconditionsFailedError(
       'This command must be run in interactive mode.'
@@ -72,8 +85,14 @@ export async function splitCurrentBranch(
     },
   };
 
-  const split = await actions[style](branchToSplit, context);
+  applySplit(
+    branchToSplit,
+    await actions[style](branchToSplit, context),
+    context
+  );
+}
 
+function applySplit(branchToSplit: string, split: TSplit, context: TContext) {
   const children = context.engine.getRelativeStack(
     branchToSplit,
     SCOPE.UPSTACK_EXCLUSIVE
@@ -85,6 +104,101 @@ export async function splitCurrentBranch(
   });
 
   restackBranches(children, context);
+}
+
+// Moves the changes to the matched files into a new branch inserted below the
+// current one. The current branch keeps its commits (minus those files, and
+// minus commits left empty) and ends at the same tree it started with.
+async function splitByFile(
+  pathspecs: string[],
+  context: TContext
+): Promise<void> {
+  uncommittedTrackedChangesPrecondition();
+  const branchToSplit = context.engine.currentBranchPrecondition;
+  if (!context.engine.isBranchTracked(branchToSplit)) {
+    await trackBranch(
+      { branchName: branchToSplit, parentBranchName: undefined, force: false },
+      context
+    );
+  }
+
+  const base = context.engine.getBaseRevision(branchToSplit);
+  const head = context.engine.getRevision(branchToSplit);
+  const paths = getChangedPaths(base, head, pathspecs);
+  if (paths.length === 0) {
+    throw new PreconditionsFailedError(
+      `No changes in ${chalk.cyan(branchToSplit)} match ${pathspecs.join(' ')}.`
+    );
+  }
+
+  const fromHead = indexInfoFrom(head, paths);
+  const splitOff = commitTree({
+    tree: treeWithIndexInfo(base, fromHead),
+    parents: [base],
+    message: context.engine
+      .getAllCommits(branchToSplit, 'MESSAGE')
+      .reverse()
+      .join('\n\n'),
+  });
+
+  // Replay each commit with the matched files pinned to their final version,
+  // so only the remaining changes show up in the current branch's history.
+  let tip = splitOff;
+  let remainingCommits = 0;
+  for (const sha of context.engine
+    .getAllCommits(branchToSplit, 'SHA')
+    .reverse()) {
+    const tree = treeWithIndexInfo(sha, fromHead);
+    if (tree !== getTree(tip)) {
+      tip = commitTree({
+        tree,
+        parents: [tip],
+        message: getCommitMessage(sha),
+        authorEnv: getCommitAuthorEnv(sha),
+      });
+      remainingCommits++;
+    }
+  }
+  if (remainingCommits === 0) {
+    throw new PreconditionsFailedError(
+      `Every change in ${chalk.cyan(
+        branchToSplit
+      )} matches; nothing would remain. Use \`ch create --insert\` or \`ch rename\` instead.`
+    );
+  }
+  const newBranchName = context.interactive
+    ? await promptNextBranchName(
+        { branchNames: [branchToSplit], branchToSplit },
+        context
+      )
+    : getUniqueSplitBranchName(branchToSplit, context);
+
+  // Same tree as the current checkout, so this never touches the work tree.
+  detachAt(tip);
+  applySplit(
+    branchToSplit,
+    {
+      branchNames: [newBranchName, branchToSplit],
+      branchPoints: [0, remainingCommits],
+    },
+    context
+  );
+  context.splog.info(
+    `Split ${chalk.green(paths.length)} file(s) from ${chalk.cyan(
+      branchToSplit
+    )} into ${chalk.green(newBranchName)}.`
+  );
+}
+
+function getUniqueSplitBranchName(
+  branchToSplit: string,
+  context: TContext
+): string {
+  let name = `${branchToSplit}_split`;
+  while (context.engine.allBranchNames.includes(name)) {
+    name = `${name}_split`;
+  }
+  return name;
 }
 
 async function splitByCommit(
