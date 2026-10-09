@@ -125,6 +125,18 @@ const args = {
     default: false,
     alias: 'v',
   },
+  restack: {
+    describe:
+      'Restack branches before submitting. Branches that would conflict are left as they are and listed.',
+    type: 'boolean',
+    default: false,
+  },
+  'ignore-out-of-sync-trunk': {
+    describe:
+      'Submit even if the trunk branch is out of sync with its remote. This can lead to incorrect PR bases.',
+    type: 'boolean',
+    default: false,
+  },
   cli: {
     describe:
       'Edit PR metadata via the CLI. Always the case in Charcoal; accepted for gt compatibility.',
@@ -172,6 +184,8 @@ export const handler = async (argv: argsT): Promise<void> => {
         mergeWhenReady: argv['merge-when-ready'],
         rerequestReview: argv['rerequest-review'],
         view: argv.view,
+        restack: argv.restack,
+        ignoreOutOfSyncTrunk: argv['ignore-out-of-sync-trunk'],
       },
       context
     );

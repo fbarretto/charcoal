@@ -142,3 +142,44 @@ export async function pullTrunk(
     throw new KilledError();
   }
 }
+
+// Restacks every branch that rebases cleanly and leaves the rest, conflicts
+// aborted, for `ch restack` (gt's sync/get/submit --restack). Returns those.
+export function restackWithoutConflicts(
+  branchNames: string[],
+  context: TContext
+): string[] {
+  const conflicted: string[] = [];
+  for (const branchName of branchNames) {
+    if (
+      context.engine.isTrunk(branchName) ||
+      context.engine.isBranchFrozen(branchName)
+    ) {
+      continue;
+    }
+    const result = context.engine.restackBranch(branchName).result;
+    if (result === 'REBASE_CONFLICT') {
+      context.engine.abortRebase();
+      conflicted.push(branchName);
+    } else if (result === 'REBASE_DONE') {
+      context.splog.info(
+        `Restacked ${chalk.green(branchName)} on ${chalk.cyan(
+          context.engine.getParentPrecondition(branchName)
+        )}.`
+      );
+    }
+  }
+  if (conflicted.length) {
+    context.splog.warn(
+      [
+        'All branches restacked cleanly, except for:',
+        ...conflicted.map(
+          (b) =>
+            `▸ ${b}${b === context.engine.currentBranch ? ' (current)' : ''}`
+        ),
+        `You can fix these conflicts with ${chalk.cyan('ch restack')}.`,
+      ].join('\n')
+    );
+  }
+  return conflicted;
+}
