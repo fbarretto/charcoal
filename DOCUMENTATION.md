@@ -204,18 +204,20 @@ ch co my-branch
 ```
 
 ### `up` (alias `u`)
-Switch to the child of the current branch. Prompts if ambiguous.
+Switch to the child of the current branch. Prompts if ambiguous. Exits non-zero if the current branch has no children.
 
 | Flag | Description |
 | --- | --- |
 | `[steps]` / `-n`, `--steps` | Number of levels to traverse upstack (default 1). |
+| `--to` | Target branch. When multiple children exist, follow the path leading to this branch instead of prompting. Must be upstack of the current branch. |
 
 ```
 ch up 2
+ch up --to feature-c
 ```
 
 ### `down` (alias `d`)
-Switch to the parent of the current branch.
+Switch to the parent of the current branch. Exits non-zero on trunk.
 
 | Flag | Description |
 | --- | --- |

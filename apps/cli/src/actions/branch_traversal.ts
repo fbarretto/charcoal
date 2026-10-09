@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import { TContext } from '../lib/context';
+import { SCOPE } from '../lib/engine/scope_spec';
 import { ExitFailedError } from '../lib/errors';
 import { suggest } from '../lib/utils/prompts_helpers';
 import { checkoutBranch } from './checkout_branch';
@@ -8,6 +9,7 @@ type TBranchNavigation =
   | {
       direction: 'UP' | 'DOWN';
       numSteps: number;
+      to?: string;
     }
   | { direction: 'TOP' | 'BOTTOM' };
 export async function switchBranchAction(
@@ -15,6 +17,19 @@ export async function switchBranchAction(
   context: TContext
 ): Promise<void> {
   const currentBranchName = context.engine.currentBranchPrecondition;
+  if (
+    'to' in branchNavigation &&
+    branchNavigation.to &&
+    !context.engine
+      .getRelativeStack(currentBranchName, SCOPE.UPSTACK_EXCLUSIVE)
+      .includes(branchNavigation.to)
+  ) {
+    throw new ExitFailedError(
+      `${chalk.yellow(branchNavigation.to)} is not upstack of ${chalk.yellow(
+        currentBranchName
+      )}.`
+    );
+  }
   context.splog.info(chalk.blueBright(currentBranchName));
   const newBranchName = await traverseBranches(
     branchNavigation,
@@ -25,14 +40,20 @@ export async function switchBranchAction(
     await checkoutBranch({ branchName: newBranchName }, context);
     return;
   }
-  context.splog.info(
-    `Already at the ${
-      branchNavigation.direction === 'DOWN' ||
-      branchNavigation.direction === 'BOTTOM'
-        ? 'bottom most'
-        : 'top most'
-    } branch in the stack.`
-  );
+  const message = `Already at the ${
+    branchNavigation.direction === 'DOWN' ||
+    branchNavigation.direction === 'BOTTOM'
+      ? 'bottom most'
+      : 'top most'
+  } branch in the stack.`;
+  // gt exits non-zero when up/down can't move; top/bottom stay a no-op.
+  if (
+    branchNavigation.direction === 'UP' ||
+    branchNavigation.direction === 'DOWN'
+  ) {
+    throw new ExitFailedError(message);
+  }
+  context.splog.info(message);
 }
 
 async function traverseBranches(
@@ -58,7 +79,8 @@ async function traverseBranches(
       return await traverseUpward(
         fromBranchName,
         context,
-        branchNavigation.numSteps > 1 ? branchNavigation.numSteps : 1
+        branchNavigation.numSteps > 1 ? branchNavigation.numSteps : 1,
+        branchNavigation.to
       );
     }
   }
@@ -88,7 +110,8 @@ function traverseDownward(
 async function traverseUpward(
   currentBranchName: string,
   context: TContext,
-  stepsRemaining: number | 'top' = 'top'
+  stepsRemaining: number | 'top' = 'top',
+  to?: string
 ): Promise<string> {
   if (stepsRemaining === 0) {
     return currentBranchName;
@@ -97,15 +120,21 @@ async function traverseUpward(
   if (children.length === 0) {
     return currentBranchName;
   }
+  const towardTo =
+    to &&
+    children.find((c) =>
+      context.engine.getRelativeStack(c, SCOPE.UPSTACK).includes(to)
+    );
   const childBranchName =
     children.length === 1
       ? children[0]
-      : await handleMultipleChildren(children, context);
+      : towardTo || (await handleMultipleChildren(children, context));
   context.splog.info('⮑  ' + childBranchName);
   return await traverseUpward(
     childBranchName,
     context,
-    stepsRemaining === 'top' ? 'top' : stepsRemaining - 1
+    stepsRemaining === 'top' ? 'top' : stepsRemaining - 1,
+    to
   );
 }
 

@@ -10,6 +10,11 @@ const args = {
     type: 'number',
     alias: 'n',
   },
+  to: {
+    describe: `Target branch to navigate towards. When multiple children exist, selects the path leading to this branch.`,
+    demandOption: false,
+    type: 'string',
+  },
 } as const;
 
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
@@ -29,6 +34,7 @@ export const handler = async (argv: argsT): Promise<void> =>
         {
           direction: 'UP',
           numSteps: argv.steps,
+          to: argv.to,
         },
         context
       )
