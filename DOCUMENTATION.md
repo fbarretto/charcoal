@@ -379,7 +379,7 @@ ch undo
 ```
 
 ### `abort`
-Abort the most recent Charcoal command halted by a merge conflict: aborts the in-progress rebase, discards the queued continuation, and returns to the branch the command started from. Branches the command had already restacked before the conflict stay restacked.
+Abort the most recent Charcoal command halted by a merge conflict: aborts the in-progress rebase, discards the queued continuation, and restores the repository to its state before that command ran (every branch it had already restacked, its metadata, and the checked-out branch). The aborted command is dropped from the undo history, so `ch undo` right after `ch abort` undoes the command before it.
 
 | Flag | Description |
 | --- | --- |
