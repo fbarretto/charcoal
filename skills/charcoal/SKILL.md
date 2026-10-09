@@ -83,7 +83,7 @@ ch init --trunk main    # once per repo
 | `submit` while local trunk differs from remote                  | fails ("Aborting non-interactive submit")    | `ch sync` first, or `--ignore-out-of-sync-trunk`                 |
 | `submit` with an empty or already-merged branch in range        | fails                                        | delete it, or `ch sync`                                          |
 | `sync` when trunk can't fast-forward                            | fails, hints `--force`                       | `-f` (resets local trunk to remote)                              |
-| `sync` finding merged/closed branches                           | keeps them                                   | `-d` (delete all) or `-f`                                        |
+| `sync` finding merged/closed branches                           | keeps them, naming each one                  | `-d` (delete all) or `-f`                                        |
 | `merge` when a local branch differs from its remote             | refuses                                      | `ch submit` first                                                |
 | `get` when a local branch diverged from remote                  | aborts                                       | `-f` (take remote)                                               |
 
