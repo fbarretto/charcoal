@@ -287,6 +287,17 @@ Continue the most recent Charcoal command halted by a merge conflict (e.g. durin
 ch continue -a
 ```
 
+### `undo`
+Undo the most recent Charcoal mutation (e.g. `create`, `modify`, `restack`, `delete`, `sync`) by restoring every local branch, its Charcoal metadata, and the previously checked-out branch. Prints what will change and asks for confirmation. Run it again to step further back (the last 10 mutations are kept). Only local state is restored: remote branches and PRs are not touched, and `submit` is not undoable. Refuses while a rebase is in progress or with uncommitted tracked changes.
+
+| Flag | Description |
+| --- | --- |
+| `-f`, `--force` | Undo without asking for confirmation. |
+
+```
+ch undo
+```
+
 ---
 
 ## Submit & sync
