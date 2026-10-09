@@ -291,18 +291,19 @@ ch reorder --stack
 ```
 
 ### `track` (alias `tr`)
-Start tracking the current (or provided) branch with Charcoal by selecting its parent. Also used to fix corrupted Charcoal metadata.
+Start tracking the current (or provided) branch with Charcoal by selecting its parent. Also used to fix corrupted Charcoal metadata (an already-tracked branch is re-tracked).
+
+The parent prompt lists every branch in the branch's git history (tracked or not, nearest first), each with the number of commits that would go into the tracked branch. If the chosen parent is itself untracked, Charcoal tracks it next, repeating until it reaches a tracked branch or trunk, so running `ch track` from the tip of an untracked chain tracks the whole chain. In non-interactive mode, a choice between several parents fails unless `--parent` or `--force` is given.
 
 | Flag | Description |
 | --- | --- |
 | `[branch]` | Positional: branch to track. |
-| `-p`, `--parent` | The tracked branch's parent. If unset, prompts. |
-| `-f`, `--force` | Set the parent to the most recent tracked ancestor. Takes precedence over `--parent`. |
-| `-d`, `--downstack` | Track a chain of untracked branches downstack, from the current branch down to the first tracked branch. |
+| `-p`, `--parent` | The tracked branch's parent. Tracks only this one branch. |
+| `-f`, `--force` | Pick the nearest ancestor of each branch as its parent, without prompting. Takes precedence over `--parent`. |
 
 ```
 ch track -p main
-ch track --downstack
+ch track -f      # track an untracked chain, nearest ancestor each time
 ```
 
 ### `untrack` (aliases `utr`, `ut`)
@@ -628,7 +629,7 @@ User-defined command aliases, kept in `.graphite_aliases` next to your user conf
 | Flag | Description |
 | --- | --- |
 | `--reset` | Remove all aliases. |
-| `--legacy` | Add the pre-v1.0 noun-verb shortcuts, mapped to the flat commands that replaced them (`bc` → `create`, `bco` → `checkout`, `bu`/`bd` → `up`/`down`, `ca` → `modify`, `cc` → `modify --commit`, `ss` → `submit --stack`, `dss` → `submit`, `sr` → `restack`, `br` → `restack --only`, `usr`/`dsr` → `restack --upstack`/`--downstack`, `uso` → `move`, `dse` → `reorder`, `dstr` → `track --downstack`, `rs` → `repo sync`, and the rest of the `b*`, `ds*`, `us*` family). Aliases you already defined are kept. Old shortcuts with no flat equivalent (`bs`, `uss`) are not included. |
+| `--legacy` | Add the pre-v1.0 noun-verb shortcuts, mapped to the flat commands that replaced them (`bc` → `create`, `bco` → `checkout`, `bu`/`bd` → `up`/`down`, `ca` → `modify`, `cc` → `modify --commit`, `ss` → `submit --stack`, `dss` → `submit`, `sr` → `restack`, `br` → `restack --only`, `usr`/`dsr` → `restack --upstack`/`--downstack`, `uso` → `move`, `dse` → `reorder`, `dstr` → `track --downstack` (now the default; `--downstack` is accepted as a no-op), `rs` → `repo sync`, and the rest of the `b*`, `ds*`, `us*` family). Aliases you already defined are kept. Old shortcuts with no flat equivalent (`bs`, `uss`) are not included. |
 
 ```
 ch aliases

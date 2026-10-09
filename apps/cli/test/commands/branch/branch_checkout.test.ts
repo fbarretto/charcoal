@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { checkoutBranch } from '../../../src/actions/checkout_branch';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
-import { captureSelectorChoices } from '../../lib/utils/capture_prompts';
+import { capturePrompts, choiceValues } from '../../lib/utils/capture_prompts';
 
 for (const scene of allScenes) {
   describe(`(${scene}): branch checkout`, function () {
@@ -35,18 +35,18 @@ for (const scene of allScenes) {
       scene.repo.runCliCommand([`create`, `c`, `-m`, `c`]);
       scene.repo.checkoutBranch('a');
 
-      const all = await captureSelectorChoices(scene, 'a', (context) =>
+      const [all] = await capturePrompts(scene, ['a'], (context) =>
         checkoutBranch({ branchName: undefined }, context)
       );
-      expect(all.sort()).to.deep.equal(['a', 'b', 'c', 'main']);
+      expect(choiceValues(all)).to.deep.equal(['a', 'b', 'c', 'main']);
 
-      const stack = await captureSelectorChoices(scene, 'b', (context) =>
+      const [stack] = await capturePrompts(scene, ['b'], (context) =>
         checkoutBranch(
           { branchName: undefined, onlyCurrentStack: true },
           context
         )
       );
-      expect(stack.sort()).to.deep.equal(['a', 'b', 'main']);
+      expect(choiceValues(stack)).to.deep.equal(['a', 'b', 'main']);
       expect(scene.repo.currentBranchName()).to.eq('b');
     });
   });
