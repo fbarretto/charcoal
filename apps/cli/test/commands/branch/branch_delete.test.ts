@@ -2,6 +2,9 @@ import { expect } from 'chai';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
 import { expectBranches } from '../../lib/utils/expect_branches';
+import { deleteStackAction } from '../../../src/actions/delete_branch';
+import { SCOPE } from '../../../src/lib/engine/scope_spec';
+import { capturePrompts, choiceValues } from '../../lib/utils/capture_prompts';
 import { expectCommits } from '../../lib/utils/expect_commits';
 
 for (const scene of allScenes) {
@@ -36,12 +39,62 @@ for (const scene of allScenes) {
       expectCommits(scene.repo, 'c, 1');
     });
 
-    it('Deletes the current branch when no name is given', () => {
+    const deleteInProcess = (
+      answers: Array<string | boolean>,
+      args: { branchName?: string; force?: boolean } = {}
+    ) =>
+      capturePrompts(scene, answers, (context) =>
+        deleteStackAction(
+          {
+            force: false,
+            close: false,
+            scope: SCOPE.BRANCH,
+            ...args,
+          },
+          context
+        )
+      );
+
+    it('Requires a branch name in non-interactive mode', () => {
       scene.repo.createChange('a', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
-      scene.repo.runCliCommand([`delete`, `-f`]);
+      expect(() =>
+        scene.repo.runCliCommand([`delete`, `-f`, `--no-interactive`])
+      ).to.throw();
+      expectBranches(scene.repo, 'a, main');
+    });
+
+    it('Opens a selector when no name is given', async () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+
+      const [selector] = await deleteInProcess(['a'], { force: true });
+      expect(choiceValues(selector)).to.deep.equal(['a', 'b', 'main']);
+      expectBranches(scene.repo, 'b, main');
+      expect(scene.repo.currentBranchName()).to.equal('b');
+    });
+
+    it('Asks before deleting an unmerged branch', async () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.checkoutBranch('main');
+
+      const declined = await deleteInProcess([false], { branchName: 'a' });
+      expect(declined).to.have.length(1);
+      expectBranches(scene.repo, 'a, main');
+
+      await deleteInProcess([true], { branchName: 'a' });
       expectBranches(scene.repo, 'main');
-      expect(scene.repo.currentBranchName()).to.equal('main');
+    });
+
+    it('Does not ask before deleting a merged branch', async () => {
+      scene.repo.runCliCommand([`create`, `a`]);
+      scene.repo.checkoutBranch('main');
+      const prompts = await deleteInProcess([], { branchName: 'a' });
+      expect(prompts).to.have.length(0);
+      expectBranches(scene.repo, 'main');
     });
 
     it('Can delete a branch and its upstack', () => {
@@ -81,14 +134,19 @@ for (const scene of allScenes) {
       expectCommits(scene.repo, 'd, 1');
     });
 
-    it('Refuses to delete a stack with unmerged branches without --force', () => {
+    it('Refuses to delete unmerged branches non-interactively without --force', () => {
       scene.repo.createChange('a', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
       scene.repo.createChange('b', 'b');
       scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
 
       expect(() =>
-        scene.repo.runCliCommand([`delete`, `a`, `--upstack`])
+        scene.repo.runCliCommand([
+          `delete`,
+          `a`,
+          `--upstack`,
+          `--no-interactive`,
+        ])
       ).to.throw(/a, b/);
       expectBranches(scene.repo, 'a, b, main');
     });

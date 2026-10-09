@@ -4,6 +4,7 @@ import { githubRepoSlug } from '../lib/api/github_repo';
 import { TContext } from '../lib/context';
 import { SCOPE, TScopeSpec } from '../lib/engine/scope_spec';
 import { ExitFailedError } from '../lib/errors';
+import { interactiveBranchSelection } from './log';
 import { restackBranches } from './restack';
 
 export function deleteBranchAction(
@@ -13,7 +14,10 @@ export function deleteBranchAction(
   },
   context: TContext
 ): void {
-  assertDeletable([args.branchName], args.force, context);
+  assertDeletable([args.branchName], context);
+  assertSafeToDelete(
+    args.force ? [] : unsafeBranches([args.branchName], context)
+  );
   deleteBranches([args.branchName], context);
 }
 
@@ -26,15 +30,18 @@ export async function deleteStackAction(
   },
   context: TContext
 ): Promise<void> {
-  const branchName =
-    args.branchName ?? context.engine.currentBranchPrecondition;
+  const branchName = args.branchName ?? (await selectBranchToDelete(context));
   const branchNames = context.engine.getRelativeStack(branchName, args.scope);
-  assertDeletable(branchNames, args.force, context);
+  assertDeletable(branchNames, context);
+  const unsafe = args.force ? [] : unsafeBranches(branchNames, context);
+  if (!context.interactive) {
+    assertSafeToDelete(unsafe);
+  }
 
   if (
-    branchNames.length > 1 &&
+    (branchNames.length > 1 || unsafe.length > 0) &&
     !args.force &&
-    !(await confirmDelete(branchNames, context))
+    !(await confirmDelete(branchNames, unsafe, context))
   ) {
     context.splog.info('Delete cancelled.');
     return;
@@ -45,20 +52,32 @@ export async function deleteStackAction(
   prNumbers.forEach((prNumber) => closePr(prNumber, context));
 }
 
-function assertDeletable(
-  branchNames: string[],
-  force: boolean | undefined,
-  context: TContext
-): void {
+async function selectBranchToDelete(context: TContext): Promise<string> {
+  if (!context.interactive) {
+    throw new ExitFailedError(
+      'No branch specified. Pass the name of the branch to delete.'
+    );
+  }
+  return interactiveBranchSelection(
+    { message: 'Select a branch to delete (autocomplete or arrow keys)' },
+    context
+  );
+}
+
+function assertDeletable(branchNames: string[], context: TContext): void {
   if (branchNames.some((b) => context.engine.isTrunk(b))) {
     throw new ExitFailedError('Cannot delete trunk!');
   }
   branchNames.forEach((b) =>
     context.engine.assertNotFrozen(b, { allowLanded: true })
   );
-  const unsafe = force
-    ? []
-    : branchNames.filter((b) => !isSafeToDelete(b, context).result);
+}
+
+function unsafeBranches(branchNames: string[], context: TContext): string[] {
+  return branchNames.filter((b) => !isSafeToDelete(b, context).result);
+}
+
+function assertSafeToDelete(unsafe: string[]): void {
   if (unsafe.length === 1) {
     throw new ExitFailedError(
       [
@@ -79,18 +98,35 @@ function assertDeletable(
 
 async function confirmDelete(
   branchNames: string[],
+  unsafe: string[],
   context: TContext
 ): Promise<boolean> {
   context.splog.info('Branches to delete:');
-  branchNames.forEach((b) => context.splog.info(`  - ${chalk.red(b)}`));
+  branchNames.forEach((b) =>
+    context.splog.info(
+      `  - ${chalk.red(b)}${
+        unsafe.includes(b) ? chalk.yellow(' (not merged or closed)') : ''
+      }`
+    )
+  );
   return (
     !context.interactive ||
     (
       await context.prompts({
         type: 'confirm',
         name: 'value',
-        message: `Delete these ${branchNames.length} branches?`,
-        initial: true,
+        message: unsafe.length
+          ? `${unsafe.join(', ')} ${
+              unsafe.length === 1 ? 'is' : 'are'
+            } neither merged nor closed; ${
+              unsafe.length === 1 ? 'its' : 'their'
+            } changes will be lost. Delete ${
+              branchNames.length === 1
+                ? 'it'
+                : `these ${branchNames.length} branches`
+            } anyway?`
+          : `Delete these ${branchNames.length} branches?`,
+        initial: unsafe.length === 0,
       })
     ).value
   );
