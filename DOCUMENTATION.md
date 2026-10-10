@@ -405,7 +405,7 @@ Idempotently force-push all branches from trunk to the current branch to GitHub,
 | `-c`, `--confirm` | Report the PRs and ask for confirmation before pushing. Ignored with `--no-interactive`/`--dry-run`. |
 | `--select` | Report the PRs and ask which to update/create. Ignored with `--no-interactive`/`--dry-run`. |
 | `-u`, `--update-only` | Only update PRs that have already been submitted. |
-| `-f`, `--force` | Force push (overwrites remote). Otherwise defaults to `--force-with-lease`. |
+| `-f`, `--force` | Force push (overwrites remote). Otherwise defaults to `--force-with-lease`; if the lease is stale (the remote branch moved since the last fetch, e.g. GitHub rewrote the heads above a merged stack bottom), Charcoal fetches the branch and pushes anyway only when the remote tip has the same tree as the local one or is already in its history, and otherwise stops, saying the remote has commits you don't have. |
 | `--always` | Always push updates even if the branch is unchanged. |
 | `--comment <msg>` | Add a comment with `<msg>` to every submitted PR. |
 | `-m`, `--merge-when-ready` | Enable auto-merge (`gh pr merge --auto --squash`) on every submitted PR. |

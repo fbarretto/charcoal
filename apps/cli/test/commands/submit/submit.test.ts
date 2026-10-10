@@ -67,6 +67,50 @@ for (const scene of [new CloneScene()]) {
       expect(stderr).not.to.contain('no pull requests found');
     });
 
+    // GitHub rewrites the heads above a merged stack bottom (same trees), so
+    // the local remote-tracking ref goes stale without anything to lose.
+    const rewriteOriginHead = (branch: string, change?: string) => {
+      const origin = scene.originRepo;
+      if (change) {
+        origin.checkoutBranch(branch);
+        origin.createChangeAndCommit(change, change);
+        origin.checkoutBranch('main');
+        return;
+      }
+      const sha = origin.runGitCommandAndGetOutput([
+        `commit-tree`,
+        `${branch}^{tree}`,
+        `-p`,
+        `${branch}~`,
+        `-m`,
+        `${branch} (rewritten)`,
+      ]);
+      origin.runGitCommand([`update-ref`, `refs/heads/${branch}`, sha]);
+    };
+    const reword = () =>
+      scene.repo.runCliCommand([`modify`, `-m`, `b (reworded)`]);
+
+    it('pushes over a remote head rewritten with an identical tree', () => {
+      submit();
+      rewriteOriginHead('b');
+      reword();
+      submit();
+      expect(scene.originRepo.getRef('refs/heads/b')).to.equal(
+        scene.repo.getRef('refs/heads/b')
+      );
+    });
+
+    it('refuses to push over remote commits it does not have', () => {
+      submit();
+      rewriteOriginHead('b', 'theirs');
+      const theirs = scene.originRepo.getRef('refs/heads/b');
+      reword();
+      expect(() =>
+        scene.repo.runCliCommand([`submit`, `--no-interactive`])
+      ).to.throw(/Can't push b: origin\/b has commits you don't have/);
+      expect(scene.originRepo.getRef('refs/heads/b')).to.equal(theirs);
+    });
+
     it('the default `ss` alias submits the whole stack', () => {
       scene.repo.checkoutBranch('a');
       scene.repo.runCliCommandAndGetOutput([`ss`, `--no-interactive`]);

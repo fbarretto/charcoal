@@ -226,5 +226,4 @@ ch delete <branch> -f -c           # also close its open PR
 | `submit`: trunk out of sync                                  | `ch sync`, then submit                                        |
 | `sync`: `main could not be fast-forwarded`                   | `ch sync -f` (local trunk commits are discarded)              |
 | `merge`: `GitHub stack #N ... does not match this stack`     | `ch submit --stack` to relink, then `ch merge`                |
-| `submit`: lease push failed after a partial stack merge      | `git fetch origin` (GitHub rewrote the heads), then submit    |
 | `Skipped <b>: it is checked out in another worktree`         | Run the command in that worktree                              |
