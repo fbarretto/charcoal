@@ -9,7 +9,6 @@ import {
 import { TContext } from '../../lib/context';
 import { TScopeSpec } from '../../lib/engine/scope_spec';
 import { ExitFailedError, KilledError } from '../../lib/errors';
-import { CommandFailedError } from '../../lib/git/runner';
 import { getPRInfoForBranches } from './prepare_branches';
 import { validateBranchesToSubmit } from './validate_branches';
 import { submitPullRequest, TPRSubmissionInfo } from './submit_prs';
@@ -251,26 +250,7 @@ async function pushAndSubmit(
     chalk.blueBright('📨 Pushing to remote and creating/updating PRs...')
   );
   for (const submissionInfo of submissionInfos) {
-    try {
-      context.engine.pushBranch(submissionInfo.head, args.forcePush);
-    } catch (err) {
-      if (
-        err instanceof CommandFailedError &&
-        err.message.includes('stale info')
-      ) {
-        throw new ExitFailedError(
-          [
-            `Force-with-lease push of ${chalk.yellow(
-              submissionInfo.head
-            )} failed due to external changes to the remote branch.`,
-            'If you are collaborating on this stack, try `ch get` to pull in changes.',
-            'Alternatively, use the `--force` option of this command to bypass the stale info warning.',
-          ].join('\n')
-        );
-      }
-      throw err;
-    }
-
+    context.engine.pushBranch(submissionInfo.head, args.forcePush);
     await submitPullRequest([submissionInfo], context);
     await afterSubmit(submissionInfo, args, context);
   }
