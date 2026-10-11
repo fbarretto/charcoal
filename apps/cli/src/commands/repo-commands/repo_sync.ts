@@ -4,7 +4,7 @@ import { graphite } from '../../lib/runner';
 
 const args = {
   pull: {
-    describe: `Pull the trunk branch from remote.`,
+    describe: `Pull trunk and the other tracked branches from remote (default on; skip with --no-pull).`,
     demandOption: false,
     default: true,
     type: 'boolean',
@@ -29,7 +29,7 @@ const args = {
     type: 'boolean',
   },
   force: {
-    describe: `Don't prompt for confirmation before deleting a branch or resetting trunk to remote.`,
+    describe: `Don't prompt for confirmation before deleting a branch or overwriting a branch (including trunk) with its remote version.`,
     demandOption: false,
     default: false,
     type: 'boolean',
@@ -48,7 +48,7 @@ export const command = 'sync';
 export const canonical = 'repo sync';
 export const aliases = ['s'];
 export const description =
-  'Pull the trunk branch from remote, prompt to delete any branches whose PRs have been merged or closed, and restack every branch that can be restacked without conflicts. If trunk cannot be fast-forwarded to match remote, overwrites trunk with the remote version.';
+  'Pull trunk and every tracked branch from remote, prompt to delete any branches whose PRs have been merged or closed, and restack every branch that can be restacked without conflicts. If trunk cannot be fast-forwarded to match remote, overwrites trunk with the remote version.';
 export const builder = args;
 export const handler = async (argv: argsT): Promise<void> => {
   return graphite(argv, canonical, async (context) => {

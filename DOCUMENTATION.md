@@ -426,16 +426,24 @@ ch submit --dry-run
 ```
 
 ### `sync`
-Pull the trunk branch from remote, delete branches whose PRs have been merged or closed (asking for each), and restack every branch that can be restacked without conflicts. If trunk can't be fast-forwarded, it is overwritten with the remote version (after asking, unless `--force`).
+Pull trunk from remote, delete branches whose PRs have been merged or closed (asking for each), pull remote changes into your other tracked branches, and restack every branch that can be restacked without conflicts. If trunk can't be fast-forwarded, it is overwritten with the remote version (after asking, unless `--force`).
+
+For each tracked branch whose remote copy differs from your local one (parents before children):
+
+- If you have everything the remote has (your branch is the same or ahead), it is left alone.
+- If the remote only adds commits, or is a rebase of commits you already have (every local commit has a patch-equivalent on remote), the branch takes the remote version.
+- If both sides have commits the other lacks, sync asks before overwriting your copy with the remote version. With `--force` it overwrites without asking; with `--no-interactive` (and no `--force`) it keeps your local version and says so. To keep your commits and rebase them onto the remote instead, run `ch get <branch>`.
+- A frozen branch always takes the remote version and stays frozen.
+- Branches never pushed, and branches checked out in another worktree, are skipped.
 
 Branches whose restack would conflict are left where they were and listed at the end ("All branches restacked cleanly, except for: …"); check each out and run `ch restack` to resolve them. Sync itself never stops in conflict resolution.
 
 | Flag | Description |
 | --- | --- |
 | `-d`, `--delete-all` | Delete all merged or closed branches without prompting. With `--no-interactive` and without this flag, merged and closed branches are kept, and sync names each one it kept. |
-| `-f`, `--force` | Don't prompt before deleting a branch or resetting trunk to remote. |
+| `-f`, `--force` | Don't prompt before deleting a branch or overwriting a branch (including trunk) with its remote version. |
 | `--restack` / `--no-restack` | Restack branches after syncing (default on). |
-| `--pull` / `--no-pull` | Pull the trunk branch from remote (default on). |
+| `--pull` / `--no-pull` | Pull trunk and the other tracked branches from remote (default on). |
 | `--delete` / `--no-delete` | Look for merged/closed branches to delete (default on). |
 | `--show-delete-progress` | Show progress through merged branches. |
 

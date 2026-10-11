@@ -51,7 +51,7 @@ ch init --trunk main    # once per repo
 | Rename / delete                                | `ch rename <new>` / `ch delete <b> -f`                               |
 | Diff of just this layer                        | `ch info -d` or `git diff "$(ch parent)"...HEAD`                     |
 | Push and open/update PRs                       | `ch submit --stack`                                                  |
-| Pull trunk, drop merged branches, restack      | `ch sync`                                                            |
+| Pull trunk and branches, drop merged, restack  | `ch sync`                                                            |
 | Merge the stack bottom-up                      | `ch merge --dry-run`, then `ch merge`                                |
 | Undo the last `ch` command                     | `ch undo`                                                            |
 | Finish / cancel a conflicted command           | `ch continue` / `ch abort -f`                                        |
@@ -84,6 +84,7 @@ ch init --trunk main    # once per repo
 | `submit` with an empty or already-merged branch in range        | fails                                        | delete it, or `ch sync`                                          |
 | `sync` when trunk can't fast-forward                            | fails, hints `--force`                       | `-f` (resets local trunk to remote)                              |
 | `sync` finding merged/closed branches                           | keeps them, naming each one                  | `-d` (delete all) or `-f`                                        |
+| `sync` when a branch and its remote both have new commits       | keeps local, naming it                       | `-f` (take remote), or `ch get <b>` to rebase onto it            |
 | `merge` when a local branch differs from its remote             | refuses                                      | `ch submit` first                                                |
 | `get` when a local branch diverged from remote                  | aborts                                       | `-f` (take remote)                                               |
 

@@ -24,6 +24,7 @@ import {
   readFetchBase,
   readFetchHead,
   writeFetchBase,
+  compareToFetchHead,
 } from './fetch_branch';
 import { getFilesChanged } from './files_changed';
 import { getFileContents } from './file_contents';
@@ -82,6 +83,7 @@ function composeGitInternal() {
     isDiffEmpty,
     fetchBranch,
     readFetchHead,
+    compareToFetchHead,
     readFetchBase,
     writeFetchBase,
     findRemoteBranch,

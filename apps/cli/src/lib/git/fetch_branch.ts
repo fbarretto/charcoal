@@ -33,3 +33,33 @@ export function writeFetchBase(sha: string): void {
     resource: 'writeFetchBase',
   });
 }
+
+// How a local branch relates to the last fetched head: AHEAD when the fetched
+// head is already in it (nothing to pull), BEHIND when every one of its commits
+// since `base` is on the fetched head or patch-equivalent to one there (taking
+// the fetched head loses nothing), else DIVERGED.
+export function compareToFetchHead(
+  branchRevision: string,
+  base: string
+): 'AHEAD' | 'BEHIND' | 'DIVERGED' {
+  const head = readFetchHead();
+  try {
+    runGitCommand({
+      args: ['merge-base', '--is-ancestor', head, branchRevision],
+      options: { stdio: 'pipe' },
+      onError: 'throw',
+      resource: 'compareToFetchHead',
+    });
+    return 'AHEAD';
+  } catch {
+    // not an ancestor
+  }
+  const unpulled = runGitCommand({
+    args: ['cherry', head, branchRevision, base],
+    onError: 'throw',
+    resource: 'compareToFetchHead',
+  });
+  return unpulled.split('\n').some((l) => l.startsWith('+'))
+    ? 'DIVERGED'
+    : 'BEHIND';
+}

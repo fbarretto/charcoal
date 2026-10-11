@@ -23,7 +23,9 @@ export async function syncAction(
 
   if (opts.pull) {
     await pullTrunk(opts.force, context);
-    context.splog.tip('You can skip pulling trunk with the `--no-pull` flag.');
+    context.splog.tip(
+      'You can skip pulling from remote with the `--no-pull` flag.'
+    );
   }
 
   await syncPrInfo(context.engine.allBranchNames, context);
@@ -49,6 +51,10 @@ export async function syncAction(
             ]),
       ].join('\n')
     );
+  }
+
+  if (opts.pull) {
+    await pullBranches(opts.force, context);
   }
 
   if (opts.restack) {
@@ -114,6 +120,83 @@ export async function pullTrunk(
   } else {
     throw new KilledError();
   }
+}
+
+// gt 1.3.0: pull remote changes into every tracked branch, parents first. A
+// branch that is only behind (or whose remote is a rebase of commits it already
+// has) takes the remote version; one with local commits the remote lacks is
+// kept unless the user agrees, or passes --force, to overwrite it.
+async function pullBranches(force: boolean, context: TContext): Promise<void> {
+  const startedOn = context.engine.currentBranch;
+  const otherWorktrees = branchesInOtherWorktrees();
+  await context.engine.populateRemoteShas();
+  for (const branchName of context.engine.getRelativeStack(
+    context.engine.trunk,
+    SCOPE.UPSTACK_EXCLUSIVE
+  )) {
+    if (
+      !context.engine.hasRemoteBranch(branchName) ||
+      context.engine.branchMatchesRemote(branchName)
+    ) {
+      continue;
+    }
+    const worktree = otherWorktrees.get(branchName);
+    if (worktree) {
+      context.splog.info(skippedInWorktreeMessage(branchName, worktree));
+      continue;
+    }
+    const parentBranchName = context.engine.getParentPrecondition(branchName);
+    context.engine.fetchBranch(branchName, parentBranchName, {
+      baseIsMergeBaseWithParent: true,
+    });
+    const relation = context.engine.compareBranchToFetched(branchName);
+    if (
+      relation === 'AHEAD' ||
+      (relation === 'DIVERGED' &&
+        !context.engine.isBranchFrozen(branchName) &&
+        !(await shouldOverwriteDiverged(branchName, force, context)))
+    ) {
+      continue;
+    }
+    context.engine.checkoutBranchFromFetched(branchName, parentBranchName);
+    context.splog.info(`Synced ${chalk.cyan(branchName)} from remote.`);
+  }
+  if (startedOn && context.engine.currentBranch !== startedOn) {
+    context.engine.checkoutBranch(startedOn);
+  }
+}
+
+async function shouldOverwriteDiverged(
+  branchName: string,
+  force: boolean,
+  context: TContext
+): Promise<boolean> {
+  if (force) {
+    return true;
+  }
+  if (!context.interactive) {
+    context.splog.info(
+      [
+        `${chalk.yellow(
+          branchName
+        )} has diverged from remote; kept your local version.`,
+        `Pass ${chalk.cyan(
+          '--force'
+        )} to overwrite it with the remote version, or run ${chalk.cyan(
+          `ch get ${branchName}`
+        )} to rebase your changes onto it.`,
+      ].join('\n')
+    );
+    return false;
+  }
+  return (
+    await context.prompts({
+      type: 'confirm',
+      name: 'value',
+      message: `${branchName} has diverged from remote. Overwrite it with the remote version? Local commits not on remote will be lost.`,
+      initial: false,
+    })
+  ).value;
 }
 
 // Restacks every branch that rebases cleanly and leaves the rest, conflicts

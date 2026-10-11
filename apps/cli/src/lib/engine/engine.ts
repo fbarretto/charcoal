@@ -145,6 +145,7 @@ export type TEngine = {
   isBranchEmpty: (branchName: string) => boolean;
   populateRemoteShas: () => Promise<void>;
   branchMatchesRemote: (branchName: string) => boolean;
+  hasRemoteBranch: (branchName: string) => boolean;
 
   pushBranch: (branchName: string, forcePush: boolean) => void;
   pullTrunk: () => 'PULL_DONE' | 'PULL_UNNEEDED' | 'PULL_CONFLICT';
@@ -152,8 +153,15 @@ export type TEngine = {
   resetTrunkToRemote: () => void;
   clean: () => void;
 
-  fetchBranch: (branchName: string, parentBranchName: string) => void;
+  fetchBranch: (
+    branchName: string,
+    parentBranchName: string,
+    opts?: { baseIsMergeBaseWithParent?: boolean }
+  ) => void;
   branchMatchesFetched: (branchName: string) => boolean;
+  compareBranchToFetched: (
+    branchName: string
+  ) => 'AHEAD' | 'BEHIND' | 'DIVERGED';
   checkoutBranchFromFetched: (
     branchName: string,
     parentBranchName: string
@@ -1015,6 +1023,8 @@ export function composeEngine({
       const remoteParentRevision = git.getRemoteSha(branchName);
       return cachedMeta.branchRevision === remoteParentRevision;
     },
+    hasRemoteBranch: (branchName: string) =>
+      git.getRemoteSha(branchName) !== undefined,
     pushBranch: (branchName: string, forcePush: boolean) => {
       assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
       assertNotFrozen(branchName);
@@ -1063,10 +1073,14 @@ export function composeEngine({
       }
     },
     clean: git.clean,
-    fetchBranch: (branchName: string, parentBranchName: string) => {
+    fetchBranch: (branchName, parentBranchName, opts) => {
       const parentMeta = assertBranchIsValidOrTrunkAndGetMeta(parentBranchName);
-      if (parentMeta.validationResult === 'TRUNK') {
-        // If this is a trunk-child, its base is its merge base with trunk.
+      if (
+        parentMeta.validationResult === 'TRUNK' ||
+        opts?.baseIsMergeBaseWithParent
+      ) {
+        // Its base is its merge base with the (local) parent: always for a
+        // trunk-child, and on request when the previous fetch wasn't its parent.
         git.fetchBranch(remote, branchName);
         git.writeFetchBase(
           git.getMergeBase(git.readFetchHead(), parentMeta.branchRevision)
@@ -1081,6 +1095,13 @@ export function composeEngine({
       assertBranch(branchName);
       return cache.branches[branchName].branchRevision === git.readFetchHead();
     },
+    compareBranchToFetched: (branchName: string) => {
+      const meta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
+      return git.compareToFetchHead(
+        meta.branchRevision,
+        meta.parentBranchRevision
+      );
+    },
     checkoutBranchFromFetched: (
       branchName: string,
       parentBranchName: string
@@ -1092,16 +1113,20 @@ export function composeEngine({
         base: git.readFetchBase(),
       };
       const frozen = isBranchFrozen(branchName) || undefined;
+      const oldMeta = cache.branches[branchName];
       git.forceCheckoutNewBranch(branchName, head);
       git.setRemoteTracking({ remote, branchName, sha: head });
 
+      // An existing branch keeps its children and PR info.
       updateMeta(branchName, {
         frozen,
         validationResult: 'VALID',
         parentBranchName,
         parentBranchRevision: base,
         branchRevision: head,
-        children: [],
+        children: oldMeta?.children ?? [],
+        prInfo:
+          oldMeta?.validationResult === 'TRUNK' ? undefined : oldMeta?.prInfo,
       });
       cache.currentBranch = branchName;
     },
