@@ -7,6 +7,7 @@ import { expectBranches } from '../lib/utils/expect_branches';
 import { expectCommits } from '../lib/utils/expect_commits';
 
 for (const scene of allScenes) {
+  // eslint-disable-next-line max-lines-per-function
   describe(`(${scene}): undo`, function () {
     configureTest(this, scene);
 
@@ -176,6 +177,58 @@ for (const scene of allScenes) {
 
       scene.repo.runCliCommand([`undo`, `-f`]);
       expectBranches(scene.repo, 'main');
+    });
+
+    it('Keeps commits made after the undone command on branches it did not change', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChangeAndCommit('later', 'later');
+      const aAfter = scene.repo.getRef('refs/heads/a');
+
+      scene.repo.runCliCommand([`undo`, `-f`]);
+
+      expectBranches(scene.repo, 'a, main');
+      expect(scene.repo.getRef('refs/heads/a')).to.equal(aAfter);
+    });
+
+    it('Refuses when a branch the command changed has moved since', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('a2', 'a2');
+      scene.repo.runCliCommand([`modify`, `-c`, `-m`, `a2`]);
+      scene.repo.createChangeAndCommit('later', 'later');
+      const aAfter = scene.repo.getRef('refs/heads/a');
+
+      expect(() => scene.repo.runCliCommand([`undo`, `-f`])).to.throw(
+        'has moved since'
+      );
+      expect(scene.repo.getRef('refs/heads/a')).to.equal(aAfter);
+    });
+
+    it('Undoes a whole restack that was finished with continue', () => {
+      scene.repo.createChange('2');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `2`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      const before = ['a', 'b'].map((b) =>
+        scene.repo.getRef(`refs/heads/${b}`)
+      );
+      scene.repo.checkoutBranch('main');
+      scene.repo.createChangeAndCommit('1.5');
+      scene.repo.checkoutBranch('b');
+
+      expect(() => scene.repo.runCliCommand([`restack`, `-q`])).to.throw();
+      scene.repo.resolveMergeConflicts();
+      scene.repo.markMergeConflictsAsResolved();
+      scene.repo.runCliCommand([`continue`, `-q`]);
+
+      scene.repo.runCliCommand([`undo`, `-f`]);
+      expect(
+        ['a', 'b'].map((b) => scene.repo.getRef(`refs/heads/${b}`))
+      ).to.deep.equal(before);
     });
   });
 }

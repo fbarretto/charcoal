@@ -5,8 +5,23 @@ import { clearContinuation, persistContinuation } from './persist_continuation';
 import { printConflictStatus } from './print_conflict_status';
 import { restackBranches, restoreSetAsideChanges } from './restack';
 import { branchesToSyncAfterContinue, getBranchesFromRemote } from './sync/get';
+import { refreshUndoSnapshotAfter } from './undo';
 
 export async function continueAction(
+  opts: { addAll: boolean },
+  context: TContext
+): Promise<void> {
+  const halted = context.continueConfig.data.undoSnapshot;
+  try {
+    await continueHaltedCommand(opts, context);
+  } finally {
+    if (halted) {
+      refreshUndoSnapshotAfter(halted);
+    }
+  }
+}
+
+async function continueHaltedCommand(
   opts: { addAll: boolean },
   context: TContext
 ): Promise<void> {

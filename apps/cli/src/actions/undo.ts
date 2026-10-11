@@ -63,15 +63,48 @@ export function takeUndoSnapshot(command: string): TUndoSnapshot {
   };
 }
 
+const withoutAfter = ({ after: _after, ...rest }: TUndoSnapshot) => rest;
+
+const isSameSnapshot = (a: TUndoSnapshot | undefined, b: TUndoSnapshot) =>
+  a !== undefined &&
+  JSON.stringify(withoutAfter(a)) === JSON.stringify(withoutAfter(b));
+
 // Records `before` only if the command actually changed something, so a
 // failed or no-op command doesn't leave an empty undo step behind.
 export function recordUndoSnapshot(before: TUndoSnapshot): void {
-  const after = takeUndoSnapshot(before.command);
-  if (JSON.stringify(after) === JSON.stringify(before)) {
+  const { branches, metadata, currentBranch } = takeUndoSnapshot(
+    before.command
+  );
+  if (
+    JSON.stringify({ branches, metadata, currentBranch }) ===
+    JSON.stringify({
+      branches: before.branches,
+      metadata: before.metadata,
+      currentBranch: before.currentBranch,
+    })
+  ) {
     return;
   }
   undoStackFactory.load().update((data) => {
-    data.snapshots = [...(data.snapshots ?? []), before].slice(-MAX_SNAPSHOTS);
+    data.snapshots = [
+      ...(data.snapshots ?? []),
+      { ...withoutAfter(before), after: { branches, metadata } },
+    ].slice(-MAX_SNAPSHOTS);
+  });
+}
+
+// A halted command keeps changing branches as `ch continue` finishes it.
+export function refreshUndoSnapshotAfter(snapshot: TUndoSnapshot): void {
+  const undoStack = undoStackFactory.load();
+  if (!isSameSnapshot(undoStack.data.snapshots?.at(-1), snapshot)) {
+    return;
+  }
+  const { branches, metadata } = takeUndoSnapshot(snapshot.command);
+  undoStack.update((data) => {
+    data.snapshots = [
+      ...(data.snapshots ?? []).slice(0, -1),
+      { ...withoutAfter(snapshot), after: { branches, metadata } },
+    ];
   });
 }
 
@@ -197,11 +230,65 @@ type TRestorePlan = {
   checkout?: string;
 };
 
-function planRestore(snapshot: TUndoSnapshot): TRestorePlan {
+// Reverts only the refs the command changed, so later commits to other
+// branches survive.
+function commandChanges(
+  before: TUndoSnapshot['branches'],
+  after: TUndoSnapshot['branches'],
+  current: TUndoSnapshot['branches']
+): TRefChange[] {
+  const now = Object.fromEntries(current);
+  return diffRefs(before, after)
+    .map(({ name, from }) => ({ name, from: now[name], to: from }))
+    .filter(({ from, to }) => from !== to);
+}
+
+// Refuses rather than drop commits made on a branch after the command moved it.
+function assertNotMovedSince(
+  snapshot: TUndoSnapshot,
+  after: TUndoSnapshot['branches'],
+  current: TUndoSnapshot['branches']
+): void {
+  const now = Object.fromEntries(current);
+  const moved = diffRefs(snapshot.branches, after).filter(
+    ({ name, to }) => now[name] !== to
+  );
+  if (moved.length) {
+    throw new PreconditionsFailedError(
+      [
+        `Cannot undo ${chalk.cyan(
+          `ch ${snapshot.command}`
+        )}: a branch it changed has moved since, and undoing would drop those commits:`,
+        ...moved.map(
+          ({ name, to }) =>
+            `  ${chalk.yellow(name)} (${
+              now[name] ? `now ${short(now[name])}` : 'deleted'
+            }, ${chalk.cyan(`ch ${snapshot.command}`)} left it at ${
+              to ? short(to) : 'deleted'
+            })`
+        ),
+        `Undo those commits first, or restore the branch by hand from its reflog.`,
+      ].join('\n')
+    );
+  }
+}
+
+export function planRestore(
+  snapshot: TUndoSnapshot,
+  { onlyCommandChanges = true } = {}
+): TRestorePlan {
   const current = takeUndoSnapshot('undo');
+  const after = onlyCommandChanges ? snapshot.after : undefined;
+  if (after) {
+    assertNotMovedSince(snapshot, after.branches, current.branches);
+  }
   const plan = {
-    branchChanges: diffRefs(current.branches, snapshot.branches),
-    metadataChanges: diffRefs(current.metadata, snapshot.metadata),
+    branchChanges: after
+      ? commandChanges(snapshot.branches, after.branches, current.branches)
+      : diffRefs(current.branches, snapshot.branches),
+    metadataChanges: after
+      ? commandChanges(snapshot.metadata, after.metadata, current.metadata)
+      : diffRefs(current.metadata, snapshot.metadata),
     checkout:
       snapshot.currentBranch && snapshot.currentBranch !== current.currentBranch
         ? snapshot.currentBranch
@@ -215,8 +302,7 @@ function planRestore(snapshot: TUndoSnapshot): TRestorePlan {
 // when the command changed nothing).
 export function popUndoSnapshot(snapshot: TUndoSnapshot): void {
   const undoStack = undoStackFactory.load();
-  const top = undoStack.data.snapshots?.at(-1);
-  if (JSON.stringify(top) !== JSON.stringify(snapshot)) {
+  if (!isSameSnapshot(undoStack.data.snapshots?.at(-1), snapshot)) {
     return;
   }
   undoStack.update((data) => {

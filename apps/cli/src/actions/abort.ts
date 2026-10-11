@@ -3,7 +3,7 @@ import { TContext } from '../lib/context';
 import { ExitFailedError, NoGraphiteContinue } from '../lib/errors';
 import { clearContinuation } from './persist_continuation';
 import { restoreSetAsideChanges } from './restack';
-import { popUndoSnapshot, restoreUndoSnapshot } from './undo';
+import { planRestore, popUndoSnapshot, restoreUndoSnapshot } from './undo';
 
 export async function abortAction(
   opts: { force: boolean },
@@ -43,7 +43,11 @@ export async function abortAction(
   context.engine.abortRebase();
   const { stashToRestore: stash, undoSnapshot } = context.continueConfig.data;
   if (undoSnapshot) {
-    restoreUndoSnapshot(undoSnapshot, context);
+    restoreUndoSnapshot(
+      undoSnapshot,
+      context,
+      planRestore(undoSnapshot, { onlyCommandChanges: false })
+    );
     popUndoSnapshot(undoSnapshot);
   }
   clearContinuation(context);

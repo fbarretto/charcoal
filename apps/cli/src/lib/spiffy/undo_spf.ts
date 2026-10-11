@@ -8,6 +8,10 @@ export const undoSnapshotSchema = t.shape({
   currentBranch: t.optional(t.string),
   branches: refShasSchema,
   metadata: refShasSchema,
+  // What the command left behind, so undo only touches what it changed.
+  after: t.optional(
+    t.shape({ branches: refShasSchema, metadata: refShasSchema })
+  ),
 });
 export type TUndoSnapshot = t.TypeOf<typeof undoSnapshotSchema>;
 
