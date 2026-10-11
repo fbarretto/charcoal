@@ -25,18 +25,16 @@ export function logAction(
   },
   context: TContext
 ): void {
-  const stackLines = getStackLines(
+  const logOutput = getStackLines(
     {
       short: opts.style === 'SHORT',
       reverse: opts.reverse,
       branchName: opts.branchName,
       indentLevel: 0,
       steps: opts.steps,
+      connectorRows: true,
     },
     context
-  );
-  const logOutput = (
-    opts.style === 'SHORT' ? withConnectorRows(stackLines) : stackLines
   )
     .concat(
       opts.showUntracked
@@ -55,24 +53,25 @@ export function logAction(
 const CONTINUES_DOWN = new Set(['◯', '◉', '│', '┐', '┬']);
 const CONTINUES_UP = new Set(['◯', '◉', '│', '┘', '┴']);
 
-// Puts a row of `│` between short-log lines wherever a lane runs from one dot to the next.
-export function withConnectorRows(lines: string[]): string[] {
-  const plain = lines.map((line) => stripAnsi(line));
-  return lines.flatMap((line, i) => {
+type TShortRow = { lanes: string; details: string; branch?: string };
+
+// Puts a row of `│` between short-log rows wherever a lane runs from one dot to the next.
+function withConnectorRows(rows: TShortRow[]): TShortRow[] {
+  return rows.flatMap((row, i) => {
     if (i === 0) {
-      return [line];
+      return [row];
     }
-    const [upper, lower] = [plain[i - 1], plain[i]];
-    const connector = Array.from(
+    const [upper, lower] = [rows[i - 1].lanes, row.lanes];
+    const lanes = Array.from(
       { length: Math.min(upper.length, lower.length) },
       (_, col) =>
         CONTINUES_DOWN.has(upper[col]) && CONTINUES_UP.has(lower[col])
-          ? getLogShortColor('│', col)
+          ? '│'
           : ' '
     )
       .join('')
       .trimEnd();
-    return [connector, line];
+    return [{ lanes, details: '' }, row];
   });
 }
 
@@ -177,7 +176,19 @@ type TPrintStackArgs = {
   omitCurrentBranch?: boolean;
   noStyleBranchName?: boolean; // Currently only implemented for short = true
   steps?: number;
+  connectorRows?: boolean;
 };
+
+function prStateSuffix(branchName: string, context: TContext): string {
+  switch (context.engine.getPrInfo(branchName)?.state) {
+    case 'MERGED':
+      return ' (merged)';
+    case 'CLOSED':
+      return ' (closed)';
+    default:
+      return '';
+  }
+}
 
 let otherWorktrees: Map<string, string> | undefined;
 function worktreeSuffix(branchName: string): string {
@@ -186,10 +197,64 @@ function worktreeSuffix(branchName: string): string {
   return worktree ? ` (worktree: ${worktree})` : '';
 }
 
-function getLogShortColor(toColor: string, index: number): string {
-  return chalk.rgb(
-    ...GRAPHITE_COLORS[Math.floor(index / 2) % GRAPHITE_COLORS.length]
-  )(toColor);
+// Each stack (a child of trunk and everything above it) keeps one color; trunk is gray.
+function stackColor(
+  branchName: string | undefined,
+  context: TContext
+): (text: string) => string {
+  if (!branchName || context.engine.isTrunk(branchName)) {
+    return chalk.gray;
+  }
+  let root = branchName;
+  const seen = new Set<string>();
+  for (
+    let parent = context.engine.getParent(root);
+    parent && !context.engine.isTrunk(parent) && !seen.has(parent);
+    parent = context.engine.getParent(root)
+  ) {
+    seen.add(root);
+    root = parent;
+  }
+  const index = Math.max(
+    0,
+    context.engine.getChildren(context.engine.trunk).indexOf(root)
+  );
+  return chalk.rgb(...GRAPHITE_COLORS[index % GRAPHITE_COLORS.length]);
+}
+
+// Lane glyphs take the color of the stack whose tip opened the lane, so rows are
+// walked from the tips toward trunk.
+function colorShortRows(
+  rows: TShortRow[],
+  layout: { reverse: boolean; overallIndent: number },
+  context: TContext
+): string[] {
+  const laneColor: Array<(text: string) => string> = [];
+  const colored = new Array<string>(rows.length);
+  const order = rows.map((_, i) => (layout.reverse ? rows.length - 1 - i : i));
+  for (const i of order) {
+    const { lanes, details, branch } = rows[i];
+    const color = stackColor(branch, context);
+    const lanesColored = lanes
+      .split('')
+      .map((c, col) => {
+        if (c === '◯' || c === '◉') {
+          if (!context.engine.isTrunk(branch ?? '')) {
+            laneColor[col] = color;
+          }
+          return color(c);
+        }
+        const owner = laneColor[c === '─' ? col + 1 : col] ?? chalk.gray;
+        return owner(c);
+      })
+      .join('');
+    colored[i] = branch
+      ? `${lanesColored}${' '.repeat(
+          layout.overallIndent * 2 + 3 - lanes.length
+        )}${color(branch)}${details.slice(branch.length)}`
+      : lanesColored;
+  }
+  return colored;
 }
 
 function getStackLines(args: TPrintStackArgs, context: TContext): string[] {
@@ -200,30 +265,27 @@ function getStackLines(args: TPrintStackArgs, context: TContext): string[] {
     getDownstackExclusiveLines(args, context),
   ];
 
-  return (args.reverse ? outputDeep.reverse().flat() : outputDeep.flat()).map(
-    (line) => {
-      if (!args.short) {
-        return line;
-      }
-      // This lambda is for finalizing log short formatting
-      const circleIndex = line.indexOf('◯');
-      const arrowIndex = line.indexOf('▸');
-      const branchNameAndDetails = line.slice(arrowIndex + 1);
-
-      const replaceCircle =
-        !args.noStyleBranchName &&
-        context.engine.currentBranch &&
-        branchNameAndDetails.split(' ')[0] === context.engine.currentBranch;
-
-      return `${line
-        .slice(0, arrowIndex)
-        .split('')
-        .map(getLogShortColor)
-        .map((c) => (replaceCircle ? c.replace('◯', '◉') : c))
-        .join('')}${' '.repeat(
-        overallIndent.value * 2 + 3 - arrowIndex
-      )}${getLogShortColor(line.slice(arrowIndex + 1), circleIndex)}`;
-    }
+  const lines = args.reverse ? outputDeep.reverse().flat() : outputDeep.flat();
+  if (!args.short) {
+    return lines;
+  }
+  const rows = lines.map((line): TShortRow => {
+    const arrowIndex = line.indexOf('▸');
+    const details = line.slice(arrowIndex + 1);
+    const branch = details.split(' ')[0];
+    const isCurrent =
+      !args.noStyleBranchName && branch === context.engine.currentBranch;
+    const lanes = line.slice(0, arrowIndex);
+    return {
+      lanes: isCurrent ? lanes.replace('◯', '◉') : lanes,
+      details,
+      branch,
+    };
+  });
+  return colorShortRows(
+    args.connectorRows ? withConnectorRows(rows) : rows,
+    { reverse: args.reverse, overallIndent: overallIndent.value },
+    context
   );
 }
 
@@ -333,7 +395,9 @@ function getBranchLines(
       }▸${args.branchName}${
         args.noStyleBranchName || context.engine.isBranchFixed(args.branchName)
           ? ''
-          : ` ${chalk.reset(`(needs restack)`)}`
+          : ' (needs restack)'
+      }${
+        args.noStyleBranchName ? '' : prStateSuffix(args.branchName, context)
       }${
         context.engine.isBranchFrozen(args.branchName) &&
         !args.noStyleBranchName

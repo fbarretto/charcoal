@@ -4,6 +4,10 @@ import path from 'path';
 import { USER_CONFIG_OVERRIDE_ENV } from '../../../src/lib/context';
 import fs from 'fs-extra';
 import stripAnsi from 'strip-ansi';
+import {
+  readMetadataRef,
+  writeMetadataRef,
+} from '../../../src/lib/engine/metadata_ref';
 import { TrailingProdScene } from '../../lib/scenes/trailing_prod_scene';
 import { configureTest } from '../../lib/utils/configure_test';
 
@@ -69,6 +73,54 @@ for (const scene of [new TrailingProdScene()]) {
         '│',
         '◯    main',
       ]);
+    });
+
+    it('Colors each stack on its own and grays out trunk', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('a2', 'a2');
+      scene.repo.runCliCommand([`create`, `a2`, `-m`, `a2`]);
+      scene.repo.checkoutBranch('main');
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      const out = spawnSync(
+        process.execPath,
+        [path.join(__dirname, '../../../src/index.js'), 'ls'],
+        {
+          cwd: scene.repo.dir,
+          encoding: 'utf-8',
+          env: {
+            ...process.env,
+            [USER_CONFIG_OVERRIDE_ENV]: scene.repo.userConfigPath,
+            FORCE_COLOR: '3',
+          },
+        }
+      ).stdout;
+      const colorOf = (name: string) =>
+        // eslint-disable-next-line no-control-regex
+        out.match(new RegExp(`(\x1b\[[0-9;]+m)${name}\x1b`))?.[1];
+      expect(colorOf('a')).to.equal(colorOf('a2'));
+      expect(colorOf('a')).to.not.equal(colorOf('b'));
+      expect(colorOf('main')).to.equal('\x1b[90m');
+    });
+
+    it('Flags merged and closed PRs', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      writeMetadataRef(
+        'a',
+        { ...readMetadataRef('a', scene.dir), prInfo: { state: 'MERGED' } },
+        scene.dir
+      );
+      writeMetadataRef(
+        'b',
+        { ...readMetadataRef('b', scene.dir), prInfo: { state: 'CLOSED' } },
+        scene.dir
+      );
+      const out = stripAnsi(scene.repo.runCliCommandAndGetOutput([`ls`]));
+      expect(out).to.match(/ b \(closed\)/).and.match(/ a \(merged\)/);
     });
 
     it("Can print stacks if a branch's parent has been deleted", () => {
