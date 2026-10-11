@@ -9,6 +9,7 @@ import { expectCommits } from '../../lib/utils/expect_commits';
 import { removeUnsupportedTrailingCharacters } from '../../../src/lib/utils/branch_name';
 
 for (const scene of allScenes) {
+  // eslint-disable-next-line max-lines-per-function
   describe(`(${scene}): branch create`, function () {
     configureTest(this, scene);
 
@@ -63,6 +64,26 @@ for (const scene of allScenes) {
       expect(() => scene.repo.runCliCommand(['up'])).not.to.throw();
 
       expectCommits(scene.repo, 'b, c, a');
+    });
+
+    it('Inserts with unrelated unstaged changes left in place', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.createChange('z', 'z');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChange('i', 'i');
+      scene.repo.createChange('z2', 'z', true);
+
+      scene.repo.runCliCommand([`create`, `i`, `-m`, `i`, `--insert`]);
+
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`status`, `--porcelain`])
+      ).to.equal('M z_test.txt');
+      expect(scene.repo.runCliCommandAndGetOutput([`ls`])).not.to.contain(
+        'needs restack'
+      );
     });
 
     it('Can create onto another branch, carrying staged changes', () => {

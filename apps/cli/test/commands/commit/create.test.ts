@@ -16,6 +16,26 @@ for (const scene of allScenes) {
       expectCommits(scene.repo, '2, 1');
     });
 
+    it('Restacks upwards with unrelated unstaged changes left in place', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.createChange('z', 'z');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChange('a2', 'a');
+      scene.repo.createChange('z2', 'z', true);
+
+      scene.repo.runCliCommand([`modify`, `-c`, `-m`, `a2`]);
+
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`status`, `--porcelain`])
+      ).to.equal('M z_test.txt');
+      expect(scene.repo.runCliCommandAndGetOutput([`ls`])).not.to.contain(
+        'needs restack'
+      );
+    });
+
     it('Can create a commit with a multi-word commit message', () => {
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
       scene.repo.createChange('2');

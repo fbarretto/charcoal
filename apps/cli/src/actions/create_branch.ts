@@ -4,7 +4,7 @@ import { ExitFailedError } from '../lib/errors';
 import { runGitCommand } from '../lib/git/runner';
 import { stageChanges, TStageOpts } from '../lib/preconditions';
 import { newBranchName } from '../lib/utils/branch_name';
-import { restackBranches } from './restack';
+import { restackBranches, withChangesSetAside } from './restack';
 
 export async function createBranchAction(
   opts: {
@@ -164,11 +164,13 @@ async function insertOrTip(
   );
 
   // Moved siblings bring their whole upstacks along.
-  restackBranches(
-    toMove.flatMap((siblingBranchName) =>
-      context.engine.getRelativeStack(siblingBranchName, SCOPE.UPSTACK)
-    ),
-    context
+  withChangesSetAside('UNSTAGED', context, () =>
+    restackBranches(
+      toMove.flatMap((siblingBranchName) =>
+        context.engine.getRelativeStack(siblingBranchName, SCOPE.UPSTACK)
+      ),
+      context
+    )
   );
 }
 

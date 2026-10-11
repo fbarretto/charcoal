@@ -6,7 +6,7 @@ import {
   TStageOpts,
 } from '../lib/preconditions';
 import { BlockedDuringRebaseError } from '../lib/errors';
-import { restackBranches } from './restack';
+import { restackBranches, withChangesSetAside } from './restack';
 
 export async function commitCreateAction(
   opts: TStageOpts & { message?: string; verbose?: number },
@@ -22,11 +22,13 @@ export async function commitCreateAction(
   ensureSomeStagedChangesPrecondition(context);
   context.engine.commit({ message: opts.message, verbose: opts.verbose });
 
-  restackBranches(
-    context.engine.getRelativeStack(
-      context.engine.currentBranchPrecondition,
-      SCOPE.UPSTACK_EXCLUSIVE
-    ),
-    context
+  withChangesSetAside('UNSTAGED', context, () =>
+    restackBranches(
+      context.engine.getRelativeStack(
+        context.engine.currentBranchPrecondition,
+        SCOPE.UPSTACK_EXCLUSIVE
+      ),
+      context
+    )
   );
 }

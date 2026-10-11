@@ -2,7 +2,7 @@ import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
 import { BlockedDuringRebaseError } from '../lib/errors';
 import { stageChanges, TStageOpts } from '../lib/preconditions';
-import { restackBranches } from './restack';
+import { restackBranches, withChangesSetAside } from './restack';
 
 export async function commitAmendAction(
   opts: TStageOpts & {
@@ -30,11 +30,13 @@ export async function commitAmendAction(
     resetAuthor: opts.resetAuthor,
   });
 
-  restackBranches(
-    context.engine.getRelativeStack(
-      context.engine.currentBranchPrecondition,
-      SCOPE.UPSTACK_EXCLUSIVE
-    ),
-    context
+  withChangesSetAside('UNSTAGED', context, () =>
+    restackBranches(
+      context.engine.getRelativeStack(
+        context.engine.currentBranchPrecondition,
+        SCOPE.UPSTACK_EXCLUSIVE
+      ),
+      context
+    )
   );
 }

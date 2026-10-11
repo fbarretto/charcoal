@@ -8,6 +8,7 @@ import { configureTest } from '../../lib/utils/configure_test';
 import { expectCommits } from '../../lib/utils/expect_commits';
 
 for (const scene of allScenes) {
+  // eslint-disable-next-line max-lines-per-function
   describe(`(${scene}): commit amend`, function () {
     configureTest(this, scene);
 
@@ -39,6 +40,26 @@ for (const scene of allScenes) {
 
       scene.repo.checkoutBranch('b');
       expectCommits(scene.repo, '3, 2.5, 1');
+    });
+
+    it('Restacks upwards with unrelated unstaged changes left in place', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.createChange('z', 'z');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChange('a2', 'a');
+      scene.repo.createChange('z2', 'z', true);
+
+      scene.repo.runCliCommand([`modify`]);
+
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`status`, `--porcelain`])
+      ).to.equal('M z_test.txt');
+      expect(scene.repo.runCliCommandAndGetOutput([`ls`])).not.to.contain(
+        'needs restack'
+      );
     });
 
     it('Restacks correctly when there are merge conflicts', () => {
