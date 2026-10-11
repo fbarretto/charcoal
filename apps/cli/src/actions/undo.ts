@@ -330,9 +330,10 @@ export function restoreUndoSnapshot(
 
 type TCommittedChanges = { base: string; head: string; patch: string };
 
-// What `create` / `modify` committed (the created branch's commits, or the
-// modified branch's old..new diff), so undoing it hands those changes back
-// instead of leaving them only in the reflog.
+// What `create` / `modify` / `absorb` committed (the created branch's
+// commits, or the modified or current branch's old..new diff), so undoing it
+// hands those changes back instead of leaving them only in the reflog. Other
+// commands only rearrange commits that stay reachable.
 function committedChanges(
   snapshot: TUndoSnapshot,
   context: TContext
@@ -344,6 +345,8 @@ function committedChanges(
       ? Object.keys(now).find((b) => !(b in before))
       : snapshot.command === 'modify'
       ? modifiedBranch(before, now, context)
+      : snapshot.command === 'absorb'
+      ? snapshot.currentBranch
       : undefined;
   if (!branch || !now[branch]) {
     return undefined;

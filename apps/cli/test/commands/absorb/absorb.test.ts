@@ -199,6 +199,9 @@ for (const scene of allScenes) {
       scene.repo.runCliCommand([`undo`, `-f`]);
       expect(refs()).to.deep.equal(before);
       expect(scene.repo.currentBranchName()).to.equal('b');
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`status`, `--porcelain`])
+      ).to.equal('M  a_test.txt\nM  b_test.txt');
     });
 
     it('Fails with an install hint when git-absorb is missing', () => {
