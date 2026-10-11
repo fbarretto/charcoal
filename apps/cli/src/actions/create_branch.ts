@@ -2,7 +2,11 @@ import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
 import { ExitFailedError } from '../lib/errors';
 import { runGitCommand } from '../lib/git/runner';
-import { stageChanges, TStageOpts } from '../lib/preconditions';
+import {
+  editorPrecondition,
+  stageChanges,
+  TStageOpts,
+} from '../lib/preconditions';
 import { newBranchName } from '../lib/utils/branch_name';
 import { restackBranches, withChangesSetAside } from './restack';
 
@@ -22,6 +26,13 @@ export async function createBranchAction(
     throw new ExitFailedError(
       `Must specify either a branch name or commit message.`
     );
+  }
+
+  if (
+    !opts.message &&
+    (opts.all || opts.update || context.engine.detectStagedChanges())
+  ) {
+    editorPrecondition(context, 'Pass the commit message with `-m`.');
   }
 
   const originalBranch = context.engine.currentBranch;

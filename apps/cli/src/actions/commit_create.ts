@@ -1,6 +1,7 @@
 import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
 import {
+  editorPrecondition,
   ensureSomeStagedChangesPrecondition,
   stageChanges,
   TStageOpts,
@@ -18,6 +19,9 @@ export async function commitCreateAction(
 
   // Refuse before staging, or the staged changes ride into the next commit.
   context.engine.assertNotFrozen(context.engine.currentBranchPrecondition);
+  if (!opts.message) {
+    editorPrecondition(context, 'Pass the commit message with `-m`.');
+  }
   await stageChanges(opts, context);
   ensureSomeStagedChangesPrecondition(context);
   context.engine.commit({ message: opts.message, verbose: opts.verbose });

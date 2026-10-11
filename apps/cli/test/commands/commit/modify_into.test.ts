@@ -70,7 +70,13 @@ for (const scene of allScenes) {
       scene.repo.createChange('a2', 'a');
 
       withEditor('edited fix', () =>
-        scene.repo.runCliCommand([`modify`, `--into`, `a`, `-c`])
+        scene.repo.runCliCommand([
+          `modify`,
+          `--into`,
+          `a`,
+          `-c`,
+          `--interactive`,
+        ])
       );
 
       scene.repo.checkoutBranch('c');
@@ -84,7 +90,13 @@ for (const scene of allScenes) {
 
       expect(() =>
         withEditor('', () =>
-          scene.repo.runCliCommand([`modify`, `--into`, `a`, `-c`])
+          scene.repo.runCliCommand([
+            `modify`,
+            `--into`,
+            `a`,
+            `-c`,
+            `--interactive`,
+          ])
         )
       ).to.throw('empty commit message');
       expect(scene.repo.getRef('refs/heads/a')).to.equal(aBefore);

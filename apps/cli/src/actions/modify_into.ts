@@ -15,7 +15,11 @@ import {
   treeWithPatch,
 } from '../lib/git/plumbing';
 import { worktreeOf } from '../lib/git/worktrees';
-import { stageChanges, TStageOpts } from '../lib/preconditions';
+import {
+  editorPrecondition,
+  stageChanges,
+  TStageOpts,
+} from '../lib/preconditions';
 import { restackBranches, withChangesSetAside } from './restack';
 
 // Commits the staged changes into another branch without checking it out:
@@ -55,6 +59,9 @@ export async function modifyIntoAction(
   }
   // setBranchRevision would refuse too, but only after the working tree reset.
   context.engine.assertNotFrozen(target);
+  if (opts.commit && !opts.message) {
+    editorPrecondition(context, 'Pass the commit message with `-m`.');
+  }
   if (!opts.commit && context.engine.isBranchEmpty(target)) {
     throw new PreconditionsFailedError(
       `No commits in ${chalk.yellow(target)} to amend.`

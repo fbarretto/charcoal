@@ -1,5 +1,6 @@
 import { TContext } from '../../lib/context';
 import { SCOPE } from '../../lib/engine/scope_spec';
+import { editorPrecondition } from '../../lib/preconditions';
 import { performInTmpDir } from '../../lib/utils/perform_in_tmp_dir';
 import { handleMultipleChildren } from '../branch_traversal';
 import { restackBranches } from '../restack';
@@ -9,6 +10,12 @@ export async function editDownstack(
   opts: { inputPath: string | undefined; stack?: boolean },
   context: TContext
 ): Promise<void> {
+  if (!opts.inputPath) {
+    editorPrecondition(
+      context,
+      '`ch reorder` takes the new order in an editor; use `ch move --onto` for each branch instead.'
+    );
+  }
   // First, reorder the parent pointers of the branches
   const branchNames = opts.inputPath
     ? parseEditFile(opts.inputPath) // allow users to pass a pre-written file, mostly for unit tests.

@@ -123,6 +123,19 @@ export function uncommittedTrackedChangesPrecondition(): void {
   }
 }
 
+// Without a terminal an editor hangs, or with GIT_EDITOR=true silently changes
+// nothing, so refuse and name the flag that replaces it.
+export function editorPrecondition(
+  context: TContext,
+  alternative: string
+): void {
+  if (!context.interactive) {
+    throw new PreconditionsFailedError(
+      `This would open an editor, which needs an interactive terminal. ${alternative}`
+    );
+  }
+}
+
 export function ensureSomeStagedChangesPrecondition(context: TContext): void {
   if (detectStagedChanges()) {
     return;

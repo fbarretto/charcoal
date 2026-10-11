@@ -84,7 +84,7 @@ for (const scene of [new BasicScene()]) {
           const old = process.env.CH_EDITOR;
           process.env.CH_EDITOR = editor;
           try {
-            scene.repo.runCliCommand([`reorder`, ...args]);
+            scene.repo.runCliCommand([`reorder`, `--interactive`, ...args]);
           } finally {
             if (old === undefined) {
               delete process.env.CH_EDITOR;

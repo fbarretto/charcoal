@@ -195,6 +195,7 @@ for (const scene of allScenes) {
           `--interactive-rebase`,
           `-m`,
           `ignored`,
+          `--interactive`,
         ]);
       } finally {
         process.env.GIT_SEQUENCE_EDITOR = original;
