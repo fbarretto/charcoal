@@ -8,7 +8,6 @@ type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
 export const command = 'fish';
 export const canonical = 'fish';
-export const aliases = ['fish'];
 export const description = 'Set up fish tab completion.';
 export const builder = args;
 export const handler = async (argv: argsT): Promise<void> =>

@@ -16,7 +16,7 @@ const args = {
     optional: true,
     type: 'boolean',
     alias: 'r',
-    describe: 'Turn off branch prefixing. Takes precendence over --set',
+    describe: 'Turn off branch prefixing. Takes precedence over --set',
   },
 } as const;
 

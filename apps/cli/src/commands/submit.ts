@@ -79,7 +79,7 @@ const args = {
     default: false,
   },
   'update-only': {
-    describe: 'Only update the PRs that have been already been submitted.',
+    describe: 'Only update the PRs that have already been submitted.',
     type: 'boolean',
     default: false,
     alias: 'u',
