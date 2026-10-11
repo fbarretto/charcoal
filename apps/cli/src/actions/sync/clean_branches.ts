@@ -78,12 +78,12 @@ export async function cleanBranches(
         },
         context
       ));
+    const children = context.engine.getChildren(branchName);
+    // We concat children here (because we pop above) to make our search a DFS.
+    // Live branches are searched too: a merged or closed branch can sit above one.
+    children.forEach((b) => branchesToProcess.push(b));
+
     if (shouldDelete) {
-      const children = context.engine.getChildren(branchName);
-
-      // We concat children here (because we pop above) to make our search a DFS.
-      children.forEach((b) => branchesToProcess.push(b));
-
       // Value in branchesToDelete is a list of children blocking deletion.
       branchesToDelete[branchName] = new Set(children);
       context.splog.debug(

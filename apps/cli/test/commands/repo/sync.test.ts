@@ -165,6 +165,30 @@ for (const scene of allScenes) {
       expectBranches(scene.repo, 'main');
     });
 
+    it('Deletes a closed branch above a live one and reparents its child', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.createChange('c', 'c');
+      scene.repo.runCliCommand([`create`, `c`, `-m`, `c`]);
+      writeMetadataRef(
+        'b',
+        { ...readMetadataRef('b', scene.dir), prInfo: { state: 'CLOSED' } },
+        scene.dir
+      );
+
+      expect(
+        scene.repo.runCliCommandAndGetOutput([`sync`, `--no-pull`])
+      ).to.match(/b is closed on GitHub; kept it/);
+
+      scene.repo.runCliCommand([`sync`, `-d`, `--no-pull`]);
+      expectBranches(scene.repo, 'a, c, main');
+      expect(readMetadataRef('c', scene.dir).parentBranchName).to.equal('a');
+      scene.repo.checkoutBranch('c');
+      expectCommits(scene.repo, 'c, a, 1');
+    });
+
     it('Can delete two branches off a three-stack', async () => {
       scene.repo.createChange('2', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
