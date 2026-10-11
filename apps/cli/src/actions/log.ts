@@ -3,6 +3,7 @@ import stripAnsi from 'strip-ansi';
 import { GRAPHITE_COLORS } from '../lib/colors';
 import { TContext } from '../lib/context';
 import { SCOPE } from '../lib/engine/scope_spec';
+import { PreconditionsFailedError } from '../lib/errors';
 import { branchesInOtherWorktrees } from '../lib/git/worktrees';
 import { clearPromptResultLine, suggest } from '../lib/utils/prompts_helpers';
 import { getBranchInfo } from './show_branch';
@@ -74,9 +75,16 @@ export async function interactiveBranchSelection(
     omitCurrentBranch?: boolean;
     showUntracked?: boolean;
     onlyCurrentStack?: boolean;
+    // What to pass instead, when there is no terminal to ask in.
+    nonInteractiveHint: string;
   },
   context: TContext
 ): Promise<string> {
+  if (!context.interactive) {
+    throw new PreconditionsFailedError(
+      `No branch given, and choosing one needs an interactive terminal. ${opts.nonInteractiveHint}`
+    );
+  }
   const currentStack = opts.onlyCurrentStack
     ? new Set([
         context.engine.trunk,

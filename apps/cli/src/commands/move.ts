@@ -50,6 +50,7 @@ export const handler = async (argv: argsT): Promise<void> => {
             context.engine.currentBranchPrecondition
           )} (autocomplete or arrow keys)`,
           omitCurrentBranch: true,
+          nonInteractiveHint: 'Pass it: `ch move --onto <branch>`.',
         },
         context
       ));

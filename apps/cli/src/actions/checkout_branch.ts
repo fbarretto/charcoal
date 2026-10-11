@@ -21,6 +21,8 @@ export async function checkoutBranch(
         message: 'Checkout a branch (autocomplete or arrow keys)',
         showUntracked,
         onlyCurrentStack,
+        nonInteractiveHint:
+          'Pass it: `ch co <branch>` (or `ch co -t` for trunk).',
       },
       context
     );

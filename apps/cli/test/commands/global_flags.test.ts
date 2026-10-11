@@ -51,6 +51,18 @@ for (const scene of [new BasicScene()]) {
       }
     });
 
+    for (const [command, hint] of [
+      [['checkout'], 'ch co <branch>'],
+      [['move'], 'ch move --onto <branch>'],
+      [['split'], '--by-file'],
+    ] as const) {
+      it(`Names the missing argument without a terminal: ch ${command[0]}`, () => {
+        scene.repo.createChange('a', 'a');
+        scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+        expect(() => scene.repo.runCliCommand([...command])).to.throw(hint);
+      });
+    }
+
     it('Runs in the --cwd directory', () => {
       scene.repo.createChange('a');
       scene.repo.runCliCommand(['--cwd', scene.dir, 'create', 'a', '-m', 'a'], {

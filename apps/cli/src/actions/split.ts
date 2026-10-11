@@ -46,7 +46,7 @@ export async function splitCurrentBranch(
   }
   if (!context.interactive) {
     throw new PreconditionsFailedError(
-      'This command must be run in interactive mode.'
+      'Splitting by commit or by hunk needs an interactive terminal; pass `--by-file <pathspec>` to split files out without one.'
     );
   }
   uncommittedTrackedChangesPrecondition();

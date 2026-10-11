@@ -60,7 +60,10 @@ async function selectBranchToDelete(context: TContext): Promise<string> {
     );
   }
   return interactiveBranchSelection(
-    { message: 'Select a branch to delete (autocomplete or arrow keys)' },
+    {
+      message: 'Select a branch to delete (autocomplete or arrow keys)',
+      nonInteractiveHint: 'Pass it: `ch delete <branch>`.',
+    },
     context
   );
 }
