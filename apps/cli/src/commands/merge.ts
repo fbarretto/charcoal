@@ -24,7 +24,7 @@ const args = {
     type: 'string',
   },
   auto: {
-    describe: `Enable auto-merge on the bottom PR instead of merging it now, then stop.`,
+    describe: `Enable auto-merge on the bottom PR instead of merging it now, then stop. GitHub stacks have no auto-merge, so they merge as without --auto.`,
     demandOption: false,
     default: false,
     type: 'boolean',

@@ -30,8 +30,14 @@ const unknownPath = process.env.FAKE_GH_LOG + '.unknown';
 const unknown = () => (fs.existsSync(unknownPath) ? fs.readFileSync(unknownPath, 'utf-8').split(',') : []);
 const setUnknown = (ids) => fs.writeFileSync(unknownPath, ids.join(','));
 if (cmd === 'pr' && sub === 'merge') {
+  const auto = args.includes('--auto');
+  if (stacked && auto) fail('GraphQL: Auto-merge is not supported for stacked pull requests. (enablePullRequestAutoMerge)');
   if (stacked) fail('GraphQL: This pull request is part of a stack and must be merged using the asynchronous merge REST API.');
   if (id === process.env.FAKE_GH_FAIL || unknown().includes(id)) fail('GraphQL: Pull Request is not mergeable');
+  // FAKE_GH_BLOCKED: a required check is still running. Auto-merge arms and
+  // waits; a direct merge is refused by the base branch policy.
+  if (auto && id === process.env.FAKE_GH_BLOCKED) process.exit(0);
+  if (id === process.env.FAKE_GH_BLOCKED) fail('X Pull request owner/name#' + id + ' is not mergeable: the base branch policy prohibits the merge.');
   // FAKE_GH_BASE_MODIFIED: GitHub's own retarget lands after mergeability
   // was computed, so the first merge attempt is refused.
   const modified = process.env.FAKE_GH_LOG + '.modified';
@@ -68,11 +74,16 @@ if (cmd === 'api' && sub.includes('/stacks?pull_request=')) {
 }
 let m;
 if (cmd === 'api' && (m = /pulls\\/(\\d+)\\/merge-async$/.exec(sub))) {
-  for (let n = 1; n <= Number(m[1]); n++) merge(n);
+  if (!process.env.FAKE_GH_BLOCKED) for (let n = 1; n <= Number(m[1]); n++) merge(n);
   out({ status: 'pending', details: { uuid: 'u' + m[1] } });
   process.exit(0);
 }
-if (cmd === 'api' && /merge-async\\/u\\d+$/.test(sub)) { out({ status: 'merged', details: { sha: 'abc' } }); process.exit(0); }
+if (cmd === 'api' && /merge-async\\/u\\d+$/.test(sub)) {
+  out(process.env.FAKE_GH_BLOCKED
+    ? { status: 'failed', details: { message: 'Required status check "slow-check" is in progress.' } }
+    : { status: 'merged', details: { sha: 'abc' } });
+  process.exit(0);
+}
 fail('fake gh: unexpected ' + args.join(' '));
 `;
 
@@ -156,6 +167,7 @@ for (const scene of [new CloneScene()]) {
       scene.repo.runCliCommand([`merge`]);
       expect(ghCalls()).to.deep.equal([
         'api repos/owner/name/stacks?pull_request=1',
+        'pr view 1 --repo owner/name --json mergeable,mergeStateStatus',
         'pr merge 1 --repo owner/name --squash',
         'pr edit 2 --repo owner/name --base main',
         'pr view 2 --repo owner/name --json mergeable,mergeStateStatus',
@@ -202,6 +214,7 @@ for (const scene of [new CloneScene()]) {
       );
       expect(ghCalls()).to.deep.equal([
         'api repos/owner/name/stacks?pull_request=1',
+        'pr view 1 --repo owner/name --json mergeable,mergeStateStatus',
         'pr merge 1 --repo owner/name --squash',
         'pr edit 2 --repo owner/name --base main',
         'pr view 2 --repo owner/name --json mergeable,mergeStateStatus',
@@ -271,10 +284,50 @@ for (const scene of [new CloneScene()]) {
 
     it('Only enables auto-merge on the bottom PR with --auto', () => {
       setPrNumbers(['a', 'b', 'c']);
-      scene.repo.runCliCommand([`merge`, `--auto`, `--method`, `rebase`]);
+      process.env.FAKE_GH_BLOCKED = '1';
+      const output = scene.repo.runCliCommandAndGetOutput([
+        `merge`,
+        `--auto`,
+        `--method`,
+        `rebase`,
+      ]);
       expect(ghCalls()).to.deep.equal([
+        'api repos/owner/name/stacks?pull_request=1',
         'pr merge 1 --repo owner/name --rebase --auto',
       ]);
+      expect(output).to.match(/Enabled auto-merge for #1 \(a\)/);
+    });
+
+    it('Stops with a clear message when the bottom PR is blocked', () => {
+      setPrNumbers(['a', 'b', 'c']);
+      process.env.FAKE_GH_BLOCKED = '1';
+      expect(() => scene.repo.runCliCommand([`merge`])).to.throw(
+        /#1 is blocked by required checks or reviews/
+      );
+      expect(ghCalls()).not.to.contain('pr merge 1 --repo owner/name --squash');
+    });
+
+    it('Merges a GitHub stack through the async merge API with --auto', () => {
+      setPrNumbers(['a', 'b', 'c']);
+      process.env.FAKE_GH_STACK = '1';
+      scene.repo.runCliCommand([`merge`, `--auto`]);
+      expect(ghCalls()).to.deep.equal([
+        'api repos/owner/name/stacks?pull_request=1',
+        'api repos/owner/name/pulls/3/merge-async --method PUT --input - {"merge_method":"squash","merge_action":"default"}',
+        'api repos/owner/name/pulls/3/merge-async/u3',
+      ]);
+      expect(
+        scene.originRepo.runGitCommandAndGetOutput([`log`, `--format=%s`, `-3`])
+      ).to.equal('c (#3)\nb (#2)\na (#1)');
+    });
+
+    it('Explains that GitHub has no auto-merge for a blocked GitHub stack', () => {
+      setPrNumbers(['a', 'b', 'c']);
+      process.env.FAKE_GH_STACK = '1';
+      process.env.FAKE_GH_BLOCKED = '1';
+      expect(() => scene.repo.runCliCommand([`merge`, `--auto`])).to.throw(
+        /"slow-check" is in progress[\s\S]*GitHub does not support auto-merge for stacked PRs/
+      );
     });
   });
 }

@@ -77,9 +77,12 @@ export async function mergeAction(
   uncommittedTrackedChangesPrecondition();
 
   const repo = githubRepoSlug(context);
-  const stack = opts.auto ? undefined : ghStackOf(prs, repo);
+  const stack = ghStackOf(prs, repo);
   if (stack) {
-    await mergeStack({ prs, stack, repo, method: opts.method }, context);
+    await mergeStack(
+      { prs, stack, repo, method: opts.method, auto: opts.auto },
+      context
+    );
     context.splog.tip(
       `Run ${chalk.cyan('ch sync')} to delete the merged branches locally.`
     );
@@ -102,10 +105,10 @@ export async function mergeAction(
     }
     try {
       const mergeOpts = { method: opts.method, auto: opts.auto };
-      if (i > 0) {
-        await mergeAfterRetarget(number, repo, mergeOpts);
-      } else {
+      if (opts.auto) {
         await mergePr(number, repo, mergeOpts);
+      } else {
+        await mergeWhenMergeable(number, repo, mergeOpts);
       }
     } catch (e) {
       const rest = prs.slice(i + 1).map((pr) => `#${pr.number}`);
@@ -164,14 +167,16 @@ function ghStackOf(
   return stack;
 }
 
-// GitHub refuses `gh pr merge` on a stacked PR; its async merge API merges
-// the whole stack up to and including the PR it is called on.
+// GitHub refuses `gh pr merge` (and auto-merge) on a stacked PR; its async
+// merge API merges the whole stack up to and including the PR it is called
+// on, or adds it to the merge queue if the base branch has one.
 async function mergeStack(
   opts: {
     prs: { branch: string; number: number }[];
     stack: TGhStack;
     repo: string;
     method: 'squash' | 'merge' | 'rebase';
+    auto: boolean;
   },
   context: TContext
 ): Promise<void> {
@@ -215,16 +220,22 @@ async function mergeStack(
           STACK_MERGE_TIMEOUT_MS / 1000
         }s; check the PRs on GitHub.`
       );
-    default:
-      throw fail(
-        `was not merged: ${result.details?.message ?? result.status}.`
+    default: {
+      const reason = (result.details?.message ?? result.status).replace(
+        /\.$/,
+        ''
       );
+      const hint = opts.auto
+        ? ' GitHub does not support auto-merge for stacked PRs (only a merge queue on the base branch); run `ch merge` again once checks and reviews pass.'
+        : '';
+      throw fail(`was not merged: ${reason}.${hint}`);
+    }
   }
 }
 
 // GitHub can still refuse with "Base branch was modified" when its own
 // retarget lands after mergeability was computed; wait again and retry.
-async function mergeAfterRetarget(
+async function mergeWhenMergeable(
   number: number,
   repo: string,
   opts: { method: 'squash' | 'merge' | 'rebase'; auto: boolean }
