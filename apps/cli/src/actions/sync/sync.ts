@@ -197,7 +197,7 @@ async function shouldOverwriteDiverged(
           '--force'
         )} to overwrite it with the remote version, or run ${chalk.cyan(
           `ch get ${branchName}`
-        )} to rebase your changes onto it.`,
+        )} in an interactive terminal to rebase your changes onto it.`,
       ].join('\n')
     );
     return false;

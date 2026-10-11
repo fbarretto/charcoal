@@ -363,11 +363,44 @@ export function branchesToSyncAfterContinue(
   });
 }
 
+// Without a terminal there is no one to choose, so name the flag instead.
+function refuseNonInteractive(
+  {
+    branchName,
+    reason,
+    canRebase,
+  }: { branchName: string; reason: string; canRebase: boolean },
+  context: TContext
+): void {
+  if (context.interactive) {
+    return;
+  }
+  throw new ExitFailedError(
+    `Aborted: ${chalk.yellow(branchName)} ${reason}. Pass ${chalk.cyan(
+      '--force'
+    )} to overwrite your local copy with the remote version${
+      canRebase
+        ? `, or run ${chalk.cyan(
+            `ch get ${branchName}`
+          )} in an interactive terminal to rebase your local changes onto it`
+        : ''
+    }.`
+  );
+}
+
 async function handleUntrackedLocally(
   branchName: string,
   parentBranchName: string,
   context: TContext
 ): Promise<void> {
+  refuseNonInteractive(
+    {
+      branchName,
+      reason: 'exists locally but is not tracked by Charcoal',
+      canRebase: false,
+    },
+    context
+  );
   context.splog.info(
     [
       `${chalk.yellow(
@@ -385,6 +418,14 @@ async function handleDifferentParents(
   parentBranchName: string,
   context: TContext
 ): Promise<void> {
+  refuseNonInteractive(
+    {
+      branchName,
+      reason: 'has a different parent locally than on remote',
+      canRebase: false,
+    },
+    context
+  );
   context.splog.info(
     [
       `${chalk.yellow(
@@ -434,6 +475,14 @@ async function handleSameParent(
   },
   context: TContext
 ): Promise<void> {
+  refuseNonInteractive(
+    {
+      branchName: args.branchName,
+      reason: 'has local changes that differ from remote',
+      canRebase: true,
+    },
+    context
+  );
   context.splog.info(
     [
       `${chalk.yellow(
@@ -444,28 +493,24 @@ async function handleSameParent(
     ].join('\n')
   );
 
-  const fetchChoice: 'REBASE' | 'OVERWRITE' | 'ABORT' = !context.interactive
-    ? 'ABORT'
-    : (
-        await context.prompts({
-          type: 'select',
-          name: 'value',
-          message: `How would you like to handle ${chalk.yellow(
-            args.branchName
-          )}?`,
-          choices: [
-            {
-              title: 'Rebase your changes on top of the remote version',
-              value: 'REBASE',
-            },
-            {
-              title: 'Overwrite the local copy with the remote version',
-              value: 'OVERWRITE',
-            },
-            { title: 'Abort this command', value: 'ABORT' },
-          ],
-        })
-      ).value;
+  const fetchChoice: 'REBASE' | 'OVERWRITE' | 'ABORT' = (
+    await context.prompts({
+      type: 'select',
+      name: 'value',
+      message: `How would you like to handle ${chalk.yellow(args.branchName)}?`,
+      choices: [
+        {
+          title: 'Rebase your changes on top of the remote version',
+          value: 'REBASE',
+        },
+        {
+          title: 'Overwrite the local copy with the remote version',
+          value: 'OVERWRITE',
+        },
+        { title: 'Abort this command', value: 'ABORT' },
+      ],
+    })
+  ).value;
 
   switch (fetchChoice) {
     case 'REBASE': {

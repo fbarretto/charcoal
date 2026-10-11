@@ -148,6 +148,20 @@ for (const scene of [new CloneScene()]) {
       expect(readMetadataRef('b', scene.dir).parentBranchName).to.equal('main');
     });
 
+    it('names --force when it aborts on a diverged branch without a terminal', () => {
+      get(`a`, `-U`);
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChangeAndCommit('local', 'local');
+      advanceOrigin('a');
+      scene.repo.checkoutBranch('main');
+      const before = scene.repo.getRef('refs/heads/a');
+
+      expect(() => get(`a`)).to.throw(
+        /Aborted: a has local changes[\s\S]*--force/
+      );
+      expect(scene.repo.getRef('refs/heads/a')).to.equal(before);
+    });
+
     it('offers to cancel when rebasing onto remote conflicts', async () => {
       get(`a`, `-U`);
       scene.repo.checkoutBranch('a');
