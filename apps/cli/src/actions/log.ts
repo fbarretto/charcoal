@@ -25,7 +25,7 @@ export function logAction(
   },
   context: TContext
 ): void {
-  const logOutput = getStackLines(
+  const stackLines = getStackLines(
     {
       short: opts.style === 'SHORT',
       reverse: opts.reverse,
@@ -34,6 +34,9 @@ export function logAction(
       steps: opts.steps,
     },
     context
+  );
+  const logOutput = (
+    opts.style === 'SHORT' ? withConnectorRows(stackLines) : stackLines
   )
     .concat(
       opts.showUntracked
@@ -47,6 +50,30 @@ export function logAction(
     .join('\n');
 
   context.splog.page(logOutput);
+}
+
+const CONTINUES_DOWN = new Set(['◯', '◉', '│', '┐', '┬']);
+const CONTINUES_UP = new Set(['◯', '◉', '│', '┘', '┴']);
+
+// Puts a row of `│` between short-log lines wherever a lane runs from one dot to the next.
+export function withConnectorRows(lines: string[]): string[] {
+  const plain = lines.map((line) => stripAnsi(line));
+  return lines.flatMap((line, i) => {
+    if (i === 0) {
+      return [line];
+    }
+    const [upper, lower] = [plain[i - 1], plain[i]];
+    const connector = Array.from(
+      { length: Math.min(upper.length, lower.length) },
+      (_, col) =>
+        CONTINUES_DOWN.has(upper[col]) && CONTINUES_UP.has(lower[col])
+          ? getLogShortColor('│', col)
+          : ' '
+    )
+      .join('')
+      .trimEnd();
+    return [connector, line];
+  });
 }
 
 export function logForConflictStatus(

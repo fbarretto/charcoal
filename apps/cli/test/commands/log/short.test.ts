@@ -3,6 +3,7 @@ import { execSync, spawnSync } from 'child_process';
 import path from 'path';
 import { USER_CONFIG_OVERRIDE_ENV } from '../../../src/lib/context';
 import fs from 'fs-extra';
+import stripAnsi from 'strip-ansi';
 import { TrailingProdScene } from '../../lib/scenes/trailing_prod_scene';
 import { configureTest } from '../../lib/utils/configure_test';
 
@@ -46,6 +47,28 @@ for (const scene of [new TrailingProdScene()]) {
       expect(scene.repo.runCliCommandAndGetOutput([`log`])).not.to.equal(
         classic
       );
+    });
+
+    it('Connects the dots of a stack and its side branches', () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.checkoutBranch('a');
+      scene.repo.createChange('c', 'c');
+      scene.repo.runCliCommand([`create`, `c`, `-m`, `c`]);
+      const out = stripAnsi(scene.repo.runCliCommandAndGetOutput([`ls`]))
+        .split('\n')
+        .map((l) => l.trimEnd());
+      expect(out).to.deep.equal([
+        '◉    c',
+        '│',
+        '│ ◯  b',
+        '│ │',
+        '◯─┘  a',
+        '│',
+        '◯    main',
+      ]);
     });
 
     it("Can print stacks if a branch's parent has been deleted", () => {
