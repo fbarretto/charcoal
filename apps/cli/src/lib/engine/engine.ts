@@ -305,6 +305,20 @@ export function composeEngine({
     );
   };
 
+  // A stored base that is an ancestor of the real fork point would replay
+  // parent commits as the branch's own; commits the parent already has never
+  // belong to the branch, so the fork point is always the safer base then.
+  const getRestackBase = (
+    branchName: string,
+    cachedMeta: { parentBranchName: string; parentBranchRevision: string }
+  ) => {
+    const forkPoint = git.getMergeBase(branchName, cachedMeta.parentBranchName);
+    return git.getMergeBase(cachedMeta.parentBranchRevision, forkPoint) ===
+      cachedMeta.parentBranchRevision
+      ? forkPoint
+      : cachedMeta.parentBranchRevision;
+  };
+
   const getChildren = (branchName: string) =>
     cache.branches[branchName].children.filter(
       (childBranchName) =>
@@ -950,7 +964,7 @@ export function composeEngine({
         git.rebase({
           branchName,
           onto: cachedMeta.parentBranchName,
-          from: cachedMeta.parentBranchRevision,
+          from: getRestackBase(branchName, cachedMeta),
           restackCommitterDateIsAuthorDate,
         }) === 'REBASE_CONFLICT'
       ) {

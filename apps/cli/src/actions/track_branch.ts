@@ -194,10 +194,29 @@ function trackHelper(
   },
   context: TContext
 ) {
+  if (context.engine.isTrunk(parentBranchName)) {
+    warnIfTrunkIsBehindRemote(parentBranchName, context);
+  }
   context.engine.trackBranch(branchName, parentBranchName);
   context.splog.info(
     `Tracked branch ${chalk.green(branchName)} with parent ${chalk.cyan(
       parentBranchName
     )}.`
   );
+}
+
+function warnIfTrunkIsBehindRemote(trunkName: string, context: TContext) {
+  const remoteTrunk = `${context.repoConfig.getRemote()}/${trunkName}`;
+  const behind = runGitCommand({
+    args: ['rev-list', '--count', `${trunkName}..refs/remotes/${remoteTrunk}`],
+    onError: 'ignore',
+    resource: 'countTrunkBehindRemote',
+  });
+  if (parseInt(behind, 10) > 0) {
+    context.splog.warn(
+      `${trunkName} is behind ${remoteTrunk}, so the recorded base may be stale; consider running ${chalk.cyan(
+        'ch sync'
+      )} first.`
+    );
+  }
 }

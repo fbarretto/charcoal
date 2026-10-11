@@ -36,6 +36,28 @@ for (const scene of allScenes) {
       expectCommits(scene.repo, '4, 3.5, 3, 2.5, 2, 1.5, 1');
     });
 
+    it('Restacks from the fork point when the branch was tracked against a stale trunk', () => {
+      scene.repo.createAndCheckoutBranch('upstream');
+      scene.repo.createChangeAndCommit('m1', 'shared');
+      scene.repo.createChangeAndCommit('m2', 'shared');
+      scene.repo.createAndCheckoutBranch('a');
+      scene.repo.createChangeAndCommit('a', 'a');
+      scene.repo.runCliCommand(['track', '-p', 'main']);
+
+      scene.repo.checkoutBranch('main');
+      scene.repo.runGitCommand(['merge', '--ff-only', 'upstream']);
+      scene.repo.createChangeAndCommit('m3', 'shared');
+
+      scene.repo.checkoutBranch('a');
+      scene.repo.runCliCommand(['restack', '-q']);
+
+      expect(scene.repo.rebaseInProgress()).to.be.false;
+      expectCommits(scene.repo, 'a, m3, m2, m1');
+      expect(
+        scene.repo.runGitCommandAndGetOutput(['rev-list', '--count', 'main..a'])
+      ).to.equal('1');
+    });
+
     it('Refuses with a precondition message when there are uncommitted changes to restack over', () => {
       scene.repo.createChange('a', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);

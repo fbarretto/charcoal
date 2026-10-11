@@ -221,5 +221,30 @@ for (const scene of allScenes) {
         scene.repo.runCliCommand([`parent`, `--no-interactive`])
       ).to.throw();
     });
+
+    it('Warns when trunk is behind its remote tracking branch', () => {
+      scene.repo.createChangeAndCommit('remote', 'remote');
+      scene.repo.runGitCommand([
+        'update-ref',
+        'refs/remotes/origin/main',
+        'HEAD',
+      ]);
+      scene.repo.runGitCommand(['reset', '--hard', 'HEAD~']);
+      scene.repo.createAndCheckoutBranch('a');
+      scene.repo.createChangeAndCommit('a', 'a');
+
+      expect(
+        scene.repo.runCliCommandAndGetOutput(['track', '-p', 'main'])
+      ).to.contain('main is behind origin/main');
+    });
+
+    it('Does not warn when trunk has no remote tracking branch', () => {
+      scene.repo.createAndCheckoutBranch('a');
+      scene.repo.createChangeAndCommit('a', 'a');
+
+      expect(
+        scene.repo.runCliCommandAndGetOutput(['track', '-p', 'main'])
+      ).not.to.contain('WARNING');
+    });
   });
 }
