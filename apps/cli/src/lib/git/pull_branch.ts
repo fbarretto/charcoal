@@ -6,12 +6,13 @@ import { CommandFailedError, runGitCommand } from './runner';
  */
 export function pullBranch(
   remote: string,
-  branchName: string
+  branchName: string,
+  cwd?: string
 ): 'OK' | 'CONFLICT' {
   try {
     runGitCommand({
       args: [`pull`, `--ff-only`, remote, branchName],
-      options: { stdio: 'pipe' },
+      options: { stdio: 'pipe', cwd },
       onError: 'throw',
       resource: 'pullBranch',
     });

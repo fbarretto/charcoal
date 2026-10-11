@@ -79,3 +79,14 @@ function branchBeingRebased(worktree: string): string | undefined {
 export function worktreeOf(branch: string): string | undefined {
   return branchesInOtherWorktrees().get(branch);
 }
+
+export function hasUncommittedTrackedChanges(worktree: string): boolean {
+  return (
+    runGitCommand({
+      args: ['status', '--porcelain', '--untracked-files=no'],
+      options: { cwd: worktree },
+      onError: 'throw',
+      resource: 'worktreeStatus',
+    }) !== ''
+  );
+}

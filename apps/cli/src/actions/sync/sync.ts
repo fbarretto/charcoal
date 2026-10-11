@@ -76,6 +76,16 @@ export async function pullTrunk(
     `🌲 Pulling ${chalk.cyan(context.engine.trunk)} from remote...`
   );
   const pullResult = context.engine.pullTrunk();
+  if (typeof pullResult === 'object') {
+    context.splog.warn(
+      `Skipped pulling ${chalk.cyan(
+        context.engine.trunk
+      )}: it is checked out in another worktree (${
+        pullResult.skippedInWorktree
+      }) and can't be fast-forwarded there without touching uncommitted changes or local commits. Pull it in that worktree.`
+    );
+    return;
+  }
   if (pullResult !== 'PULL_CONFLICT') {
     context.splog.info(
       pullResult === 'PULL_UNNEEDED'

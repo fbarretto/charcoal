@@ -7,6 +7,7 @@ import {
 import { TCommitOpts } from '../git/commit';
 import { TCommitFormat } from '../git/commit_range';
 import { TGit } from '../git/git';
+import { hasUncommittedTrackedChanges, worktreeOf } from '../git/worktrees';
 import { cuteString } from '../utils/cute_string';
 import { TSplog } from '../utils/splog';
 import {
@@ -148,7 +149,11 @@ export type TEngine = {
   hasRemoteBranch: (branchName: string) => boolean;
 
   pushBranch: (branchName: string, forcePush: boolean) => void;
-  pullTrunk: () => 'PULL_DONE' | 'PULL_UNNEEDED' | 'PULL_CONFLICT';
+  pullTrunk: () =>
+    | 'PULL_DONE'
+    | 'PULL_UNNEEDED'
+    | 'PULL_CONFLICT'
+    | { skippedInWorktree: string };
   hardReset: (sha?: string) => void;
   resetTrunkToRemote: () => void;
   clean: () => void;
@@ -1046,16 +1051,9 @@ export function composeEngine({
     },
     pullTrunk: () => {
       git.pruneRemote(remote);
-      const currentBranchName = getCurrentBranchOrThrow();
       const trunkName = assertTrunk();
       const oldTrunkCachedMeta = cache.branches[trunkName];
-      try {
-        git.switchBranch(trunkName);
-        const result = git.pullBranch(remote, trunkName);
-        if (result === 'CONFLICT') {
-          git.switchBranch(currentBranchName);
-          return 'PULL_CONFLICT';
-        }
+      const pulled = (): 'PULL_DONE' | 'PULL_UNNEEDED' => {
         const newTrunkRevision = git.getShaOrThrow(trunkName);
         cache.branches[trunkName] = {
           ...oldTrunkCachedMeta,
@@ -1064,6 +1062,22 @@ export function composeEngine({
         return oldTrunkCachedMeta.branchRevision === newTrunkRevision
           ? 'PULL_UNNEEDED'
           : 'PULL_DONE';
+      };
+      // Trunk can't be switched to here; fast-forward it where it is checked
+      // out, but never touch uncommitted work or reset it there.
+      const worktree = worktreeOf(trunkName);
+      if (worktree) {
+        return hasUncommittedTrackedChanges(worktree) ||
+          git.pullBranch(remote, trunkName, worktree) === 'CONFLICT'
+          ? { skippedInWorktree: worktree }
+          : pulled();
+      }
+      const currentBranchName = getCurrentBranchOrThrow();
+      try {
+        git.switchBranch(trunkName);
+        return git.pullBranch(remote, trunkName) === 'CONFLICT'
+          ? 'PULL_CONFLICT'
+          : pulled();
       } finally {
         git.switchBranch(currentBranchName);
       }

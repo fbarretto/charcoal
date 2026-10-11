@@ -183,6 +183,39 @@ for (const scene of [new CloneScene()]) {
       }
     });
 
+    const withTrunkInWorktree = (fn: (worktree: string) => void) => {
+      create('a');
+      scene.originRepo.createChangeAndCommit('m2', 'm2');
+      const worktree = fs.realpathSync(path.join(tmp.dirSync().name)) + '/wt';
+      scene.repo.runGitCommand(['worktree', 'add', worktree, 'main']);
+      try {
+        fn(worktree);
+      } finally {
+        scene.repo.runGitCommand(['worktree', 'remove', '--force', worktree]);
+      }
+    };
+
+    it('fast-forwards trunk checked out in a clean worktree, then restacks', () =>
+      withTrunkInWorktree(() => {
+        sync();
+        expect(local('main')).to.equal(remote('main'));
+        expectCommits(scene.repo, 'a, m2');
+      }));
+
+    it('skips pulling trunk checked out in a dirty worktree and still syncs', () =>
+      withTrunkInWorktree((worktree) => {
+        const mainBefore = local('main');
+        fs.writeFileSync(path.join(worktree, '1_test.txt'), 'dirty');
+
+        expect(sync()).to.contain(
+          `Skipped pulling main: it is checked out in another worktree (${worktree})`
+        );
+        expect(local('main')).to.equal(mainBefore);
+        expect(
+          fs.readFileSync(path.join(worktree, '1_test.txt'), 'utf-8')
+        ).to.equal('dirty');
+      }));
+
     it('does not pull branches with --no-pull', () => {
       create('a');
       push('a');
