@@ -1113,7 +1113,8 @@ export function composeEngine({
       const meta = assertBranchIsValidAndNotTrunkAndGetMeta(branchName);
       return git.compareToFetchHead(
         meta.branchRevision,
-        meta.parentBranchRevision
+        meta.parentBranchRevision,
+        git.getSha(`refs/remotes/${remote}/${branchName}`)
       );
     },
     checkoutBranchFromFetched: (

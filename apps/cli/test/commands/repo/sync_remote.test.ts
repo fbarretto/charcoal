@@ -100,6 +100,22 @@ for (const scene of [new CloneScene()]) {
       expect(local('a')).to.equal(remote('a'));
     });
 
+    it('keeps a local restack when the remote has nothing new', () => {
+      create('a');
+      create('b');
+      create('c');
+      ['a', 'b', 'c'].forEach(push);
+      scene.repo.runCliCommand([`delete`, `b`, `-f`]);
+      const before = local('c');
+
+      expect(sync()).not.to.contain('Synced c from remote.');
+
+      expect(local('c')).to.equal(before);
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`ls-tree`, `--name-only`, `c`])
+      ).not.to.contain('b_test.txt');
+    });
+
     it('takes a remote rebase when every local commit is on remote', () => {
       create('a');
       push('a');

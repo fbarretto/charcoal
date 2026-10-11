@@ -8,6 +8,9 @@ export function fetchBranch(remote: string, branchName: string): void {
     args: [
       `fetch`,
       `--no-write-fetch-head`,
+      // Keep refs/remotes/<remote>/<branch> at the last version we pushed or
+      // took, which compareToFetchHead and push leases rely on.
+      `--refmap=`,
       `-f`,
       remote,
       `${branchName}:${FETCH_HEAD}`,
@@ -34,15 +37,20 @@ export function writeFetchBase(sha: string): void {
   });
 }
 
-// How a local branch relates to the last fetched head: AHEAD when the fetched
-// head is already in it (nothing to pull), BEHIND when every one of its commits
-// since `base` is on the fetched head or patch-equivalent to one there (taking
-// the fetched head loses nothing), else DIVERGED.
+// How a local branch relates to the last fetched head: AHEAD when there is
+// nothing to pull (the fetched head is already in it, or is still the version
+// we last pushed or took, so a local restack is newer), BEHIND when every one
+// of its commits since `base` is on the fetched head or patch-equivalent to one
+// there (taking the fetched head loses nothing), else DIVERGED.
 export function compareToFetchHead(
   branchRevision: string,
-  base: string
+  base: string,
+  lastSeenRemote: string
 ): 'AHEAD' | 'BEHIND' | 'DIVERGED' {
   const head = readFetchHead();
+  if (head === lastSeenRemote) {
+    return 'AHEAD';
+  }
   try {
     runGitCommand({
       args: ['merge-base', '--is-ancestor', head, branchRevision],
