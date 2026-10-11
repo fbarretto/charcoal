@@ -52,7 +52,7 @@ ch init --trunk main    # once per repo
 | Diff of just this layer                        | `ch info -d` or `git diff "$(ch parent)"...HEAD`                     |
 | Push and open/update PRs                       | `ch submit --stack`                                                  |
 | Pull trunk and branches, drop merged, restack  | `ch sync`                                                            |
-| Merge the stack bottom-up                      | `ch merge --dry-run`, then `ch merge`                                |
+| Merge the stack bottom-up, waiting on checks   | `ch merge --dry-run`, then `ch merge` (`--auto` to wait for reviews) |
 | Undo the last `ch` command                     | `ch undo`                                                            |
 | Finish / cancel a conflicted command           | `ch continue` / `ch abort -f`                                        |
 
@@ -211,7 +211,7 @@ ch delete <branch> -f -c           # also close its open PR
 
 ## Merging
 
-`ch merge --dry-run` lists the PRs from trunk up to the current branch; `ch merge` merges them bottom-up: a GitHub stack in one async merge request, unstacked PRs one at a time, retargeting and re-pushing each next PR as it goes. It stops at the first PR GitHub won't merge. Run `ch sync` afterwards to clean up the merged branches. With required checks, each next PR's checks restart after it is retargeted and pushed, so `ch merge` stops there as blocked; `ch merge --auto` arms GitHub auto-merge on the bottom unstacked PR only (repeat `ch sync && ch submit && ch merge --auto` as each lands). GitHub has no auto-merge for stacked PRs: there `--auto` just makes the normal async merge request.
+`ch merge --dry-run` lists the PRs from trunk up to the current branch; `ch merge` merges them all bottom-up in one run: a GitHub stack in one async merge request, unstacked PRs one at a time, retargeting and re-pushing each next PR as it goes. It waits in the foreground for required checks (including the ones each re-push restarts under strict protection), printing what it waits on, up to `--timeout` minutes per PR (default 30). It stops, naming what it merged and what's left, when waiting can't help: a failed required check, changes requested, a draft, conflicts, or a missing approving review. `ch merge --auto` also waits for approvals: it arms GitHub auto-merge on each unstacked PR in turn and waits for GitHub to merge it, so you can walk away. GitHub stacks have no auto-merge; there `--auto` waits, then makes the normal async merge request. `--no-wait` gives the old one-shot behavior (stop at the first PR that isn't ready; with `--auto`, arm the bottom PR and exit). Ctrl-C is safe: rerun `ch merge` to continue. Run `ch sync` afterwards to clean up the merged branches.
 
 ## Troubleshooting
 

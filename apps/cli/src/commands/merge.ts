@@ -24,10 +24,22 @@ const args = {
     type: 'string',
   },
   auto: {
-    describe: `Enable auto-merge on the bottom PR instead of merging it now, then stop. GitHub stacks have no auto-merge, so they merge as without --auto.`,
+    describe: `Unstacked PRs: enable GitHub auto-merge on each PR in turn and wait for GitHub to merge it, so checks and reviews gate each merge. GitHub stacks have no auto-merge: wait for them, then make the same async merge request as without --auto.`,
     demandOption: false,
     default: false,
     type: 'boolean',
+  },
+  wait: {
+    describe: `Wait for each PR's required checks (and, with --auto, reviews) before merging it. --no-wait stops at the first PR that isn't ready; with --auto it enables auto-merge on the bottom PR and exits.`,
+    demandOption: false,
+    default: true,
+    type: 'boolean',
+  },
+  timeout: {
+    describe: `Minutes to wait for each PR before giving up.`,
+    demandOption: false,
+    default: 30,
+    type: 'number',
   },
 } as const;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
@@ -36,7 +48,7 @@ export const command = 'merge';
 export const canonical = 'merge';
 export const aliases = ['mg'];
 export const description =
-  'Merge the PRs from trunk to the current branch, bottom-up, via gh.';
+  'Merge the PRs from trunk to the current branch, bottom-up, via gh, waiting for each to be ready.';
 export const builder = args;
 export const handler = async (argv: argsT): Promise<void> =>
   graphite(argv, canonical, async (context) =>
@@ -46,6 +58,8 @@ export const handler = async (argv: argsT): Promise<void> =>
         confirm: argv.confirm,
         method: argv.method as 'squash' | 'merge' | 'rebase',
         auto: argv.auto,
+        wait: argv.wait,
+        timeoutMinutes: argv.timeout,
       },
       context
     )

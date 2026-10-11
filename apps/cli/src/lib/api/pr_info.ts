@@ -144,15 +144,19 @@ export async function mergePr(
   );
 }
 
-export type TPrMergeState = {
+export type TPrStatus = {
+  state: 'OPEN' | 'CLOSED' | 'MERGED';
+  isDraft: boolean;
   mergeable: 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN';
   mergeStateStatus: string; // CLEAN, BLOCKED, BEHIND, DIRTY, UNSTABLE, UNKNOWN...
+  reviewDecision: '' | 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED';
+  autoMergeRequest: unknown;
 };
 
-export async function getPrMergeState(
+export async function getPrStatus(
   prNumber: number,
   repo: string
-): Promise<TPrMergeState> {
+): Promise<TPrStatus> {
   return JSON.parse(
     await gh(
       [
@@ -162,11 +166,48 @@ export async function getPrMergeState(
         '--repo',
         repo,
         '--json',
-        'mergeable,mergeStateStatus',
+        'state,isDraft,mergeable,mergeStateStatus,reviewDecision,autoMergeRequest',
       ],
       `Failed to read the merge state of pull request #${prNumber}`
     )
   );
+}
+
+export type TRequiredCheck = {
+  name: string;
+  state: string; // IN_PROGRESS, QUEUED, SUCCESS, FAILURE, ...
+  bucket: 'pass' | 'fail' | 'pending' | 'skipping' | 'cancel';
+};
+
+// `gh pr checks` exits non-zero while checks are pending or failing, and
+// with no output when the base branch requires none.
+export async function getRequiredChecks(
+  prNumber: number,
+  repo: string
+): Promise<TRequiredCheck[]> {
+  const args = ['pr', 'checks', `${prNumber}`, '--repo', repo, '--required'];
+  try {
+    const { stdout } = await execFileAsync('gh', [
+      ...args,
+      '--json',
+      'name,state,bucket',
+    ]);
+    return JSON.parse(stdout);
+  } catch (error) {
+    const { stdout, stderr } = error as { stdout?: string; stderr?: string };
+    if (stdout?.trim()) {
+      return JSON.parse(stdout);
+    }
+    if (/no required checks/i.test(stderr ?? '')) {
+      return [];
+    }
+    throw new ExitFailedError(
+      [
+        `Failed to read the required checks of pull request #${prNumber} (via \`gh\`).`,
+        error instanceof Error ? error.message : String(error),
+      ].join('\n')
+    );
+  }
 }
 
 export async function getPrBase(
