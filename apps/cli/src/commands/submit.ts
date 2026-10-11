@@ -19,7 +19,7 @@ const args = {
   },
   publish: {
     describe:
-      'If set, publishes PR. If --no-interactive is true, new PRs will be created in draft mode.',
+      'If set, publishes PRs: new PRs are created ready for review (even with --no-interactive), and existing drafts are marked ready.',
     type: 'boolean',
     default: false,
     alias: 'p',
