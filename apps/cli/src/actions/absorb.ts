@@ -27,6 +27,7 @@ export async function absorbAction(
   const current = downstack[downstack.length - 1];
   const base = context.engine.getBaseRevision(downstack[0]);
 
+  const indexBefore = git(['write-tree']);
   // `--all` here leaves untracked files out: a new file is never absorbed.
   await stageChanges(opts, context, { untracked: false });
   ensureSomeStagedChangesPrecondition(context);
@@ -34,6 +35,7 @@ export async function absorbAction(
   if (opts.dryRun || (!opts.force && context.interactive)) {
     runAbsorb(['--dry-run', '--base', base]);
     if (opts.dryRun || !(await confirm(context))) {
+      git(['read-tree', indexBefore]);
       return;
     }
   }

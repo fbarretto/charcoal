@@ -167,6 +167,18 @@ for (const scene of allScenes) {
       ).to.equal('a_test.txt\nb_test.txt');
     });
 
+    it('Leaves the index as it was with --all --dry-run', () => {
+      scene.repo.runGitCommand([`reset`, `-q`]);
+      scene.repo.runCliCommand([`absorb`, `-a`, `--dry-run`]);
+      expect(
+        scene.repo.runGitCommandAndGetOutput([
+          `diff`,
+          `--cached`,
+          `--name-only`,
+        ])
+      ).to.equal('');
+    });
+
     it('Refuses when a downstack branch is frozen', () => {
       scene.repo.runCliCommand([`freeze`, `a`]);
       const before = refs();
