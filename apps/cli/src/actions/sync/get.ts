@@ -6,6 +6,7 @@ import { TBranchPRInfo } from '../../lib/engine/metadata_ref';
 import {
   ExitFailedError,
   KilledError,
+  PreconditionsFailedError,
   RebaseConflictError,
 } from '../../lib/errors';
 import { assertUnreachable } from '../../lib/utils/assert_unreachable';
@@ -49,6 +50,15 @@ export async function getAction(
   args: TGetArgs,
   context: TContext
 ): Promise<void> {
+  if (!context.repoConfig.getIsGithubIntegrationEnabled()) {
+    throw new PreconditionsFailedError(
+      `${chalk.cyan(
+        'ch get'
+      )} rebuilds the stack from its pull requests, so it needs the GitHub integration, which is off in this repo. Turn it on with ${chalk.cyan(
+        'ch repo github --enable'
+      )}.`
+    );
+  }
   const trunk = context.engine.trunk;
   const repo = githubRepoSlug(context);
 

@@ -162,6 +162,12 @@ for (const scene of [new CloneScene()]) {
       expect(scene.repo.getRef('refs/heads/a')).to.equal(before);
     });
 
+    it('refuses without calling gh when the GitHub integration is off', () => {
+      scene.repo.runCliCommand([`repo`, `github`, `--no-enable`]);
+      expect(() => get(`b`)).to.throw('ch repo github --enable');
+      expect(exists('b')).to.be.false;
+    });
+
     it('offers to cancel when rebasing onto remote conflicts', async () => {
       get(`a`, `-U`);
       scene.repo.checkoutBranch('a');
