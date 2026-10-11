@@ -70,13 +70,12 @@ export const handler = async (argv: argsT): Promise<void> => {
 
     repo.checkoutBranch('main');
 
-    repo.runGitCommand([
-      'remote',
-      'add',
-      'origin',
-      'git@github.com:withgraphite/graphite-demo-repo.git',
-    ]);
-
-    repo.runGitCommand(['push', 'origin', 'main', '-f']);
+    context.splog.info(
+      [
+        `Created a local demo repo with a sample stack. It has no remote, so nothing is pushed.`,
+        `Explore it with \`cd ${tmpDir.name} && ch log\`.`,
+        `In a real repo with a GitHub remote, \`ch submit --stack\` would open a PR for each branch.`,
+      ].join('\n')
+    );
   });
 };

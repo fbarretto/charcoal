@@ -866,7 +866,7 @@ ch feedback debug-context
 
 ### `demo`
 
-Hidden. Builds a throwaway repo with a sample stack in a temp directory, for demos. It points the repo's `origin` at Graphite's demo repository and pushes to it, so it isn't meant for general use.
+Hidden. Builds a throwaway local repo with a sample stack in a temp directory and prints its path, for demos. The repo has no remote and nothing is pushed; in a real repo with a GitHub remote, `ch submit --stack` would open a PR for each branch.
 
 ```
 ch demo
