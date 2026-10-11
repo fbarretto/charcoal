@@ -60,33 +60,34 @@ ch init --trunk main    # once per repo
 
 `ch` turns prompts off when stdin or stdout isn't a terminal, which is the case for an agent's shell. `--no-interactive` and `-q` force it. A prompt that can't be asked either takes a safe default or fails with a message, so **pass the flag that answers it up front**:
 
-| Situation                                                       | Without the flag                             | Pass                                                             |
-| --------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------- |
-| `create` with neither name nor `-m`                             | fails                                        | a name and `-m`                                                  |
-| `create -m` with nothing staged                                 | makes an **empty** branch, warns `-m` unused | `git add` first, or `-a` / `-u`                                  |
-| `modify` with nothing staged                                    | fails ("Cannot run without staged changes")  | `git add` first, or `-a` / `-u`                                  |
-| `create -i` when the parent has several children                | moves all of them                            | (choose with `ch move` afterwards)                               |
-| `delete` with no name                                           | fails                                        | the branch name                                                  |
-| `delete` of an unmerged branch (or `--upstack` / `--downstack`) | fails                                        | `-f`                                                             |
-| `track` when several parents are possible                       | fails                                        | `-p <parent>`, or `-f` (nearest ancestor each time)              |
-| `untrack` of a branch with children                             | fails, hints `--force`                       | `-f`                                                             |
-| `up` / `top` at a fork                                          | fails, lists the children                    | `ch up --to <b>` or `ch co <b>`                                  |
-| `co`, `move` with no target                                     | fails                                        | `ch co <b>`, `ch move --onto <b>`                                |
-| `split` without `--by-file`                                     | fails (by-commit / by-hunk need a terminal)  | `--by-file <pathspec>`                                           |
-| `reorder`                                                       | opens an editor                              | don't; use `ch move` per branch                                  |
-| `rename` with no name                                           | fails                                        | the name (`-f` if it has an open PR; renaming drops the PR link) |
-| `abort`                                                         | fails, hints `--force`                       | `-f`                                                             |
-| `undo`, `absorb`, `unstack`                                     | proceed without confirming                   | `absorb -d` first to preview                                     |
-| `submit` with open PRs above the current branch                 | submits only trunk → current                 | `--stack`                                                        |
-| `submit` creating new PRs                                       | creates them as **drafts**                   | `--publish` for ready-for-review                                 |
-| `submit` PR title and body                                      | not prompted; taken from the commits         | set them with `gh pr edit` afterwards                            |
-| `submit` while local trunk differs from remote                  | fails ("Aborting non-interactive submit")    | `ch sync` first, or `--ignore-out-of-sync-trunk`                 |
-| `submit` with an empty or already-merged branch in range        | fails                                        | delete it, or `ch sync`                                          |
-| `sync` when trunk can't fast-forward                            | fails, hints `--force`                       | `-f` (resets local trunk to remote)                              |
-| `sync` finding merged/closed branches                           | keeps them, naming each one                  | `-d` (delete all) or `-f`                                        |
-| `sync` when a branch and its remote both have new commits       | keeps local, naming it                       | `-f` (take remote), or `ch get <b>` to rebase onto it            |
-| `merge` when a local branch differs from its remote             | refuses                                      | `ch submit` first                                                |
-| `get` when a local branch diverged from remote                  | aborts                                       | `-f` (take remote)                                               |
+| Situation                                                       | Without the flag                                      | Pass                                                             |
+| --------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------- |
+| `create` with neither name nor `-m`                             | fails                                                 | a name and `-m`                                                  |
+| `create -m` with nothing staged                                 | makes an **empty** branch, warns `-m` unused          | `git add` first, or `-a` / `-u`                                  |
+| `modify` with nothing staged                                    | amends nothing (only restacks); `modify -c` fails     | `git add` first, or `-a` / `-u`                                  |
+| `modify -c`, `--into -c`, `squash`, `create <b>` without `-m`   | fails before changing anything (would open an editor) | `-m` (`squash`: or `-n`)                                         |
+| `create -i` when the parent has several children                | moves all of them                                     | (choose with `ch move` afterwards)                               |
+| `delete` with no name                                           | fails                                                 | the branch name                                                  |
+| `delete` of an unmerged branch (or `--upstack` / `--downstack`) | fails                                                 | `-f`                                                             |
+| `track` when several parents are possible                       | fails                                                 | `-p <parent>`, or `-f` (nearest ancestor each time)              |
+| `untrack` of a branch with children                             | fails, hints `--force`                                | `-f`                                                             |
+| `up` / `top` at a fork                                          | fails, lists the children                             | `ch up --to <b>` or `ch co <b>`                                  |
+| `co`, `move` with no target                                     | fails                                                 | `ch co <b>`, `ch move --onto <b>`                                |
+| `split` without `--by-file`                                     | fails (by-commit / by-hunk need a terminal)           | `--by-file <pathspec>`                                           |
+| `reorder`, `edit`                                               | fails (needs an editor)                               | don't; use `ch move` per branch                                  |
+| `rename` with no name                                           | fails                                                 | the name (`-f` if it has an open PR; renaming drops the PR link) |
+| `abort`                                                         | fails, hints `--force`                                | `-f`                                                             |
+| `undo`, `absorb`, `unstack`                                     | proceed without confirming                            | `absorb -d` first to preview                                     |
+| `submit` with open PRs above the current branch                 | submits only trunk → current                          | `--stack`                                                        |
+| `submit` creating new PRs                                       | creates them as **drafts**                            | `--publish` for ready-for-review                                 |
+| `submit` PR title and body                                      | not prompted; taken from the commits                  | set them with `gh pr edit` afterwards                            |
+| `submit` while local trunk differs from remote                  | fails ("Aborting non-interactive submit")             | `ch sync` first, or `--ignore-out-of-sync-trunk`                 |
+| `submit` with an empty or already-merged branch in range        | fails                                                 | delete it, or `ch sync`                                          |
+| `sync` when trunk can't fast-forward                            | fails, hints `--force`                                | `-f` (resets local trunk to remote)                              |
+| `sync` finding merged/closed branches                           | keeps them, naming each one                           | `-d` (delete all) or `-f`                                        |
+| `sync` when a branch and its remote both have new commits       | keeps local, naming it                                | `-f` (take remote)                                               |
+| `merge` when a local branch differs from its remote             | refuses                                               | `ch submit` first                                                |
+| `get` when a local branch diverged from remote                  | aborts, naming `--force`                              | `-f` (take remote); rebasing onto it needs a terminal            |
 
 ## What makes a good PR
 
@@ -141,7 +142,7 @@ ch modify --into upload-retry/extract-backoff   # never checks it out; restacks 
 
 **Split and fold.** `ch split --by-file 'docs/**'` moves matching files into a new branch below the current one, which keeps its PR. `ch fold` merges the current branch into its parent; `ch fold --stack` collapses the whole stack. To re-cut a layer by hand: `git reset HEAD^` (changes stay unstaged), re-stage pieces, `ch create` each.
 
-**Others' branches.** `ch freeze <b>` (that branch and everything below it) makes `ch` refuse to rewrite or push them; `restack` and `submit` skip them, and you can still stack on top. `ch get <b or PR#>` pulls a teammate's stack and freezes branches authored by others. `ch unfreeze <b>` reverses it.
+**Others' branches.** `ch freeze <b>` (that branch and everything below it) makes `ch` refuse to rewrite or push them; `restack` and `submit` skip them, and you can still stack on top. `ch get <b or PR#>` pulls a teammate's stack and freezes branches authored by others (it needs the GitHub integration on). `ch unfreeze <b>` reverses it, for that branch and everything above. Freezing a teammate's branch in the middle of your stack freezes your own branches below it too, so `restack` skips them.
 
 **Diffs and sizes of a layer are against its parent**, never trunk, except for the bottom layer:
 
@@ -199,7 +200,7 @@ When a restack hits a conflict, `ch` stops mid-rebase and prints the unmerged fi
 
 `sync` never stops on a conflict: it restacks what it can and lists the rest ("All branches restacked cleanly, except for: …"). Check each out and `ch restack`.
 
-**Undo.** `ch undo` reverts the last `ch` command in this worktree (up to 10 back): branches, metadata, checked-out branch. It's local only, so it can't undo `submit`, `merge`, `unstack` or `--close`. It refuses mid-rebase or with uncommitted tracked changes. Undoing a `create` or `modify` hands the committed changes back as staged changes, so commit or discard them before undoing further.
+**Undo.** `ch undo` reverts the last `ch` command in this worktree (up to 10 back): the branches and metadata it changed, and the checked-out branch. If one of those branches got new commits since, it refuses rather than drop them. It's local only, so it can't undo `submit`, `merge`, `unstack` or `--close`. It refuses mid-rebase or with uncommitted tracked changes. Undoing a `create`, `modify` or `absorb` hands the committed changes back as staged changes, so commit or discard them before undoing further.
 
 ## Deleting branches
 
@@ -218,16 +219,17 @@ ch delete <branch> -f -c           # also close its open PR
 
 ## Troubleshooting
 
-| Symptom                                                      | Fix                                                           |
-| ------------------------------------------------------------ | ------------------------------------------------------------- |
-| `Cannot perform this operation on untracked branch`          | `ch track -p <parent>`                                        |
-| Bottom branch isn't on trunk                                 | `ch co <bottom> && ch move --onto main`                       |
-| `(needs restack)` in `ch ls`                                 | `ch restack`                                                  |
-| `Cannot perform this operation without a branch checked out` | `ch co <branch>` (HEAD is detached)                           |
-| `This command is blocked while a rebase is in progress`      | `ch continue` or `ch abort -f` first                          |
-| `<branch> is frozen`                                         | It isn't yours; stack on it. If it is: `ch unfreeze <branch>` |
-| `There are tracked changes that have not been committed`     | Commit (`ch modify`) or stash, then retry                     |
-| `submit`: trunk out of sync                                  | `ch sync`, then submit                                        |
-| `sync`: `main could not be fast-forwarded`                   | `ch sync -f` (local trunk commits are discarded)              |
-| `merge`: `GitHub stack #N ... does not match this stack`     | `ch submit --stack` to relink, then `ch merge`                |
-| `Skipped <b>: it is checked out in another worktree`         | Run the command in that worktree                              |
+| Symptom                                                       | Fix                                                                         |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `Cannot perform this operation on untracked branch`           | `ch track -p <parent>`                                                      |
+| Bottom branch isn't on trunk                                  | `ch co <bottom> && ch move --onto main`                                     |
+| `(needs restack)` in `ch ls`                                  | `ch restack`                                                                |
+| `Cannot perform this operation without a branch checked out`  | `ch co <branch>` (HEAD is detached)                                         |
+| `This command is blocked while a rebase is in progress`       | `ch continue` or `ch abort -f` first                                        |
+| `<branch> is frozen`                                          | It isn't yours; stack on it. If it is: `ch unfreeze <branch>`               |
+| `There are tracked changes that have not been committed`      | Commit (`ch modify`) or stash, then retry                                   |
+| `submit`: trunk out of sync                                   | `ch sync`, then submit                                                      |
+| `sync`: `main could not be fast-forwarded`                    | `ch sync -f` (local trunk commits are discarded)                            |
+| `Skipped pulling main: it is checked out in another worktree` | Commit or stash there (or `git pull --ff-only` there), then `ch sync` again |
+| `merge`: `GitHub stack #N ... does not match this stack`      | `ch submit --stack` to relink, then `ch merge`                              |
+| `Skipped <b>: it is checked out in another worktree`          | Run the command in that worktree                                            |

@@ -30,7 +30,7 @@ Each command section has the same shape: what the command does, a table of its o
 
 When a command "restacks", it rebases each affected branch onto its parent so the stack stays consistent.
 
-**Multiple worktrees.** Charcoal does not modify a branch checked out in another worktree of the same repo. `restack` (and every command that restacks), `sync` and `get` skip such branches with a message, except trunk, which `sync`/`get` may still update; run the command in that worktree to update them. `ch log` and `ch ls` show the worktree path next to those branches. Undo history and halted-command state are per worktree: `ch undo`, `ch continue` and `ch abort` only see commands run from the current worktree, and `ch undo` refuses to modify or check out a branch checked out elsewhere.
+**Multiple worktrees.** Charcoal does not modify a branch checked out in another worktree of the same repo. `restack` (and every command that restacks), `sync` and `get` skip such branches with a message; run the command in that worktree to update them. Trunk is the exception: `sync` fast-forwards it in the worktree that has it checked out when that worktree has no uncommitted changes to tracked files, and otherwise skips pulling it with a warning naming the worktree. `ch log` and `ch ls` show the worktree path next to those branches. Undo history and halted-command state are per worktree: `ch undo`, `ch continue` and `ch abort` only see commands run from the current worktree, and `ch undo` refuses to modify or check out a branch checked out elsewhere.
 
 ---
 
@@ -73,7 +73,7 @@ Create a new branch stacked on top of the current branch and commit the staged c
 | `-i`, `--insert`  | Insert the new branch between the current branch and its children. With several children, asks which ones to move (all are moved with `--no-interactive`).                                                                                                                    |
 | `-o`, `--onto`    | Stack the new branch on this branch instead of the current one (the current branch itself is allowed). Uncommitted changes are carried over; if that would overwrite them, nothing is changed. With `--insert`, the children of the `--onto` branch move onto the new branch. |
 
-A generated name that is already taken gets a `_2`, `_3`, … suffix. With nothing staged and no name, it asks for a name and creates an empty branch. If nothing is staged but there are unstaged changes, and no staging flag is passed, it asks whether to stage them: everything (`--all`), tracked files only (`--update`), selected hunks (`--patch`), or nothing. If a pre-commit hook fails, the new branch is removed and you're back where you started, with the staged changes and anything the hook wrote still in the working tree.
+A generated name that is already taken gets a `_2`, `_3`, … suffix. Without a terminal, committing staged changes needs `-m`: the command refuses before changing anything rather than open an editor. With nothing staged and no name, it asks for a name and creates an empty branch. If nothing is staged but there are unstaged changes, and no staging flag is passed, it asks whether to stage them: everything (`--all`), tracked files only (`--update`), selected hunks (`--patch`), or nothing. If a pre-commit hook fails, the new branch is removed and you're back where you started, with the staged changes and anything the hook wrote still in the working tree.
 
 ```
 ch create -am "Add login form"
@@ -99,9 +99,9 @@ Amend the current branch's commit (or add a new one with `--commit`) and restack
 | `--interactive-rebase` | Ignore all other flags and start a git interactive rebase on the branch's commits, then restack (same as `ch edit`). |
 | `--into <branch>`      | Commit the staged changes into a branch downstack of the current one instead (amends, or adds a commit with `-c`).   |
 
-If nothing is staged but there are unstaged changes, and no staging flag is passed, it asks whether to stage them (see `create`); with `--no-interactive` it fails instead.
+If nothing is staged but there are unstaged changes, and no staging flag is passed, it asks whether to stage them (see `create`); with `--no-interactive` it leaves them unstaged. With nothing staged, `modify` amends without changing the content (use it with `-m` to reword, or just to restack upstack), while `modify -c` fails. Unstaged changes stay in the working tree while upstack branches are restacked. `-m` replaces the whole message, trailers included; repeat `-m` to keep them. Without a terminal, `-c` without `-m` refuses instead of opening the editor.
 
-With `--into`, the target must be downstack of the current branch (not trunk) and not checked out in another worktree. It is never checked out: the new commit is built from the target's tree plus the staged diff, and the command fails without changing anything if that diff doesn't apply cleanly. It amends the target's last commit (keeping its message unless `-m` is given) or, with `-c`, adds a new commit on top of it and leaves the existing commits untouched — use this when the target's last commit isn't the one the change belongs in, such as an empty "Trigger CI" commit. Without `-m`, `-c` opens the git editor for the new commit's message, like a plain `modify -c`; an empty message aborts. `--reset-author` makes the current user the author of the amended commit. Then everything upstack of the target is restacked and you stay on the current branch. Unstaged changes are kept. If a restack conflict interrupts the command, the uncommitted changes are saved in a stash commit whose sha is printed (`git stash apply <sha>` after `ch continue`). `--into` naming the current branch is a plain `modify`.
+With `--into`, the target must be downstack of the current branch (not trunk) and not checked out in another worktree. It is never checked out: the new commit is built from the target's tree plus the staged diff, and the command fails without changing anything if that diff doesn't apply cleanly. It amends the target's last commit (keeping its message unless `-m` is given) or, with `-c`, adds a new commit on top of it and leaves the existing commits untouched — use this when the target's last commit isn't the one the change belongs in, such as an empty "Trigger CI" commit. Without `-m`, `-c` opens the git editor for the new commit's message, like a plain `modify -c` (an empty message aborts; without a terminal it refuses and asks for `-m`). `--reset-author` makes the current user the author of the amended commit. Then everything upstack of the target is restacked and you stay on the current branch. Unstaged changes are kept. If a restack conflict interrupts the command, the uncommitted changes are saved in a stash commit whose sha is printed (`git stash apply <sha>` after `ch continue`). `--into` naming the current branch is a plain `modify`.
 
 ```
 ch modify -a                     # amend current commit with all changes
@@ -114,14 +114,14 @@ ch modify --into parent-branch -c -m "Fix"   # add them there as a new commit
 
 Amend each staged hunk into the commit in the current downstack (trunk → current branch) that last touched those lines, then restack. Requires [git-absorb](https://github.com/tummychow/git-absorb) on `PATH` (`brew install git-absorb`).
 
-| Flag              | Description                                                                                                            |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `-a`, `--all`     | Stage all changes to tracked files before absorbing. Untracked files are left out, since a new file is never absorbed. |
-| `-d`, `--dry-run` | Print which commit each hunk would go into, and change nothing.                                                        |
-| `-f`, `--force`   | Don't ask for confirmation. Without it, the plan is printed and confirmed first (interactive mode only).               |
-| `-p`, `--patch`   | Pick hunks to stage before absorbing.                                                                                  |
+| Flag              | Description                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `-a`, `--all`     | Stage all changes to tracked files before absorbing. Untracked files are left out, since a new file is never absorbed.   |
+| `-d`, `--dry-run` | Print which commit each hunk would go into, and change nothing (changes `--all` staged for the plan are unstaged again). |
+| `-f`, `--force`   | Don't ask for confirmation. Without it, the plan is printed and confirmed first (interactive mode only).                 |
+| `-p`, `--patch`   | Pick hunks to stage before absorbing.                                                                                    |
 
-`git absorb` creates `fixup!` commits scoped to the downstack, which are then squashed in by one autosquash rebase; every downstack branch is moved to its rewritten commit, and everything upstack of the bottom branch is restacked. You stay on the current branch. Hunks git-absorb can't place (new or deleted files, lines no commit in the stack owns) stay uncommitted, as unstaged changes, and their count is printed. With nothing staged and no staging flag, it asks whether to stage your unstaged changes (tracked files only). git-absorb's hunk placement is its own heuristic, so an edge-case hunk can land differently than with `gt absorb`. Downstack branches must already be restacked, and the stack must not already contain `fixup!`/`squash!`/`amend!` commits. `ch undo` reverts it.
+`git absorb` creates `fixup!` commits scoped to the downstack, which are then squashed in by one autosquash rebase; every downstack branch is moved to its rewritten commit, and everything upstack of the bottom branch is restacked. You stay on the current branch. Hunks git-absorb can't place (new or deleted files, lines no commit in the stack owns) stay uncommitted, as unstaged changes, and their count is printed. With nothing staged and no staging flag, it asks whether to stage your unstaged changes (tracked files only). git-absorb's hunk placement is its own heuristic, so an edge-case hunk can land differently than with `gt absorb`. Downstack branches must already be restacked, and the stack must not already contain `fixup!`/`squash!`/`amend!` commits. `ch undo` reverts it and stages the absorbed changes again.
 
 ```
 ch absorb -a      # absorb every change, after confirming
@@ -138,7 +138,7 @@ Squash all commits in the current branch into one and restack upstack branches. 
 | `--edit`          | Edit the existing commit message (default on).                    |
 | `-n`, `--no-edit` | Keep the existing commit message. Takes precedence over `--edit`. |
 
-If restacking an upstack branch conflicts, that branch is left needing a restack (shown in `ch ls`; fix it with `ch restack`) instead of stopping for conflict resolution.
+If restacking an upstack branch conflicts, that branch is left needing a restack (shown in `ch ls`; fix it with `ch restack`) instead of stopping for conflict resolution. Without a terminal, pass `-m` or `--no-edit`; otherwise it refuses rather than open the editor.
 
 ```
 ch squash -m "Implement feature"
@@ -146,7 +146,7 @@ ch squash -m "Implement feature"
 
 ### `edit` (alias `e`)
 
-Run an interactive rebase on the current branch's commits and restack upstack branches. Shorthand for `ch modify --interactive-rebase`.
+Run an interactive rebase on the current branch's commits and restack upstack branches. Shorthand for `ch modify --interactive-rebase`. Needs an interactive terminal.
 
 ```
 ch edit
@@ -321,6 +321,8 @@ Ensure each branch in the current stack is based on its parent, rebasing if nece
 
 Each branch is rebased onto its parent from the parent revision Charcoal recorded for it, so commits its parent already had (or dropped, after a squash merge) are not replayed. If that recorded revision is older than where the branch actually forks from its parent — e.g. it was tracked while local trunk was behind `origin` — the fork point is used instead, so trunk's own commits are never replayed as the branch's.
 
+There is no flag to restack onto a particular trunk commit. When trunk isn't checked out, `git branch -f main <sha>` followed by `ch restack` does it; the next `ch sync` fast-forwards trunk and restacks again.
+
 ```
 ch restack
 ch restack --upstack
@@ -343,7 +345,7 @@ ch move --only --source b --onto main
 
 ### `reorder` (alias `ro`)
 
-Reorder the branches between trunk and the current branch, restacking all descendants. Opens an editor listing one branch per line, with trunk shown at the bottom for orientation.
+Reorder the branches between trunk and the current branch, restacking all descendants. Opens an editor listing one branch per line, with trunk shown at the bottom for orientation, so it needs an interactive terminal; without one it refuses (use `ch move --onto` per branch).
 
 | Flag      | Description                                                                                         |
 | --------- | --------------------------------------------------------------------------------------------------- |
@@ -421,7 +423,7 @@ Undo the most recent Charcoal mutation run from this worktree (e.g. `create`, `m
 | --------------- | ------------------------------------- |
 | `-f`, `--force` | Undo without asking for confirmation. |
 
-Prints what will change and asks for confirmation (it proceeds without asking in non-interactive mode). Only local state is restored: remote branches and PRs are not touched, so `submit`, `merge`, `unstack` and `--close` are not undoable. Refuses while a rebase is in progress, with uncommitted tracked changes, or when it would modify or check out a branch checked out in another worktree.
+Prints what will change and asks for confirmation (it proceeds without asking in non-interactive mode). Only the branches and metadata the undone command changed are restored, so commits made since on other branches (with plain git, or in another worktree) are kept. If a branch the command changed has moved since, undo refuses, naming it, rather than drop those commits (`--force` only skips the confirmation); undo those commits first or restore the branch from its reflog. Undoing `create`, `modify` or `absorb` stages the changes it committed again. Only local state is restored: remote branches and PRs are not touched, so `submit`, `merge`, `unstack` and `--close` are not undoable. Refuses while a rebase is in progress, with uncommitted tracked changes, or when it would modify or check out a branch checked out in another worktree.
 
 ```
 ch undo
@@ -488,7 +490,7 @@ ch submit --dry-run
 
 ### `sync`
 
-Pull trunk and every tracked branch from remote, offer to delete branches whose PRs have been merged or closed, and restack every branch that can be restacked without conflicts. If trunk can't be fast-forwarded, it is overwritten with the remote version after asking (with `--force`, without asking; with `--no-interactive` and no `--force`, sync fails).
+Pull trunk and every tracked branch from remote, offer to delete branches whose PRs have been merged or closed (anywhere in a stack, also above a branch that stays), and restack every branch that can be restacked without conflicts. If trunk can't be fast-forwarded, it is overwritten with the remote version after asking (with `--force`, without asking; with `--no-interactive` and no `--force`, sync fails). Trunk checked out in another worktree is fast-forwarded there, or skipped with a warning (see [Concepts](#concepts)).
 
 | Flag                         | Description                                                                                                                                                                  |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -501,13 +503,13 @@ Pull trunk and every tracked branch from remote, offer to delete branches whose 
 
 For each tracked branch whose remote copy differs from your local one (parents before children):
 
-- If you have everything the remote has (your branch is the same or ahead), it is left alone.
+- If you have everything the remote has (your branch is the same or ahead), or the remote branch is still the version you last pushed or pulled (so your local copy, e.g. a restack you haven't pushed, is newer), it is left alone.
 - If the remote only adds commits, or is a rebase of commits you already have (every local commit has a patch-equivalent on remote), the branch takes the remote version.
-- If both sides have commits the other lacks, sync asks before overwriting your copy with the remote version. With `--force` it overwrites without asking; with `--no-interactive` (and no `--force`) it keeps your local version and says so. To keep your commits and rebase them onto the remote instead, run `ch get <branch>`.
+- If both sides have commits the other lacks, sync asks before overwriting your copy with the remote version. With `--force` it overwrites without asking; with `--no-interactive` (and no `--force`) it keeps your local version and says so. To keep your commits and rebase them onto the remote instead, run `ch get <branch>` in an interactive terminal.
 - A frozen branch always takes the remote version and stays frozen.
 - Branches never pushed, and branches checked out in another worktree, are skipped.
 
-Branches whose restack would conflict are left where they were and listed at the end ("All branches restacked cleanly, except for: …"); check each out and run `ch restack` to resolve them. Sync itself never stops in conflict resolution. The `user sync-auto-delete` setting in `ch config` deletes merged and closed branches without asking, as `--force` does.
+Merged or closed branches that sync keeps (you declined, or it couldn't ask) are not restacked, so a later `ch sync -d` still recognizes and deletes them. Branches whose restack would conflict are left where they were and listed at the end ("All branches restacked cleanly, except for: …"); check each out and run `ch restack` to resolve them. Sync itself never stops in conflict resolution. The `user sync-auto-delete` setting in `ch config` deletes merged and closed branches without asking, as `--force` does.
 
 ```
 ch sync
@@ -602,7 +604,7 @@ Freeze a branch and every branch downstack of it, down to trunk, so Charcoal nev
 | ---------------------- | ----------------- |
 | `[branch]`, `--branch` | Branch to freeze. |
 
-Charcoal refuses to modify, squash, split, fold, rename, move, pop, edit, push, or `modify --into` a frozen branch, and refuses to delete it unless it has been merged or closed (so `sync` still cleans it up). `restack` skips frozen branches and restacks the unfrozen branches above them onto their current tip; `submit` skips them and still submits the branches above. You can still `create` branches on top of a frozen branch. `log` and `ls` mark frozen branches with `(frozen)`.
+Freezing a branch in the middle of your stack also freezes your own branches below it, so `restack` skips them; unfreezing your bottom branch unfreezes everything above it, the teammate's branch included. Charcoal refuses to modify, squash, split, fold, rename, move, pop, edit, push, or `modify --into` a frozen branch, and refuses to delete it unless it has been merged or closed (so `sync` still cleans it up). `restack` skips frozen branches and restacks the unfrozen branches above them onto their current tip; `submit` skips them and still submits the branches above. You can still `create` branches on top of a frozen branch. `log` and `ls` mark frozen branches with `(frozen)`.
 
 ```
 ch freeze teammate-branch
@@ -622,7 +624,7 @@ ch unfreeze teammate-branch
 
 ### `get` (alias `g`)
 
-Sync the branches from trunk to a given branch or PR number from remote, prompting to resolve conflicts, then check it out. With no argument, syncs the current stack. Useful for pulling a teammate's stack.
+Sync the branches from trunk to a given branch or PR number from remote, prompting to resolve conflicts, then check it out. With no argument, syncs the current stack. Useful for pulling a teammate's stack. It finds the stack through the pull requests, so it needs the GitHub integration (`ch repo github --enable`).
 
 | Flag                           | Description                                                                                                                                     |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -637,7 +639,7 @@ Sync the branches from trunk to a given branch or PR number from remote, prompti
 
 The downstack is rebuilt by walking each PR's base. If the branch already exists locally, its local upstack branches that have PRs are synced too (`--downstack` opts out); remote-only branches above it are only fetched with `--remote-upstack`. Like `sync`, it offers to delete the stack's merged or closed branches and restacks what restacks cleanly.
 
-New branches authored by someone else are [frozen](#freeze), so you can stack on top of them without rewriting them; your own PRs' branches (by `gh api user`) come down unfrozen, and branches you already had keep their frozen state. A frozen local branch that differs from remote is overwritten with the remote version, without prompting. When a local branch has diverged from remote, `get` asks whether to rebase your changes onto the remote version, overwrite them, or abort (it aborts with `--no-interactive`, unless `--force`). When that rebase hits conflicts, you can resolve them (then `ch continue`) or cancel, which undoes that rebase and stops.
+New branches authored by someone else are [frozen](#freeze), so you can stack on top of them without rewriting them; your own PRs' branches (by `gh api user`) come down unfrozen, and branches you already had keep their frozen state. A frozen local branch that differs from remote is overwritten with the remote version, without prompting. When a local branch has diverged from remote, `get` asks whether to rebase your changes onto the remote version, overwrite them, or abort. Without a terminal it aborts with a message naming `--force` (overwrite); rebasing needs an interactive terminal. When that rebase hits conflicts, you can resolve them (then `ch continue`) or cancel, which undoes that rebase and stops.
 
 ```
 ch get teammate-branch
