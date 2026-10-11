@@ -70,6 +70,15 @@ for (const scene of [new BasicScene()]) {
       ).to.contain('ch create');
     });
 
+    it('Accepts --help --all on a subcommand, showing its hidden options', () => {
+      expect(
+        scene.repo.runCliCommandAndGetOutput(['track', '--help'])
+      ).not.to.contain('--downstack');
+      expect(
+        scene.repo.runCliCommandAndGetOutput(['track', '--help', '--all'])
+      ).to.contain('--downstack');
+    });
+
     it('Honors GT_EDITOR and GT_PAGER, with CH_* taking precedence', () => {
       const saved = { ...process.env };
       try {

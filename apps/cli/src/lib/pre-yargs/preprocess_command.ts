@@ -17,22 +17,25 @@ export function applyCwd(args: string[]): string[] {
   return [...args.slice(0, i), ...args.slice(i + (inline ? 1 : 2))];
 }
 
-// gt's `--help --all` lists everything, hidden options included.
+// gt's `--help --all` lists everything, hidden options included, at any
+// level (`ch track --help --all`). Git passthrough commands keep their flags.
 function applyHelpAll(args: string[]): string[] {
-  const isTopLevelHelpAll =
-    args.every((a) => a.startsWith('-')) &&
+  const isHelpAll =
+    !GIT_COMMAND_ALLOWLIST.includes(args[0]) &&
     args.includes('--all') &&
     (args.includes('--help') || args.includes('-h'));
-  return isTopLevelHelpAll
+  return isHelpAll
     ? args.map((a) => (a === '--all' ? '--show-hidden' : a))
     : args;
 }
 
 export function getYargsInput(builtins: string[]): string[] {
-  const args = expandAliases(applyHelpAll(applyCwd(process.argv.slice(2))), [
-    ...builtins,
-    ...GIT_COMMAND_ALLOWLIST,
-  ]);
+  const args = applyHelpAll(
+    expandAliases(applyCwd(process.argv.slice(2)), [
+      ...builtins,
+      ...GIT_COMMAND_ALLOWLIST,
+    ])
+  );
   passthrough([...process.argv.slice(0, 2), ...args]);
   return args;
 }

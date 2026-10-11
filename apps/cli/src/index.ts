@@ -7,7 +7,11 @@ import yargs, { CommandModule } from 'yargs';
 import { version } from '../package.json';
 import { globalArgumentsOptions } from './lib/global_arguments';
 import { getYargsInput } from './lib/pre-yargs/preprocess_command';
-import { registerCommands } from './lib/register_commands';
+import {
+  registerCommands,
+  SHOW_HIDDEN_DESCRIPTION,
+  SHOW_HIDDEN_OPTION,
+} from './lib/register_commands';
 import { registerCompletion } from './commands/completion';
 
 import * as abort from './commands/abort';
@@ -152,7 +156,7 @@ void cli
   // node.
   .scriptName('ch')
   .help()
-  .showHidden('show-hidden', 'Show hidden options too (`--help --all`).')
+  .showHidden(SHOW_HIDDEN_OPTION, SHOW_HIDDEN_DESCRIPTION)
   // Pin to the bundled version; yargs' default resolves package.json relative
   // to the cwd, which is wrong in the single-file binary / outside apps/cli.
   .version(version)
