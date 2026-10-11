@@ -53,28 +53,6 @@ for (const scene of [new TrailingProdScene()]) {
       );
     });
 
-    it('Connects the dots of a stack and its side branches', () => {
-      scene.repo.createChange('a', 'a');
-      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
-      scene.repo.createChange('b', 'b');
-      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
-      scene.repo.checkoutBranch('a');
-      scene.repo.createChange('c', 'c');
-      scene.repo.runCliCommand([`create`, `c`, `-m`, `c`]);
-      const out = stripAnsi(scene.repo.runCliCommandAndGetOutput([`ls`]))
-        .split('\n')
-        .map((l) => l.trimEnd());
-      expect(out).to.deep.equal([
-        '◉    c',
-        '│',
-        '│ ◯  b',
-        '│ │',
-        '◯─┘  a',
-        '│',
-        '◯    main',
-      ]);
-    });
-
     it('Colors each stack on its own and grays out trunk', () => {
       scene.repo.createChange('a', 'a');
       scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);

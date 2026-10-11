@@ -32,7 +32,6 @@ export function logAction(
       branchName: opts.branchName,
       indentLevel: 0,
       steps: opts.steps,
-      connectorRows: true,
     },
     context
   )
@@ -50,30 +49,7 @@ export function logAction(
   context.splog.page(logOutput);
 }
 
-const CONTINUES_DOWN = new Set(['◯', '◉', '│', '┐', '┬']);
-const CONTINUES_UP = new Set(['◯', '◉', '│', '┘', '┴']);
-
-type TShortRow = { lanes: string; details: string; branch?: string };
-
-// Puts a row of `│` between short-log rows wherever a lane runs from one dot to the next.
-function withConnectorRows(rows: TShortRow[]): TShortRow[] {
-  return rows.flatMap((row, i) => {
-    if (i === 0) {
-      return [row];
-    }
-    const [upper, lower] = [rows[i - 1].lanes, row.lanes];
-    const lanes = Array.from(
-      { length: Math.min(upper.length, lower.length) },
-      (_, col) =>
-        CONTINUES_DOWN.has(upper[col]) && CONTINUES_UP.has(lower[col])
-          ? '│'
-          : ' '
-    )
-      .join('')
-      .trimEnd();
-    return [{ lanes, details: '' }, row];
-  });
-}
+type TShortRow = { lanes: string; details: string; branch: string };
 
 export function logForConflictStatus(
   rebaseHead: string,
@@ -176,7 +152,6 @@ type TPrintStackArgs = {
   omitCurrentBranch?: boolean;
   noStyleBranchName?: boolean; // Currently only implemented for short = true
   steps?: number;
-  connectorRows?: boolean;
 };
 
 function prStateSuffix(branchName: string, context: TContext): string {
@@ -199,10 +174,10 @@ function worktreeSuffix(branchName: string): string {
 
 // Each stack (a child of trunk and everything above it) keeps one color; trunk is gray.
 function stackColor(
-  branchName: string | undefined,
+  branchName: string,
   context: TContext
 ): (text: string) => string {
-  if (!branchName || context.engine.isTrunk(branchName)) {
+  if (context.engine.isTrunk(branchName)) {
     return chalk.gray;
   }
   let root = branchName;
@@ -239,7 +214,7 @@ function colorShortRows(
       .split('')
       .map((c, col) => {
         if (c === '◯' || c === '◉') {
-          if (!context.engine.isTrunk(branch ?? '')) {
+          if (!context.engine.isTrunk(branch)) {
             laneColor[col] = color;
           }
           return color(c);
@@ -248,11 +223,9 @@ function colorShortRows(
         return owner(c);
       })
       .join('');
-    colored[i] = branch
-      ? `${lanesColored}${' '.repeat(
-          layout.overallIndent * 2 + 3 - lanes.length
-        )}${color(branch)}${details.slice(branch.length)}`
-      : lanesColored;
+    colored[i] = `${lanesColored}${' '.repeat(
+      layout.overallIndent * 2 + 3 - lanes.length
+    )}${color(branch)}${details.slice(branch.length)}`;
   }
   return colored;
 }
@@ -283,7 +256,7 @@ function getStackLines(args: TPrintStackArgs, context: TContext): string[] {
     };
   });
   return colorShortRows(
-    args.connectorRows ? withConnectorRows(rows) : rows,
+    rows,
     { reverse: args.reverse, overallIndent: overallIndent.value },
     context
   );
