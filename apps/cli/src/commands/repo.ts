@@ -1,6 +1,7 @@
 import { Argv } from 'yargs';
 import { registerCommands } from '../lib/register_commands';
 import * as repoDisableGithub from './repo-commands/repo_disable_github';
+import * as repoGithubStacks from './repo-commands/repo_github_stacks';
 import * as repoInit from './repo-commands/repo_init';
 import * as repoName from './repo-commands/repo_name';
 import * as repoOwner from './repo-commands/repo_owner';
@@ -21,6 +22,7 @@ export const builder = function (yargs: Argv): Argv {
     repoPrTemplates,
     repoSync,
     repoDisableGithub,
+    repoGithubStacks,
   ])
     .strict()
     .demandCommand();

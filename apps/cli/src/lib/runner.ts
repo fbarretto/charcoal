@@ -132,6 +132,7 @@ const ALLOWED_DURING_REBASE = new Set([
   'parent',
   'pr',
   'repo github',
+  'repo github-stacks',
   'repo name',
   'repo owner',
   'repo pr-templates',

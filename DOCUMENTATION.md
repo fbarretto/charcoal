@@ -463,7 +463,7 @@ Idempotently force-push the branches from trunk to the current branch to GitHub,
 | `-u`, `--update-only`                          | Only update PRs that have already been submitted.                                                                                                                                                                                 |
 | `-f`, `--force`                                | Force push, overwriting the remote branch. Otherwise uses `--force-with-lease` (see below).                                                                                                                                       |
 | `--always`                                     | Push even if the branch is unchanged.                                                                                                                                                                                             |
-| `--gh-stack` / `--no-gh-stack`                 | Link (or don't link) the PRs as a GitHub stack. Defaults to the `repo github-stacks` setting in `ch config` (on).                                                                                                                 |
+| `--gh-stack` / `--no-gh-stack`                 | Link (or don't link) the PRs as a GitHub stack. Defaults to the [`repo github-stacks`](#repo) setting (on).                                                                                                                       |
 | `--comment <msg>`                              | Add a comment with `<msg>` to every submitted PR.                                                                                                                                                                                 |
 | `-m`, `--merge-when-ready`                     | Enable auto-merge (`gh pr merge --auto --squash`) on every submitted PR.                                                                                                                                                          |
 | `--rerequest-review`                           | Re-request review from the current reviewers of every updated PR.                                                                                                                                                                 |
@@ -737,10 +737,7 @@ ch trunk
 
 Interactively view and edit the settings managed by `ch user` and `ch repo`: it lists every setting with its current value, lets you pick one, and prompts for the new value. Repo settings are only shown inside a repo; with `--no-interactive`, it prints the settings and exits.
 
-Two settings are only reachable here:
-
-- `user sync-auto-delete` — `ch sync` deletes merged and closed branches without asking (as `--force` does for deletion), also in non-interactive mode.
-- `repo github-stacks` — whether `ch submit` links PRs as a GitHub stack by default (on). `--gh-stack` / `--no-gh-stack` override it per submit.
+One setting is only reachable here: `user sync-auto-delete` — `ch sync` deletes merged and closed branches without asking (as `--force` does for deletion), also in non-interactive mode.
 
 ```
 ch config
@@ -769,20 +766,22 @@ ch aliases --legacy
 
 Read or write Charcoal's per-repo configuration. Most sub-commands print the current value when run with no flag and write it with `-s`/`--set`.
 
-| Sub-command             | Description                                                                                                                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `repo init` (alias `i`) | Create or regenerate a `.graphite_repo_config` file (same as [`init`](#init)). Flags: `--trunk <name>`, `--reset` (untrack all branches).                                                              |
-| `repo sync` (alias `s`) | Same as the top-level [`sync`](#sync), with the same flags: `--pull`/`--no-pull`, `--delete`/`--no-delete`, `-d`/`--delete-all`, `--show-delete-progress`, `-f`/`--force`, `--restack`/`--no-restack`. |
-| `repo name`             | The repo's name in Charcoal (e.g. `charcoal` in `danerwilliams/charcoal`). `-s`/`--set` to override.                                                                                                   |
-| `repo owner`            | The repo owner's name in Charcoal (e.g. `danerwilliams`). `-s`/`--set` to override.                                                                                                                    |
-| `repo remote`           | The remote Charcoal pushes to and pulls from (defaults to `origin`). `-s`/`--set` to override.                                                                                                         |
-| `repo pr-templates`     | List your GitHub PR templates, used to pre-fill PR bodies on submit.                                                                                                                                   |
-| `repo github`           | Enable or disable the GitHub integration for this repo. `--enable` / `--no-enable` (required).                                                                                                         |
+| Sub-command             | Description                                                                                                                                                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `repo init` (alias `i`) | Create or regenerate a `.graphite_repo_config` file (same as [`init`](#init)). Flags: `--trunk <name>`, `--reset` (untrack all branches).                                                                        |
+| `repo sync` (alias `s`) | Same as the top-level [`sync`](#sync), with the same flags: `--pull`/`--no-pull`, `--delete`/`--no-delete`, `-d`/`--delete-all`, `--show-delete-progress`, `-f`/`--force`, `--restack`/`--no-restack`.           |
+| `repo name`             | The repo's name in Charcoal (e.g. `charcoal` in `danerwilliams/charcoal`). `-s`/`--set` to override.                                                                                                             |
+| `repo owner`            | The repo owner's name in Charcoal (e.g. `danerwilliams`). `-s`/`--set` to override.                                                                                                                              |
+| `repo remote`           | The remote Charcoal pushes to and pulls from (defaults to `origin`). `-s`/`--set` to override.                                                                                                                   |
+| `repo pr-templates`     | List your GitHub PR templates, used to pre-fill PR bodies on submit.                                                                                                                                             |
+| `repo github`           | Enable or disable the GitHub integration for this repo. `--enable` / `--no-enable` (required).                                                                                                                   |
+| `repo github-stacks`    | Whether `ch submit` links PRs as a GitHub stack by default (on). `--enable` / `--disable`; prints the setting with no flag. `--gh-stack` / `--no-gh-stack` override it per submit. Also editable in `ch config`. |
 
 ```
 ch repo init --trunk main
 ch repo remote -s upstream
 ch repo github --no-enable
+ch repo github-stacks --disable
 ```
 
 ### `user`
