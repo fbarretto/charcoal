@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import { runGitCommand } from './runner';
 
 export function detectStagedChanges(): boolean {
@@ -29,7 +30,7 @@ export function showDiff(left: string, right: string, stat?: boolean): string {
   return runGitCommand({
     args: [
       `-c`,
-      `color.ui=always`,
+      `color.ui=${chalk.level ? 'always' : 'never'}`,
       `--no-pager`,
       `diff`,
       `--no-ext-diff`,

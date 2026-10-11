@@ -32,6 +32,14 @@ for (const scene of allScenes) {
       expect(out).not.to.contain('a-commit');
     });
 
+    it('Writes no color codes into a pipe', () => {
+      for (const args of [[`-d`], [`-d`, `-s`], [`-p`]]) {
+        expect(
+          scene.repo.runCliCommandAndGetOutput([`info`, ...args])
+        ).not.to.contain('\u001b[');
+      }
+    });
+
     it('--stat shows a diffstat instead of the diff', () => {
       const diff = info([`-d`]);
       expect(diff).to.contain('+b-contents');

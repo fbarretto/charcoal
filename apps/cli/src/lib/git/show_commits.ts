@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import { runGitCommand } from './runner';
 
 export function showCommits(
@@ -8,7 +9,7 @@ export function showCommits(
   return runGitCommand({
     args: [
       `-c`,
-      `color.ui=always`,
+      `color.ui=${chalk.level ? 'always' : 'never'}`,
       `--no-pager`,
       `log`,
       ...(opts.patch ? [opts.stat ? '--stat' : '-p'] : []),
