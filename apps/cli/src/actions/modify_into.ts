@@ -7,6 +7,7 @@ import {
 } from '../lib/errors';
 import {
   commitTree,
+  editCommitMessage,
   getCommitAuthorEnv,
   getCommitMessage,
   getStagedPatch,
@@ -54,11 +55,6 @@ export async function modifyIntoAction(
   }
   // setBranchRevision would refuse too, but only after the working tree reset.
   context.engine.assertNotFrozen(target);
-  if (opts.commit && !opts.message) {
-    throw new PreconditionsFailedError(
-      'Pass a message with `-m` when using `--commit` with `--into`.'
-    );
-  }
   if (!opts.commit && context.engine.isBranchEmpty(target)) {
     throw new PreconditionsFailedError(
       `No commits in ${chalk.yellow(target)} to amend.`
@@ -70,7 +66,14 @@ export async function modifyIntoAction(
   if (!staged && (opts.commit || !opts.message)) {
     throw new PreconditionsFailedError('No staged changes to commit.');
   }
-  const newRevision = buildCommit(target, staged, opts);
+  const message =
+    opts.commit && !opts.message ? editCommitMessage() : opts.message;
+  if (opts.commit && !message) {
+    throw new PreconditionsFailedError(
+      'Aborting commit due to empty commit message.'
+    );
+  }
+  const newRevision = buildCommit(target, staged, { ...opts, message });
 
   // The staged changes now live in `newRevision`; only the unstaged ones
   // come back.

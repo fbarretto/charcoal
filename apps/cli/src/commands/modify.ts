@@ -39,7 +39,7 @@ const args = {
   into: {
     type: 'string',
     describe:
-      'The branch to modify instead of the current branch. Must be downstack in the current stack.',
+      'The branch to modify instead of the current branch. Must be downstack in the current stack. Amends its last commit, or adds a new commit with --commit.',
     demandOption: false,
   },
   message: {

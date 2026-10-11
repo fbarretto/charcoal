@@ -2,8 +2,10 @@ import { expect } from 'chai';
 import { allScenes } from '../../lib/scenes/all_scenes';
 import { configureTest } from '../../lib/utils/configure_test';
 import { expectCommits } from '../../lib/utils/expect_commits';
+import { withEditor } from '../../lib/utils/interactive';
 
 for (const scene of allScenes) {
+  // eslint-disable-next-line max-lines-per-function
   describe(`(${scene}): modify --into`, function () {
     configureTest(this, scene);
 
@@ -46,13 +48,46 @@ for (const scene of allScenes) {
 
     it('Creates a new commit with --commit', () => {
       setUpStack();
+      const aBefore = scene.repo.getRef('refs/heads/a');
       scene.repo.createChange('a2', 'a');
 
       scene.repo.runCliCommand([`modify`, `--into`, `a`, `-c`, `-m`, `fix`]);
 
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`rev-parse`, `a~`])
+      ).to.equal(aBefore);
+      expect(show('a:a_test.txt')).to.equal('a2');
       scene.repo.checkoutBranch('c');
       expectCommits(scene.repo, 'c, b, fix, a, 1');
       expect(show('c:a_test.txt')).to.equal('a2');
+      expect(scene.repo.runCliCommandAndGetOutput([`ls`])).not.to.contain(
+        'needs restack'
+      );
+    });
+
+    it('Asks for the new commit message in the editor without -m', () => {
+      setUpStack();
+      scene.repo.createChange('a2', 'a');
+
+      withEditor('edited fix', () =>
+        scene.repo.runCliCommand([`modify`, `--into`, `a`, `-c`])
+      );
+
+      scene.repo.checkoutBranch('c');
+      expectCommits(scene.repo, 'c, b, edited fix, a, 1');
+    });
+
+    it('Aborts --commit on an empty message without changing anything', () => {
+      setUpStack();
+      const aBefore = scene.repo.getRef('refs/heads/a');
+      scene.repo.createChange('a2', 'a');
+
+      expect(() =>
+        withEditor('', () =>
+          scene.repo.runCliCommand([`modify`, `--into`, `a`, `-c`])
+        )
+      ).to.throw('empty commit message');
+      expect(scene.repo.getRef('refs/heads/a')).to.equal(aBefore);
     });
 
     it('Fails cleanly when the staged changes do not apply', () => {

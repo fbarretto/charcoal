@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
@@ -135,6 +136,24 @@ export function commitTree({
     ['commit-tree', tree, ...parents.flatMap((p) => ['-p', p]), '-F', '-'],
     { input: message, env: authorEnv }
   );
+}
+
+// Asks for a message in git's editor, as `git commit` does.
+export function editCommitMessage(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'charcoal-msg-'));
+  const file = path.join(dir, 'COMMIT_EDITMSG');
+  fs.writeFileSync(
+    file,
+    "\n# Please enter the commit message for your changes. Lines starting\n# with '#' will be ignored, and an empty message aborts the commit.\n"
+  );
+  try {
+    execSync(`${git(['var', 'GIT_EDITOR'])} "${file}"`, { stdio: 'inherit' });
+    return git(['stripspace', '--strip-comments'], {
+      input: fs.readFileSync(file, 'utf-8'),
+    });
+  } finally {
+    fs.removeSync(dir);
+  }
 }
 
 export function detachAt(rev: string): void {

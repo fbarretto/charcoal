@@ -97,16 +97,17 @@ Amend the current branch's commit (or add a new one with `--commit`) and restack
 | `-v`, `--verbose`      | Show the diff in the commit message template; `-vv` also shows unstaged changes.                                     |
 | `--reset-author`       | Set the author of the commit to the current user when amending.                                                      |
 | `--interactive-rebase` | Ignore all other flags and start a git interactive rebase on the branch's commits, then restack (same as `ch edit`). |
-| `--into <branch>`      | Commit the staged changes into a branch downstack of the current one instead.                                        |
+| `--into <branch>`      | Commit the staged changes into a branch downstack of the current one instead (amends, or adds a commit with `-c`).   |
 
 If nothing is staged but there are unstaged changes, and no staging flag is passed, it asks whether to stage them (see `create`); with `--no-interactive` it fails instead.
 
-With `--into`, the target must be downstack of the current branch (not trunk) and not checked out in another worktree. It is never checked out: the new commit is built from the target's tree plus the staged diff, and the command fails without changing anything if that diff doesn't apply cleanly. It amends the target's last commit (keeping its message unless `-m` is given) or, with `-c`, adds a new commit (which requires `-m`). `--reset-author` makes the current user the author of the amended commit. Then everything upstack of the target is restacked and you stay on the current branch. Unstaged changes are kept. If a restack conflict interrupts the command, the uncommitted changes are saved in a stash commit whose sha is printed (`git stash apply <sha>` after `ch continue`). `--into` naming the current branch is a plain `modify`.
+With `--into`, the target must be downstack of the current branch (not trunk) and not checked out in another worktree. It is never checked out: the new commit is built from the target's tree plus the staged diff, and the command fails without changing anything if that diff doesn't apply cleanly. It amends the target's last commit (keeping its message unless `-m` is given) or, with `-c`, adds a new commit on top of it and leaves the existing commits untouched — use this when the target's last commit isn't the one the change belongs in, such as an empty "Trigger CI" commit. Without `-m`, `-c` opens the git editor for the new commit's message, like a plain `modify -c`; an empty message aborts. `--reset-author` makes the current user the author of the amended commit. Then everything upstack of the target is restacked and you stay on the current branch. Unstaged changes are kept. If a restack conflict interrupts the command, the uncommitted changes are saved in a stash commit whose sha is printed (`git stash apply <sha>` after `ch continue`). `--into` naming the current branch is a plain `modify`.
 
 ```
 ch modify -a                     # amend current commit with all changes
 ch modify -c -m "Fix"            # add a new commit instead
 ch modify --into parent-branch   # amend staged changes into a downstack branch
+ch modify --into parent-branch -c -m "Fix"   # add them there as a new commit
 ```
 
 ### `absorb` (alias `ab`)
