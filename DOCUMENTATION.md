@@ -30,7 +30,7 @@ Each command section has the same shape: what the command does, a table of its o
 
 When a command "restacks", it rebases each affected branch onto its parent so the stack stays consistent.
 
-**Multiple worktrees.** Charcoal does not modify a branch checked out in another worktree of the same repo. `restack` (and every command that restacks), `sync` and `get` skip such branches with a message, except trunk, which `sync`/`get` may still update; run the command in that worktree to update them. `ch log` shows the worktree path next to those branches. Undo history and halted-command state are per worktree: `ch undo`, `ch continue` and `ch abort` only see commands run from the current worktree, and `ch undo` refuses to modify or check out a branch checked out elsewhere.
+**Multiple worktrees.** Charcoal does not modify a branch checked out in another worktree of the same repo. `restack` (and every command that restacks), `sync` and `get` skip such branches with a message, except trunk, which `sync`/`get` may still update; run the command in that worktree to update them. `ch log` and `ch ls` show the worktree path next to those branches. Undo history and halted-command state are per worktree: `ch undo`, `ch continue` and `ch abort` only see commands run from the current worktree, and `ch undo` refuses to modify or check out a branch checked out elsewhere.
 
 ---
 
@@ -319,6 +319,8 @@ Ensure each branch in the current stack is based on its parent, rebasing if nece
 | `-u`, `--upstack`   | Only restack this branch and its descendants.                        |
 | `-o`, `--only`      | Only restack this branch.                                            |
 
+Each branch is rebased onto its parent from the parent revision Charcoal recorded for it, so commits its parent already had (or dropped, after a squash merge) are not replayed. If that recorded revision is older than where the branch actually forks from its parent — e.g. it was tracked while local trunk was behind `origin` — the fork point is used instead, so trunk's own commits are never replayed as the branch's.
+
 ```
 ch restack
 ch restack --upstack
@@ -363,7 +365,7 @@ Start tracking the current (or provided) branch with Charcoal by selecting its p
 | `-f`, `--force`     | Pick the nearest ancestor of each branch as its parent, without prompting. Takes precedence over `--parent`. |
 | `-d`, `--downstack` | Hidden; accepted for gt compatibility and does nothing (tracking is already recursive).                      |
 
-The parent prompt lists every branch in the branch's git history (tracked or not, nearest first), each with the number of commits that would go into the tracked branch. Running `ch track` from the tip of an untracked chain tracks the whole chain. In non-interactive mode, a choice between several parents fails unless `--parent` or `--force` is given.
+The parent prompt lists every branch in the branch's git history (tracked or not, nearest first), each with the number of commits that would go into the tracked branch. Running `ch track` from the tip of an untracked chain tracks the whole chain. In non-interactive mode, a choice between several parents fails unless `--parent` or `--force` is given. Tracking onto trunk warns when trunk is behind its remote tracking branch (`origin/<trunk>`): run `ch sync` first so the recorded base is current.
 
 ```
 ch track -p main
@@ -517,14 +519,14 @@ ch sync --no-restack
 
 Merge the PRs from trunk up to the current branch, bottom-up, in one run, waiting in the foreground for each PR to be ready, like `gt merge`. PRs in a GitHub stack are merged with one request to GitHub's async merge API, and other PRs one at a time with `gh pr merge`. Every branch in the downstack must have an open PR; otherwise the command lists the ones that don't and merges nothing.
 
-| Flag              | Description                                                                                                                                                                                                                                                                                                                                    |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--dry-run`       | Print the PRs that would be merged, in order, and exit.                                                                                                                                                                                                                                                                                        |
-| `-c`, `--confirm` | Print the plan and ask before merging. Ignored with `--no-interactive`. Merge also asks, regardless of this flag, when a local branch differs from its remote (GitHub merges the remote version); with `--no-interactive` it refuses instead.                                                                                                  |
-| `--method`        | How GitHub merges each PR: `squash` (default), `merge`, or `rebase`.                                                                                                                                                                                                                                                                           |
-| `--auto`          | Unstacked PRs: enable GitHub auto-merge on each PR in turn and wait for GitHub to merge it, so GitHub's checks and reviews gate every merge; a missing approval is waited for instead of stopping. GitHub stacks have no auto-merge: `merge` waits as usual (also for approvals), then makes the same async merge request as without `--auto`. |
-| `--no-wait`       | Don't wait: stop at the first PR whose required checks are still running (or that needs a review). With `--auto`, enable auto-merge on the bottom PR only and exit.                                                                                                                                                                            |
-| `--timeout`       | Minutes to wait for each PR before giving up (default 30). Each PR gets its own budget, since under strict protection every push restarts its checks.                                                                                                                                                                                          |
+| Flag                   | Description                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--dry-run`            | Print the PRs that would be merged, in order, and exit.                                                                                                                                                                                                                                                                                        |
+| `-c`, `--confirm`      | Print the plan and ask before merging. Ignored with `--no-interactive`. Merge also asks, regardless of this flag, when a local branch differs from its remote (GitHub merges the remote version); with `--no-interactive` it refuses instead.                                                                                                  |
+| `--method`             | How GitHub merges each PR: `squash` (default), `merge`, or `rebase`.                                                                                                                                                                                                                                                                           |
+| `--auto`               | Unstacked PRs: enable GitHub auto-merge on each PR in turn and wait for GitHub to merge it, so GitHub's checks and reviews gate every merge; a missing approval is waited for instead of stopping. GitHub stacks have no auto-merge: `merge` waits as usual (also for approvals), then makes the same async merge request as without `--auto`. |
+| `--wait` / `--no-wait` | Wait in the foreground for each PR to be ready (default on). `--no-wait`: don't wait; stop at the first PR whose required checks are still running (or that needs a review). With `--auto`, enable auto-merge on the bottom PR only and exit.                                                                                                  |
+| `--timeout`            | Minutes to wait for each PR before giving up (default 30). Each PR gets its own budget, since under strict protection every push restarts its checks.                                                                                                                                                                                          |
 
 **Waiting.** Before merging each PR, `merge` polls it (with backoff, every 10 seconds at most) until GitHub says it can merge, printing what it waits on whenever that changes and once a minute (`#12 waiting on required checks: slow-check (in progress)`). It waits on required checks that are queued or running, and on GitHub recomputing mergeability after a push (up to 2 minutes). It stops, without waiting, when waiting can't help: a required check failed, changes are requested, the PR needs an approving review (not with `--auto`, which waits for one), the PR is a draft (`ch submit --publish` marks it ready), it has conflicts, it is behind its base branch (`ch sync`, `ch submit`, then `ch merge` again), or it stays blocked for 2 minutes with no check or review to explain it. When it stops, times out or is interrupted with Ctrl-C, it says which PR it was at, which PRs it already merged, which it left untouched, and whether auto-merge is still enabled; nothing is left half-done, so run `ch sync` and then `ch merge` again to continue.
 
@@ -677,6 +679,8 @@ Log all stacks tracked by Charcoal, arranged to show dependencies. Same as `ch l
 | `-s`, `--stack`          | Only show ancestors and descendants of the current branch.           |
 | `-n`, `--steps`          | Only show this many levels up/downstack. Implies `--stack`.          |
 | `-u`, `--show-untracked` | Include untracked branches.                                          |
+
+One row per branch, children above parents; branches of the same stack (a child of trunk and everything above it) share a color, and trunk is gray. After the name, a branch may show `(needs restack)`, `(merged)` or `(closed)` (its PR's state), `(frozen)`, `(stack #N)` (the GitHub stack its PR is in) and `(worktree: <path>)` when it is checked out in another worktree.
 
 ```
 ch ls
@@ -851,10 +855,10 @@ ch completion >> ~/.bashrc
 
 ### `fish`
 
-Set up fish-shell tab completion.
+Print a fish-shell completion script to stdout.
 
 ```
-ch fish
+ch fish >> ~/.config/fish/completions/ch.fish
 ```
 
 ### `feedback`

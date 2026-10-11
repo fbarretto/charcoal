@@ -44,7 +44,7 @@ git add <files>
 ch create my-feature-ui -m "Add the feed UI"
 ch ls                          # view the stack
 ch submit --stack              # push every branch and open or update its PR
-ch sync                        # after merges: pull trunk, delete merged branches, restack
+ch sync                        # pull trunk and your branches, delete merged ones, restack
 ```
 
 Every `gt` command maps to the same `ch` command, so Graphite's own guides apply. If you have muscle memory
@@ -52,14 +52,14 @@ for `gt`, `alias gt=ch`. The full reference is **[DOCUMENTATION.md](./DOCUMENTAT
 
 ## What this fork adds over upstream Charcoal
 
-| Area                  | Commands                                                                                                          |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Restructure a stack   | `move --only`, `create --onto`, `delete --upstack/--downstack/--close`, `split --by-file`, `fold --stack/--close` |
-| Edit commits in place | `modify --into <branch>`, `absorb` (wraps [git-absorb](https://github.com/tummychow/git-absorb)), `revert <sha>`  |
-| Safety                | `undo` (per worktree), `abort` (restores the state before the halted command), `freeze` / `unfreeze`              |
-| Inspect and navigate  | `parent`, `children`, `trunk`, `info [branch] --stat`, `up --to`, `checkout --trunk/--stack`                      |
-| GitHub                | `merge` (bottom-up), `pr [--stack]`, `unlink`, `unstack`, and `submit`'s full flag set                            |
-| Setup                 | `config`, `aliases` (stored in `~/.config/charcoal/aliases`), `auth -t`, global `--cwd` and `--quiet`             |
+| Area                  | Commands                                                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Restructure a stack   | `move --only`, `create --onto`, `delete --upstack/--downstack/--close`, `split --by-file`, `fold --stack/--close`              |
+| Edit commits in place | `modify --into <branch> [-c]`, `absorb` (wraps [git-absorb](https://github.com/tummychow/git-absorb)), `revert <sha>`          |
+| Safety                | `undo` (per worktree), `abort` (restores the state before the halted command), `freeze` / `unfreeze`                           |
+| Inspect and navigate  | `parent`, `children`, `trunk`, `info [branch] --stat`, `up --to`, `checkout --trunk/--stack`                                   |
+| GitHub                | `merge` (bottom-up, waits for checks), `pr [--stack]`, `unlink`, `unstack`, `repo github-stacks`, and `submit`'s full flag set |
+| Setup                 | `config`, `aliases` (stored in `~/.config/charcoal/aliases`), `auth -t`, global `--cwd` and `--quiet`                          |
 
 Defaults now match `gt`: `sync` restacks, `modify` opens the editor only with `-e`, `create` with no name
 names the branch from the commit message, `track` is recursive, and scripts (no terminal on stdin/stdout)
@@ -69,7 +69,7 @@ run non-interactively. Branches checked out in another worktree are skipped duri
 
 `ch submit` also links the submitted PRs as a [GitHub stacked PR](https://docs.github.com/en/pull-requests/get-started/about-stacked-prs),
 so reviewers see the stack map on github.com. It creates, extends or recreates the stack to match your local
-chain. Opt out with `ch submit --no-gh-stack` or turn it off per repo in `ch config`. `ch unstack` removes
+chain. Opt out with `ch submit --no-gh-stack`, or per repo with `ch repo github-stacks --disable` (or in `ch config`). `ch unstack` removes
 the stack on GitHub; `ch ls` shows each stack's number.
 
 ### Not supported

@@ -113,9 +113,12 @@ Each `create` stacks on the current branch. `--onto <branch>` stacks somewhere e
 `ch` refuses to work on a branch it doesn't track (`Cannot perform this operation on untracked branch`). Check with `ch info`, then:
 
 ```bash
+ch sync              # first, so local trunk matches origin
 ch track -p main     # this branch becomes the bottom layer
 ch create ...        # keep stacking
 ```
+
+`ch track` records the branch's base from local trunk, and warns if trunk is behind `origin`.
 
 `ch track -f` tracks a whole chain of untracked branches, picking the nearest ancestor as each parent.
 
@@ -132,9 +135,9 @@ git add src/backoff.ts
 ch modify --into upload-retry/extract-backoff   # never checks it out; restacks above it
 ```
 
-`--into` fails without changing anything if the staged diff doesn't apply cleanly to the target. `ch absorb -a` does the routing per hunk (needs `git-absorb` on PATH); preview with `-d`. You stay on your branch.
+`--into` amends the target's last commit; add `-c -m "msg"` to land the change as its own commit instead (do this when that last commit is unrelated, e.g. an empty "Trigger CI" commit). It fails without changing anything if the staged diff doesn't apply cleanly to the target. `ch absorb -a` does the routing per hunk (needs `git-absorb` on PATH); preview with `-d`. You stay on your branch.
 
-**Re-parent / reorder.** `ch move --onto <target>` moves the current branch and everything above it. `--only` moves just one branch, and its children close the gap. To change which branch a single branch sits on without rebasing anything yet, `ch track -p <parent>` then `ch restack`.
+**Re-parent / reorder.** `ch move --onto <target>` moves the current branch and everything above it. `--only` moves just one branch, and its children close the gap. `ch track -p <parent>` only re-points the metadata, and only to a branch already in its history.
 
 **Split and fold.** `ch split --by-file 'docs/**'` moves matching files into a new branch below the current one, which keeps its PR. `ch fold` merges the current branch into its parent; `ch fold --stack` collapses the whole stack. To re-cut a layer by hand: `git reset HEAD^` (changes stay unstaged), re-stage pieces, `ch create` each.
 
@@ -211,7 +214,7 @@ ch delete <branch> -f -c           # also close its open PR
 
 ## Merging
 
-`ch merge --dry-run` lists the PRs from trunk up to the current branch; `ch merge` merges them all bottom-up in one run: a GitHub stack in one async merge request, unstacked PRs one at a time, retargeting and re-pushing each next PR as it goes. It waits in the foreground for required checks (including the ones each re-push restarts under strict protection), printing what it waits on, up to `--timeout` minutes per PR (default 30). It stops, naming what it merged and what's left, when waiting can't help: a failed required check, changes requested, a draft, conflicts, or a missing approving review. `ch merge --auto` also waits for approvals: it arms GitHub auto-merge on each unstacked PR in turn and waits for GitHub to merge it, so you can walk away. GitHub stacks have no auto-merge; there `--auto` waits, then makes the normal async merge request. `--no-wait` gives the old one-shot behavior (stop at the first PR that isn't ready; with `--auto`, arm the bottom PR and exit). Ctrl-C is safe: rerun `ch merge` to continue. Run `ch sync` afterwards to clean up the merged branches.
+`ch merge --dry-run` lists the PRs from trunk up to the current branch; `ch merge` merges them all bottom-up in one run: a GitHub stack in one async merge request, unstacked PRs one at a time, retargeting and re-pushing each next PR as it goes. It waits in the foreground for required checks (including the ones each re-push restarts under strict protection), printing what it waits on, up to `--timeout` minutes per PR (default 30). It stops, naming what it merged and what's left, when waiting can't help: a failed required check, changes requested, a draft, conflicts, or a missing approving review. `ch merge --auto` also waits for approvals: it arms GitHub auto-merge on each unstacked PR in turn and waits for GitHub to merge it, so you can walk away. GitHub stacks have no auto-merge; there `--auto` waits, then makes the normal async merge request. `--no-wait` gives the old one-shot behavior (stop at the first PR that isn't ready; with `--auto`, arm the bottom PR and exit). Ctrl-C is safe: rerun `ch merge` to continue. It can block for a long time, so as an agent run it in the background or with a shell timeout above `--timeout`, or use `--no-wait`. Run `ch sync` afterwards to clean up the merged branches.
 
 ## Troubleshooting
 
