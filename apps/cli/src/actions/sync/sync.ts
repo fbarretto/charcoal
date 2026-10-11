@@ -30,11 +30,12 @@ export async function syncAction(
 
   await syncPrInfo(context.engine.allBranchNames, context);
 
+  let kept: string[] = [];
   if (opts.delete) {
     context.splog.info(
       `🧹 Checking if any branches have been merged/closed and can be deleted...`
     );
-    await cleanBranches(
+    kept = await cleanBranches(
       {
         showDeleteProgress: opts.showDeleteProgress,
         force: opts.force || !!opts.deleteAll,
@@ -59,7 +60,9 @@ export async function syncAction(
 
   if (opts.restack) {
     restackWithoutConflicts(
-      context.engine.getRelativeStack(context.engine.trunk, SCOPE.STACK),
+      context.engine
+        .getRelativeStack(context.engine.trunk, SCOPE.STACK)
+        .filter((b) => !kept.includes(b)),
       context
     );
   }

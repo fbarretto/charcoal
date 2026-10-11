@@ -9,8 +9,9 @@ import { skippedInWorktreeMessage } from '../restack';
  * execution of this method, we simply restart the method upon running `ch
  * continue`.
  *
- * It returns a list of branches whose parents have changed so that we know
- * which branches to restack.
+ * It returns the merged or closed branches it kept, which callers leave
+ * unrestacked: restacking one onto trunk empties it, and an empty branch with
+ * no PR is no longer recognized as merged.
  */
 // eslint-disable-next-line max-lines-per-function
 export async function cleanBranches(
@@ -41,7 +42,7 @@ export async function cleanBranches(
 
   const branchesToProcess = context.engine.getChildren(context.engine.trunk);
   const branchesToDelete: Record<string, Set<string>> = {};
-  const branchesWithNewParents: string[] = [];
+  const kept: string[] = [];
 
   /**
    * Since we're doing a DFS, assuming rather even distribution of stacks off
@@ -75,6 +76,7 @@ export async function cleanBranches(
         {
           branchName: branchName,
           force: opts.force,
+          onKept: () => kept.push(branchName),
         },
         context
       ));
@@ -111,7 +113,6 @@ export async function cleanBranches(
             newParentBranchName
           )}.`
         );
-        branchesWithNewParents.push(branchName);
 
         // This branch is no longer blocking its parent's deletion.
         branchesToDelete[parentBranchName].delete(branchName);
@@ -125,7 +126,7 @@ export async function cleanBranches(
 
     greedilyDeleteUnblockedBranches(branchesToDelete, context);
   }
-  return branchesWithNewParents;
+  return kept;
 }
 
 // With either path in the above, we may have unblocked a branch that can
@@ -184,6 +185,7 @@ async function shouldDeleteBranch(
   args: {
     branchName: string;
     force: boolean;
+    onKept: () => void;
   },
   context: TContext
 ): Promise<boolean> {
@@ -216,10 +218,11 @@ async function shouldDeleteBranch(
         '--delete-all'
       )} to delete it without asking.`
     );
+    args.onKept();
     return false;
   }
 
-  return (
+  const confirmed =
     (
       await context.prompts({
         type: 'confirm',
@@ -227,6 +230,9 @@ async function shouldDeleteBranch(
         message: `${shouldDelete.reason}. Delete it?`,
         initial: true,
       })
-    ).value === true
-  );
+    ).value === true;
+  if (!confirmed) {
+    args.onKept();
+  }
+  return confirmed;
 }
