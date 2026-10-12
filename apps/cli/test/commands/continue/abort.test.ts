@@ -149,7 +149,7 @@ for (const scene of allScenes) {
         ['submit'],
       ]) {
         expect(() => scene.repo.runCliCommand(command)).to.throw(
-          'blocked while a rebase is in progress'
+          /blocked while a rebase is in progress[\s\S]*ch continue[\s\S]*ch abort -f/
         );
       }
       expect(
