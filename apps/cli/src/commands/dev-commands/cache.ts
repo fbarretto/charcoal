@@ -12,6 +12,7 @@ const args = {
     type: 'boolean',
     default: false,
     alias: 'c',
+    describe: 'Clear the branch cache before printing it.',
   },
 } as const;
 export const builder = args;

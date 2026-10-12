@@ -15,11 +15,14 @@ const args = {
     type: 'string',
     positional: true,
     hidden: true,
+    describe: 'The branch whose metadata ref to print.',
   },
   edit: {
     type: 'boolean',
     default: false,
     alias: 'e',
+    describe:
+      'Edit the metadata in your editor and write it back, instead of printing it. Use with care.',
   },
 } as const;
 

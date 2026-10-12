@@ -5,7 +5,6 @@ import { graphiteWithoutRepo } from '../../lib/runner';
 const args = {
   set: {
     demandOption: false,
-    default: '',
     type: 'string',
     describe: 'Set default editor for Charcoal. eg --set vim.',
   },

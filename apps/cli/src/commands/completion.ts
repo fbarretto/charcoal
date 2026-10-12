@@ -4,7 +4,7 @@ import { composeGit } from '../lib/git/git';
 export function registerCompletion(yargs: Argv): Argv {
   return yargs.completion(
     'completion',
-    'Set up bash or zsh tab completion.',
+    'Print a bash or zsh tab-completion script to stdout; append it to your shell profile.',
     //@ts-expect-error types/yargs is out of date with yargs
     // eslint-disable-next-line max-params
     (current, argv, defaultCompletion, done) => {

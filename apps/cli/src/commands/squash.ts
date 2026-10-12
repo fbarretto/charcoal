@@ -7,7 +7,8 @@ const args = {
   message: {
     type: 'string',
     alias: 'm',
-    describe: 'The updated message for the commit.',
+    describe:
+      'The message for the squashed commit. If passed, no editor is opened. Repeat for multiple paragraphs.',
     demandOption: false,
   },
   edit: {

@@ -4,7 +4,7 @@ import { graphite } from '../lib/runner';
 
 const args = {
   input: {
-    describe: `Path to file specifying stack edits. Using this argument skips prompting for stack edits and assumes the user has already formatted a list. Primarly used for unit tests.`,
+    describe: `Path to file specifying stack edits. Using this argument skips prompting for stack edits and assumes the user has already formatted a list. Primarily used for unit tests.`,
     demandOption: false,
     hidden: true,
     type: 'string',
