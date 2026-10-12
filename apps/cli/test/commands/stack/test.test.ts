@@ -42,5 +42,36 @@ for (const scene of allScenes) {
       expect(output).to.contain('[success]: b');
       expect(output).not.to.contain(': a');
     });
+
+    const setUpStack = () => {
+      scene.repo.createChange('a', 'a');
+      scene.repo.runCliCommand([`create`, `a`, `-m`, `a`]);
+      scene.repo.createChange('b', 'b');
+      scene.repo.runCliCommand([`create`, `b`, `-m`, `b`]);
+      scene.repo.checkoutBranch('a');
+    };
+
+    it('Refuses to start with uncommitted changes to tracked files', () => {
+      setUpStack();
+      scene.repo.createChange('dirty', 'a', true);
+
+      expect(() => scene.repo.runCliCommand(['test', 'true'])).to.throw(
+        'tracked changes that have not been committed'
+      );
+      expect(scene.repo.currentBranchName()).to.equal('a');
+    });
+
+    it("Discards a branch's tracked edits before testing the next one", () => {
+      setUpStack();
+
+      scene.repo.runCliCommand([
+        'test',
+        '! grep -q junk a_test.txt && echo junk >> a_test.txt',
+      ]);
+
+      expect(
+        scene.repo.runGitCommandAndGetOutput([`status`, `--porcelain`])
+      ).to.equal('');
+    });
   });
 }

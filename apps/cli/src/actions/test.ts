@@ -6,6 +6,8 @@ import tmp from 'tmp';
 import { TContext } from '../lib/context';
 import { TScopeSpec } from '../lib/engine/scope_spec';
 import { ExitFailedError } from '../lib/errors';
+import { hardResetToHead } from '../lib/git/plumbing';
+import { uncommittedTrackedChangesPrecondition } from '../lib/preconditions';
 
 type TTestStatus =
   | '[pending]'
@@ -26,6 +28,7 @@ export function testStack(
   opts: { scope: TScopeSpec; includeTrunk?: boolean; command: string },
   context: TContext
 ): void {
+  uncommittedTrackedChangesPrecondition();
   const currentBranch = context.engine.currentBranchPrecondition;
   // Get branches to test.
   const branches = context.engine
@@ -112,6 +115,9 @@ function testBranch(
 
   opts.state[opts.branchName].duration = Date.now() - startTime;
   opts.state[opts.branchName].outfile = outputPath;
+  // The tree was clean before the run, so tracked edits are the command's own;
+  // drop them so the next branch is tested on its own files.
+  hardResetToHead();
 
   if (opts.live) {
     logState(opts.state, true, context);
