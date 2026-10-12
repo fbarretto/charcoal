@@ -176,8 +176,21 @@ async function confirm(context: TContext): Promise<boolean> {
   );
 }
 
+// git-absorb's notes about the detached HEAD and the autosquash rebase to run
+// next don't apply: ch detached on purpose and does the rebase itself.
+const OWN_STEPS = /HEAD is not a branch|To squash the new commits/;
+
 function runAbsorb(args: string[]): void {
-  const result = spawnSync('git', ['absorb', ...args], { stdio: 'inherit' });
+  const result = spawnSync('git', ['absorb', ...args], {
+    stdio: ['inherit', 'inherit', 'pipe'],
+    encoding: 'utf-8',
+  });
+  process.stderr.write(
+    (result.stderr ?? '')
+      .split('\n')
+      .filter((line) => !OWN_STEPS.test(line))
+      .join('\n')
+  );
   if (result.status !== 0) {
     throw new ExitFailedError('`git absorb` failed.');
   }

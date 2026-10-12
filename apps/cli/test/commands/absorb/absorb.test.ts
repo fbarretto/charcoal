@@ -65,6 +65,16 @@ for (const scene of allScenes) {
       ).to.equal('new_test.txt');
     });
 
+    it("Hides git-absorb's own rebase instructions, since it does the fold", () => {
+      const { stdout, stderr } = scene.repo.runCliCommandAndGetStreams([
+        `absorb`,
+        `-f`,
+      ]);
+      expect(stdout + stderr).not.to.contain('To squash the new commits');
+      expect(stdout + stderr).not.to.contain('--force-detach');
+      expect(stdout).to.contain('Absorbed staged changes');
+    });
+
     it('Reapplies leftover changes after continuing a restack conflict', () => {
       // c also edits b_test.txt, so restacking it onto the absorbed b conflicts.
       scene.repo.runGitCommand([`stash`]);
