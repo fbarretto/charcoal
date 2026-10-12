@@ -164,20 +164,19 @@ export async function trackBranch(
     !context.engine.isTrunk(args.parentBranchName) &&
     !context.engine.isDescendantOf(branchName, args.parentBranchName)
   ) {
-    context.splog.tip(
-      `Are you sure that ${chalk.cyan(
-        args.parentBranchName
-      )} is the right parent for ${chalk.cyan(
-        branchName
-      )}?  If so, you can fix its history with ${chalk.cyan(
-        `git rebase ${args.parentBranchName} ${branchName}`
-      )} and then try again.`
-    );
-
     throw new ExitFailedError(
-      `${chalk.yellow(
-        args.parentBranchName
-      )} is not in the history of ${chalk.yellow(branchName)}.`
+      [
+        `${chalk.yellow(
+          args.parentBranchName
+        )} is not in the history of ${chalk.yellow(branchName)}.`,
+        `To stack it on ${chalk.cyan(
+          args.parentBranchName
+        )}, track it on a branch in its history, then move it: ${chalk.cyan(
+          `ch track ${branchName} -p ${context.engine.trunk}`
+        )} (or ${chalk.cyan('ch track -f')}), then ${chalk.cyan(
+          `ch move --onto ${args.parentBranchName}`
+        )}.`,
+      ].join('\n')
     );
   }
 

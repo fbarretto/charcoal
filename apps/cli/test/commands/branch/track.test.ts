@@ -111,6 +111,26 @@ for (const scene of allScenes) {
       expect(scene.repo.currentBranchName()).to.eq('a');
     });
 
+    it('Says how to stack a branch on a parent that is not in its history', () => {
+      scene.repo.createAndCheckoutBranch('a');
+      scene.repo.createChangeAndCommit('a', 'a');
+      scene.repo.createAndCheckoutBranch('b');
+      scene.repo.createChangeAndCommit('b', 'b');
+      scene.repo.checkoutBranch('a');
+      scene.repo.runCliCommand([`track`, `-p`, `main`]);
+      scene.repo.createChangeAndAmend('a1', 'a1');
+      scene.repo.checkoutBranch('b');
+
+      expect(() => scene.repo.runCliCommand([`track`, `-p`, `a`])).to.throw(
+        /a is not in the history of b[\s\S]*ch track b -p main[\s\S]*ch move --onto a/
+      );
+
+      scene.repo.runCliCommand([`track`, `b`, `-p`, `main`]);
+      scene.repo.runCliCommand([`move`, `--onto`, `a`]);
+      expectCommits(scene.repo, 'b, a, 1');
+      expect(scene.repo.runCliCommandAndGetOutput([`parent`])).to.equal('a');
+    });
+
     it('Tracks the most recent ancestor when `--force` is passed in', () => {
       // Create our branch
       scene.repo.createAndCheckoutBranch('a');
