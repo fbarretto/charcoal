@@ -138,7 +138,7 @@ ch modify --into upload-retry/extract-backoff   # never checks it out; restacks 
 
 `--into` amends the target's last commit; add `-c -m "msg"` to land the change as its own commit instead (do this when that last commit is unrelated, e.g. an empty "Trigger CI" commit). It fails without changing anything if the staged diff doesn't apply cleanly to the target. `ch absorb -a` does the routing per hunk (needs `git-absorb` on PATH); preview with `-d`. You stay on your branch.
 
-**Re-parent / reorder.** `ch move --onto <target>` moves the current branch and everything above it. `--only` moves just one branch, and its children close the gap. `ch track -p <parent>` only re-points the metadata, and only to a branch already in its history.
+**Re-parent / reorder.** `ch move --onto <target>` moves the current branch and everything above it. `--only` moves just one branch, and its children close the gap. `ch track -p <parent>` only re-points the metadata, and only to a branch already in its history; otherwise `ch track <b> -p main`, then `ch move --onto <parent>`.
 
 **Split and fold.** `ch split --by-file 'docs/**'` moves matching files into a new branch below the current one, which keeps its PR. `ch fold` merges the current branch into its parent; `ch fold --stack` collapses the whole stack. To re-cut a layer by hand: `git reset HEAD^` (changes stay unstaged), re-stage pieces, `ch create` each.
 
@@ -163,7 +163,7 @@ ch info -d -s                            # same, via ch
    ch test '<validate>'    # runs it on every branch of the stack, returns to where you were
    ```
 
-   It exits non-zero if any branch failed; read the `[failed]` lines (each points at an output file under the printed directory). `--upstack` / `--downstack` limit the scope.
+   It needs a clean tree (commit or stash first) and discards tracked edits the command makes between branches. It exits non-zero if any branch failed; read the `[failed]` lines (each points at an output file under the printed directory). `--upstack` / `--downstack` limit the scope.
 
 ## Submitting
 
@@ -192,7 +192,7 @@ When a restack hits a conflict, `ch` stops mid-rebase and prints the unmerged fi
 
 **Use `ch continue`, never `git rebase --continue`.** Git alone finishes the one branch and drops the rest of `ch`'s queued work; the branches above are left `(needs restack)`. If that already happened, run `ch restack`.
 
-**While a conflict is pending, finish it before doing anything else.** `ch` refuses every command that could change state ("This command is blocked while a rebase is in progress") except `ch continue` and `ch abort`; read-only ones like `ch ls` and `ch info` still work.
+**While a conflict is pending, finish it before doing anything else.** `ch` refuses every command that could change state ("This command is blocked while a rebase is in progress") except `ch continue` and `ch abort -f`; read-only ones like `ch ls` and `ch info` still work.
 
 `ch abort -f` gives up: it aborts the rebase and restores every branch to how it was before the command. If that command was a `create` or `modify`, what it committed comes back as staged changes.
 

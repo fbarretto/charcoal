@@ -121,7 +121,7 @@ Amend each staged hunk into the commit in the current downstack (trunk → curre
 | `-f`, `--force`   | Don't ask for confirmation. Without it, the plan is printed and confirmed first (interactive mode only).                 |
 | `-p`, `--patch`   | Pick hunks to stage before absorbing.                                                                                    |
 
-`git absorb` creates `fixup!` commits scoped to the downstack, which are then squashed in by one autosquash rebase; every downstack branch is moved to its rewritten commit, and everything upstack of the bottom branch is restacked. You stay on the current branch. Hunks git-absorb can't place (new or deleted files, lines no commit in the stack owns) stay uncommitted, as unstaged changes, and their count is printed. With nothing staged and no staging flag, it asks whether to stage your unstaged changes (tracked files only). git-absorb's hunk placement is its own heuristic, so an edge-case hunk can land differently than with `gt absorb`. Downstack branches must already be restacked, and the stack must not already contain `fixup!`/`squash!`/`amend!` commits. `ch undo` reverts it and stages the absorbed changes again.
+`git absorb` creates `fixup!` commits scoped to the downstack, which are then squashed in by one autosquash rebase; every downstack branch is moved to its rewritten commit, and everything upstack of the bottom branch is restacked. You stay on the current branch, and git-absorb's own notes about the detached HEAD and the rebase to run are not shown, since Charcoal runs it. Hunks git-absorb can't place (new or deleted files, lines no commit in the stack owns) stay uncommitted, as unstaged changes, and their count is printed. With nothing staged and no staging flag, it asks whether to stage your unstaged changes (tracked files only). git-absorb's hunk placement is its own heuristic, so an edge-case hunk can land differently than with `gt absorb`. Downstack branches must already be restacked, and the stack must not already contain `fixup!`/`squash!`/`amend!` commits. `ch undo` reverts it and stages the absorbed changes again.
 
 ```
 ch absorb -a      # absorb every change, after confirming
@@ -367,7 +367,7 @@ Start tracking the current (or provided) branch with Charcoal by selecting its p
 | `-f`, `--force`     | Pick the nearest ancestor of each branch as its parent, without prompting. Takes precedence over `--parent`. |
 | `-d`, `--downstack` | Hidden; accepted for gt compatibility and does nothing (tracking is already recursive).                      |
 
-The parent prompt lists every branch in the branch's git history (tracked or not, nearest first), each with the number of commits that would go into the tracked branch. Running `ch track` from the tip of an untracked chain tracks the whole chain. In non-interactive mode, a choice between several parents fails unless `--parent` or `--force` is given. Tracking onto trunk warns when trunk is behind its remote tracking branch (`origin/<trunk>`): run `ch sync` first so the recorded base is current.
+The parent prompt lists every branch in the branch's git history (tracked or not, nearest first), each with the number of commits that would go into the tracked branch. Running `ch track` from the tip of an untracked chain tracks the whole chain. In non-interactive mode, a choice between several parents fails unless `--parent` or `--force` is given. Tracking onto trunk warns when trunk is behind its remote tracking branch (`origin/<trunk>`): run `ch sync` first so the recorded base is current. `--parent` must be in the branch's history; when it isn't (e.g. the parent was rebased onto newer trunk), the error says what to run instead: track the branch on trunk (or `ch track -f`), then `ch move --onto <parent>`.
 
 ```
 ch track -p main
@@ -389,7 +389,7 @@ ch untrack feature-x
 
 ### `test`
 
-Run a command on each branch in the current stack and aggregate the results, returning to the original branch afterwards. Exits non-zero, naming the branches, if the command failed on any branch.
+Run a command on each branch in the current stack and aggregate the results, returning to the original branch afterwards. Exits non-zero, naming the branches, if the command failed on any branch. Refuses to start with uncommitted changes to tracked files, and discards the tracked edits each run leaves before moving to the next branch, so every branch is tested on its own files (untracked files are left alone).
 
 | Flag                | Description                                    |
 | ------------------- | ---------------------------------------------- |
