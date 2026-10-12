@@ -54,7 +54,6 @@ import * as split from './commands/split';
 import * as squash from './commands/squash';
 import * as submit from './commands/submit';
 import * as sync from './commands/sync';
-import * as test from './commands/test';
 import * as top from './commands/top';
 import * as track from './commands/track';
 import * as undo from './commands/undo';
@@ -125,7 +124,6 @@ const commandModules = [
   squash,
   submit,
   sync,
-  test,
   top,
   track,
   undo,

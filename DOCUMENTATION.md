@@ -10,7 +10,7 @@ Charcoal is an open-source fork of the Graphite CLI for working with stacked bra
 - [Global flags](#global-flags)
 - [Create & modify](#create--modify): `create`, `modify`, `absorb`, `squash`, `edit`, `split`, `fold`, `rename`, `delete`, `pop`, `revert`
 - [Navigate](#navigate): `checkout`, `up`, `down`, `top`, `bottom`
-- [Stack operations](#stack-operations): `restack`, `move`, `reorder`, `track`, `untrack`, `test`, `continue`, `undo`, `abort`
+- [Stack operations](#stack-operations): `restack`, `move`, `reorder`, `track`, `untrack`, `continue`, `undo`, `abort`
 - [Submit & sync](#submit--sync): `submit`, `sync`, `merge`, `pr`, `unlink`, `unstack`
 - [Collaborate](#collaborate): `freeze`, `unfreeze`, `get`
 - [Inspect](#inspect): `log`, `ls`, `ll`, `info`, `parent`, `children`, `trunk`
@@ -385,22 +385,6 @@ Stop tracking a branch with Charcoal. If it has children, they are also untracke
 
 ```
 ch untrack feature-x
-```
-
-### `test`
-
-Run a command on each branch in the current stack and aggregate the results, returning to the original branch afterwards. Exits non-zero, naming the branches, if the command failed on any branch. Refuses to start with uncommitted changes to tracked files, and discards the tracked edits each run leaves before moving to the next branch, so every branch is tested on its own files (untracked files are left alone).
-
-| Flag                | Description                                    |
-| ------------------- | ---------------------------------------------- |
-| `<command>`         | Positional: the command to run on each branch. |
-| `-d`, `--downstack` | Run from trunk to the current branch.          |
-| `-u`, `--upstack`   | Run on the current branch and its descendants. |
-| `-t`, `--trunk`     | Also run on the trunk branch.                  |
-
-```
-ch test "npm test"
-ch test --upstack "npm run lint"
 ```
 
 ### `continue` (alias `cont`)

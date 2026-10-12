@@ -157,13 +157,7 @@ ch info -d -s                            # same, via ch
 
 1. `ch ls`: the bottom branch must sit directly on trunk. If not: `ch co <bottom>`, `ch move --onto main`.
 2. Nothing says `(needs restack)`; if something does, run `ch restack`.
-3. Run the project's lint/build/test on every layer, not just the top, and fix failures in the layer that caused them (`ch modify --into`, or check it out), not in a new layer on top:
-
-   ```bash
-   ch test '<validate>'    # runs it on every branch of the stack, returns to where you were
-   ```
-
-   It needs a clean tree (commit or stash first) and discards tracked edits the command makes between branches. It exits non-zero if any branch failed; read the `[failed]` lines (each points at an output file under the printed directory). `--upstack` / `--downstack` limit the scope.
+3. Run the project's lint/build/test on every layer, not just the top (`ch co` each branch, or `ch bottom` then `ch up`), and fix failures in the layer that caused them (`ch modify --into`, or check it out), not in a new layer on top.
 
 ## Submitting
 
