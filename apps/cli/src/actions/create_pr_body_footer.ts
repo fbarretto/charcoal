@@ -11,6 +11,8 @@ export type TPrDetails = {
   reviewDecision?: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED' | null;
   checks?: 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED' | null;
   mergeable?: 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN';
+  additions?: number;
+  deletions?: number;
   threads?: { resolved: number; total: number };
 };
 
@@ -49,15 +51,19 @@ export function createPrBodyFooter(
   const base =
     context.engine.getParent(stack[stack.length - 1] ?? branch) ??
     context.engine.trunk;
-  // A plain linked list: copied from the rendered comment, Slack keeps the
-  // bullets and links, where a code block would paste as a code block.
+  // Graphite's pasteable stack: raw markdown links that Slack turns into
+  // links on paste, copied verbatim by the code block's copy button.
   const copyLines = stack.map((b, i) => {
     const pr = context.engine.getPrInfo(b);
-    const title = prDetails[i].title;
-    const text = `#${pr?.number}${title ? ` ${escapeMarkdown(title)}` : ''}`;
+    const d = prDetails[i];
+    const text = `#${pr?.number}${
+      d.title ? ` ${d.title.replace(/([[\]])/g, '\\$1')}` : ''
+    }`;
+    const size =
+      d.additions !== undefined ? ` \`+${d.additions}/-${d.deletions}\`` : '';
     const label = statusLabel(prDetails, i)?.[0];
-    return `- ${pr?.url ? `[${text}](${pr.url})` : text}${
-      label ? ` — ${label}` : ''
+    return `${pr?.url ? `[${text}](${pr.url})` : text}${size}${
+      label ? ` · ${label}` : ''
     }`;
   });
 
@@ -70,7 +76,9 @@ export function createPrBodyFooter(
     '',
     '<details><summary>Copy stack</summary>',
     '',
+    '```',
     ...copyLines,
+    '```',
     '',
     '</details>',
     '',
@@ -165,7 +173,7 @@ export function fetchPrDetails(
     .map(
       (
         n
-      ) => `pr${n}: pullRequest(number: ${n}) { number title state isDraft reviewDecision mergeable
+      ) => `pr${n}: pullRequest(number: ${n}) { number title state isDraft reviewDecision mergeable additions deletions
         commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
         reviewThreads(first: 100) { nodes { isResolved } } }`
     )
@@ -192,6 +200,8 @@ export function fetchPrDetails(
       isDraft: boolean;
       reviewDecision: TPrDetails['reviewDecision'];
       mergeable: TPrDetails['mergeable'];
+      additions: number;
+      deletions: number;
       commits: {
         nodes: { commit: { statusCheckRollup: { state: string } | null } }[];
       };
@@ -208,6 +218,8 @@ export function fetchPrDetails(
             isDraft: pr.isDraft,
             reviewDecision: pr.reviewDecision,
             mergeable: pr.mergeable,
+            additions: pr.additions,
+            deletions: pr.deletions,
             checks: (pr.commits.nodes[0]?.commit.statusCheckRollup?.state ??
               null) as TPrDetails['checks'],
             threads: {
