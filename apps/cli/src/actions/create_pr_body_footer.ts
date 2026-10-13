@@ -49,9 +49,10 @@ export function createPrBodyFooter(
     const current = b === branch;
     const title = d.title ? ` ${escapeMarkdown(d.title)}` : '';
     const url = context.engine.getPrInfo(b)?.url;
-    // The current PR is the page being read, so only the others link.
+    // The current PR is the page being read, so only the others link; the
+    // word joiner stops GitHub autolinking its bare number.
     const ref = current
-      ? `**#${number}${title}** 👈`
+      ? `**#\u2060${number}${title}** 👈`
       : url
       ? `[#${number}${title}](${url})`
       : `#${number}${title}`;
@@ -179,10 +180,12 @@ function avatarImage(user: TGhUser): string {
   return `![${user.login}](https://images.weserv.nl/?url=${url}&w=16&h=16&fit=cover&mask=circle)`;
 }
 
-// A word joiner after '@' keeps a title like "thanks @bob" from tagging
-// anyone each time the comment is posted; it renders the same.
+// A word joiner after '@' and '#' renders the same but keeps GitHub from
+// tagging "@bob" on every post or autolinking "#12" (a backslash doesn't).
 function escapeMarkdown(text: string): string {
-  return text.replace(/([\\`*_[\]<>|#])/g, '\\$1').replace(/@/g, '@\u2060');
+  return text
+    .replace(/([\\`*_[\]<>|])/g, '\\$1')
+    .replace(/([@#])/g, '$1\u2060');
 }
 
 // One GraphQL call for every PR the footers mention. On any failure the

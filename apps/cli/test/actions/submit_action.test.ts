@@ -196,7 +196,7 @@ describe('createPrBodyFooter', () => {
       details: { 2: { title: 'Fix [y]' } },
     }).split('\n');
     expect(lines[3]).to.equal('| ◯ | [#3](https://gh/pr/3) |  |  |');
-    expect(lines[4]).to.equal('| ◉ | **#2 Fix \\[y\\]** 👈 |  |  |');
+    expect(lines[4]).to.equal('| ◉ | **#\u20602 Fix \\[y\\]** 👈 |  |  |');
   });
 
   it('lists one line top to bottom, current marked, base at the bottom', () => {
@@ -204,7 +204,7 @@ describe('createPrBodyFooter', () => {
       '| | Stack · 2 of 3 | Threads | Status |',
       '|:-:|---|---|---|',
       '| ◯ | #3 |  |  |',
-      '| ◉ | **#2** 👈 |  |  |',
+      '| ◉ | **#\u20602** 👈 |  |  |',
       '| ◯ | #1 |  |  |',
     ]);
     expect(block('b')[6]).to.equal('| ◯ | `develop` (base) | | |');
@@ -275,6 +275,9 @@ describe('createPrBodyFooter', () => {
     const row = block('b', { 2: { title: 'thanks @bob and @org/team' } })[4];
     expect(row).not.to.match(/@[A-Za-z]/);
     expect(row).to.contain('thanks @\u2060bob and @\u2060org/team');
+    expect(block('b', { 2: { title: 'see #12' } })[4]).to.contain(
+      'see #\u206012'
+    );
   });
 
   it("shows the PR author's avatar before the PR", () => {
@@ -282,7 +285,7 @@ describe('createPrBodyFooter', () => {
       2: { author: { login: 'ana', avatarUrl: 'https://a/u/1?s=16' } },
     });
     expect(lines[4]).to.equal(
-      '| ◉ | ![ana](https://images.weserv.nl/?url=https%3A%2F%2Fa%2Fu%2F1%3Fs%3D16&w=16&h=16&fit=cover&mask=circle) **#2** 👈 |  |  |'
+      '| ◉ | ![ana](https://images.weserv.nl/?url=https%3A%2F%2Fa%2Fu%2F1%3Fs%3D16&w=16&h=16&fit=cover&mask=circle) **#\u20602** 👈 |  |  |'
     );
   });
 
@@ -300,7 +303,7 @@ describe('createPrBodyFooter', () => {
       '| ◯ | #3 Add \\*x\\* | 💬 1/2 | $\\color{#cf222e}\\textsf{required checks failed}$ |'
     );
     expect(lines[4]).to.equal(
-      '| ◉ | **#2 Fix y** 👈 |  | $\\color{#8250df}\\textsf{merged}$ |'
+      '| ◉ | **#\u20602 Fix y** 👈 |  | $\\color{#8250df}\\textsf{merged}$ |'
     );
   });
 
