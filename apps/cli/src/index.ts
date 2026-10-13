@@ -66,6 +66,7 @@ import * as unlink from './commands/unlink';
 import * as unstack from './commands/unstack';
 import * as untrack from './commands/untrack';
 import * as up from './commands/up';
+import * as upgrade from './commands/upgrade';
 import * as user from './commands/user';
 
 // this line gets rid of warnings about "experimental fetch API" for our users
@@ -139,6 +140,7 @@ const commandModules = [
   unstack,
   untrack,
   up,
+  upgrade,
   user,
 ] as unknown as CommandModule[];
 
