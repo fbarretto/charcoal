@@ -198,13 +198,34 @@ describe('createPrBodyFooter', () => {
 
   it('lists one line top to bottom, current marked, base at the bottom', () => {
     expect(block('b').slice(3, 8)).to.deep.equal([
-      '| | Stack · 2 of 3 | State | CI | Review | Threads |',
-      '|:-:|---|---|---|---|---|',
-      '| ◯ | #3 |  |  |  |  |',
-      '| ◉ | **#2** 👈 |  |  |  |  |',
-      '| ◯ | #1 |  |  |  |  |',
+      '| | Stack · 2 of 3 | Status | Threads |',
+      '|:-:|---|---|---|',
+      '| ◯ | #3 |  |  |',
+      '| ◉ | **#2** 👈 |  |  |',
+      '| ◯ | #1 |  |  |',
     ]);
-    expect(block('b')[8]).to.equal('| ◯ | `develop` (base) | | | | |');
+    expect(block('b')[8]).to.equal('| ◯ | `develop` (base) | | |');
+  });
+
+  it('picks one Graphite-style status per PR', () => {
+    const status = (d: object) => block('b', { 2: d })[6].split(' | ')[2];
+    expect(status({ state: 'MERGED', isDraft: true })).to.equal('🟣 Merged');
+    expect(status({ state: 'OPEN', isDraft: true })).to.equal('📝 Draft');
+    expect(status({ state: 'OPEN', mergeable: 'CONFLICTING' })).to.equal(
+      '⚠️ Merge conflicts'
+    );
+    expect(
+      status({ state: 'OPEN', checks: 'FAILURE', reviewDecision: 'APPROVED' })
+    ).to.equal('❌ CI failing');
+    expect(
+      status({ state: 'OPEN', checks: 'PENDING', reviewDecision: 'APPROVED' })
+    ).to.equal('⏳ CI running');
+    expect(
+      status({ state: 'OPEN', checks: 'SUCCESS', reviewDecision: 'APPROVED' })
+    ).to.equal('✅ Ready to merge');
+    expect(status({ state: 'OPEN', checks: 'SUCCESS' })).to.equal(
+      '👀 Needs review'
+    );
   });
 
   it('shows titles and states in aligned columns', () => {
@@ -218,9 +239,9 @@ describe('createPrBodyFooter', () => {
       2: { title: 'Fix y', state: 'MERGED', checks: 'FAILURE' },
     });
     expect(lines[5]).to.equal(
-      '| ◯ | #3 Add \\*x\\* | 🟢 Open | ❌ Failing |  | 💬 1/2 |'
+      '| ◯ | #3 Add \\*x\\* | ❌ CI failing | 💬 1/2 |'
     );
-    expect(lines[6]).to.equal('| ◉ | **#2 Fix y** 👈 | 🟣 Merged |  |  |  |');
+    expect(lines[6]).to.equal('| ◉ | **#2 Fix y** 👈 | 🟣 Merged |  |');
   });
 
   it('adds a copyable list of the stack', () => {

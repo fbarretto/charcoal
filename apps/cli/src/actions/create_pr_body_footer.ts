@@ -10,6 +10,7 @@ export type TPrDetails = {
   isDraft?: boolean;
   reviewDecision?: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED' | null;
   checks?: 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED' | null;
+  mergeable?: 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN';
   threads?: { resolved: number; total: number };
 };
 
@@ -32,7 +33,10 @@ export function createPrBodyFooter(
     const current = b === branch;
     const title = d.title ? ` ${escapeMarkdown(d.title)}` : '';
     const ref = current ? `**#${number}${title}** 👈` : `#${number}${title}`;
-    return `| ${current ? '◉' : '◯'} | ${ref} | ${badges(d).join(' | ')} |`;
+    const threads = d.threads?.total
+      ? `💬 ${d.threads.resolved}/${d.threads.total}`
+      : '';
+    return `| ${current ? '◉' : '◯'} | ${ref} | ${status(d)} | ${threads} |`;
   });
   const position = stack.length - stack.indexOf(branch);
   const base =
@@ -46,10 +50,10 @@ export function createPrBodyFooter(
 
   return [
     `\n\n${stackStart}`,
-    `| | Stack · ${position} of ${stack.length} | State | CI | Review | Threads |`,
-    '|:-:|---|---|---|---|---|',
+    `| | Stack · ${position} of ${stack.length} | Status | Threads |`,
+    '|:-:|---|---|---|',
     ...rows,
-    `| ◯ | \`${base}\` (base) | | | | |`,
+    `| ◯ | \`${base}\` (base) | | |`,
     '',
     '<details><summary>Copy stack</summary>',
     '',
@@ -64,39 +68,19 @@ export function createPrBodyFooter(
   ].join('\n');
 }
 
-// State, CI, review and threads columns; empty cells keep the table aligned.
-function badges(d: TPrDetails): string[] {
-  const open = d.state === 'OPEN';
-  const state =
-    d.state === 'MERGED'
-      ? '🟣 Merged'
-      : d.state === 'CLOSED'
-      ? '⚪ Closed'
-      : d.isDraft
-      ? '📝 Draft'
-      : open
-      ? '🟢 Open'
-      : '';
-  const checks = !open
-    ? ''
-    : d.checks === 'FAILURE' || d.checks === 'ERROR'
-    ? '❌ Failing'
-    : d.checks === 'PENDING' || d.checks === 'EXPECTED'
-    ? '⏳ Running'
-    : d.checks === 'SUCCESS'
-    ? '✅ Passing'
-    : '';
-  const review = !open
-    ? ''
-    : d.reviewDecision === 'APPROVED'
-    ? '👍 Approved'
-    : d.reviewDecision === 'CHANGES_REQUESTED'
-    ? '🔴 Changes requested'
-    : '';
-  const threads = d.threads?.total
-    ? `💬 ${d.threads.resolved}/${d.threads.total}`
-    : '';
-  return [state, checks, review, threads];
+// One status per PR, the first that applies, as Graphite's stack shows it.
+function status(d: TPrDetails): string {
+  const checks = d.checks ?? null;
+  if (d.state === 'MERGED') return '🟣 Merged';
+  if (d.state === 'CLOSED') return '⚪ Closed';
+  if (d.state !== 'OPEN') return '';
+  if (d.isDraft) return '📝 Draft';
+  if (d.mergeable === 'CONFLICTING') return '⚠️ Merge conflicts';
+  if (checks === 'FAILURE' || checks === 'ERROR') return '❌ CI failing';
+  if (d.reviewDecision === 'CHANGES_REQUESTED') return '🔴 Changes requested';
+  if (checks === 'PENDING' || checks === 'EXPECTED') return '⏳ CI running';
+  if (d.reviewDecision === 'APPROVED') return '✅ Ready to merge';
+  return '👀 Needs review';
 }
 
 // The first child at each level, so the list stays one straight line.
@@ -138,7 +122,7 @@ export function fetchPrDetails(
     .map(
       (
         n
-      ) => `pr${n}: pullRequest(number: ${n}) { number title state isDraft reviewDecision
+      ) => `pr${n}: pullRequest(number: ${n}) { number title state isDraft reviewDecision mergeable
         commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
         reviewThreads(first: 100) { nodes { isResolved } } }`
     )
@@ -164,6 +148,7 @@ export function fetchPrDetails(
       state: TPrDetails['state'];
       isDraft: boolean;
       reviewDecision: TPrDetails['reviewDecision'];
+      mergeable: TPrDetails['mergeable'];
       commits: {
         nodes: { commit: { statusCheckRollup: { state: string } | null } }[];
       };
@@ -179,6 +164,7 @@ export function fetchPrDetails(
             state: pr.state,
             isDraft: pr.isDraft,
             reviewDecision: pr.reviewDecision,
+            mergeable: pr.mergeable,
             checks: (pr.commits.nodes[0]?.commit.statusCheckRollup?.state ??
               null) as TPrDetails['checks'],
             threads: {
