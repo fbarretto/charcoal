@@ -20,7 +20,7 @@ allowed-tools:
 
 # Charcoal (`ch`)
 
-`ch` keeps a chain of branches (a **stack**) rebased on each other and submits one PR per branch. Commands, flags and defaults match Graphite's `gt`, in the flat form (`ch create`, not `gt branch create`). Full reference: [`DOCUMENTATION.md`](https://github.com/fbarretto/charcoal/blob/main/DOCUMENTATION.md).
+`ch` keeps a chain of branches (a **stack**) rebased on each other and submits one PR per branch. Commands, flags and defaults match Graphite's `gt`, in the flat form (`ch create`, not `gt branch create`). Full reference: [`DOCUMENTATION.md`](https://github.com/fbarretto/charcoal/blob/main/DOCUMENTATION.md). This skill ships with `ch`: `ch skill install` writes the copy matching the installed version to `~/.claude/skills/charcoal/`.
 
 Words: **trunk** is the base branch (`main`). **Downstack** = toward trunk (parents). **Upstack** = away from trunk (children). **Restack** = rebase each branch onto its parent.
 

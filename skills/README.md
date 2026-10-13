@@ -2,11 +2,11 @@
 
 `charcoal/` is an [agent skill](https://docs.claude.com/en/docs/claude-code/skills) that teaches Claude Code (and other agents that read `SKILL.md` files) to manage stacked PRs with `ch`.
 
-Install it for every project by copying or symlinking the directory into your personal skills folder:
+The skill is built into `ch`, so the simplest install matches your `ch` version:
 
 ```bash
-cp -R skills/charcoal ~/.claude/skills/          # copy
-ln -s "$PWD/skills/charcoal" ~/.claude/skills/   # or symlink, to pick up updates with git pull
+ch skill install             # ~/.claude/skills/charcoal/SKILL.md, for every project
+ch skill install --project   # .claude/skills/charcoal/SKILL.md in the current repo
 ```
 
-For a single repo, put it in that repo's `.claude/skills/` instead. Restart the agent session so it loads.
+Run it again after `ch upgrade`. To track `main` instead, symlink this directory: `ln -s "$PWD/skills/charcoal" ~/.claude/skills/`. Restart the agent session so it loads.

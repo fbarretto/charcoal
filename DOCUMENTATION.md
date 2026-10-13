@@ -15,7 +15,7 @@ Charcoal is an open-source fork of the Graphite CLI for working with stacked bra
 - [Collaborate](#collaborate): `freeze`, `unfreeze`, `get`
 - [Inspect](#inspect): `log`, `ls`, `ll`, `info`, `parent`, `children`, `trunk`
 - [Config](#config): `config`, `aliases`, `repo`, `user`
-- [Setup & misc](#setup--misc): `auth`, `init`, `completion`, `fish`, `feedback`, `demo`, `dev`
+- [Setup & misc](#setup--misc): `auth`, `init`, `skill`, `upgrade`, `docs`, `changelog`, `completion`, `fish`, `feedback`, `demo`, `dev`
 
 Each command section has the same shape: what the command does, a table of its own flags (positional arguments first), notes on behavior where needed, and examples. The [global flags](#global-flags) work on every command and are not repeated.
 
@@ -829,6 +829,44 @@ Create or regenerate a `.graphite_repo_config` file for the current repo (same a
 
 ```
 ch init --trunk main
+```
+
+### `skill`
+
+Install or print the Charcoal [agent skill](https://docs.claude.com/en/docs/claude-code/skills) (`SKILL.md`), which teaches Claude Code and other agents to manage stacks with `ch`. The skill is built into `ch`, so it always matches the installed version; run `ch skill install` again after upgrading.
+
+| Sub-command     | Description                                                                                                                                                                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `skill install` | Write the skill to `~/.claude/skills/charcoal/SKILL.md`, creating the directories. `--project` writes it to `.claude/skills/charcoal/SKILL.md` at the repository root instead. Says whether it installed, updated or found the skill already up to date. |
+| `skill print`   | Print the skill to stdout.                                                                                                                                                                                                                               |
+
+```
+ch skill install
+ch skill install --project
+```
+
+### `upgrade`
+
+Upgrade `ch` the way it was installed: `brew upgrade charcoal` when the binary is a Homebrew install, `npm i -g @fbarretto/charcoal` when it runs from a global npm install. Otherwise it prints both commands and the link to the latest release.
+
+```
+ch upgrade
+```
+
+### `docs`
+
+Open this reference at [fbarretto.github.io/charcoal](https://fbarretto.github.io/charcoal/) in the browser. It always prints the URL; with `--no-open`, or without a terminal, it only prints it.
+
+```
+ch docs
+```
+
+### `changelog`
+
+Open the [release notes](https://github.com/fbarretto/charcoal/releases) in the browser, like `docs` (`--no-open` only prints the URL).
+
+```
+ch changelog
 ```
 
 ### `completion`

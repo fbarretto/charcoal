@@ -33,6 +33,10 @@ corepack yarn install && corepack yarn turbo run build
 cd apps/cli && bun build --compile ./dist/src/index.js --outfile ~/.local/bin/ch
 ```
 
+Install the agent skill with `ch skill install`, so Claude Code (and other agents that read `SKILL.md`
+files) knows how to drive `ch`. `ch upgrade` updates `ch` the way you installed it; run `ch skill install`
+again afterwards.
+
 ## Quick start
 
 ```sh
@@ -48,7 +52,8 @@ ch sync                        # pull trunk and your branches, delete merged one
 ```
 
 Every `gt` command maps to the same `ch` command, so Graphite's own guides apply. If you have muscle memory
-for `gt`, `alias gt=ch`. The full reference is **[DOCUMENTATION.md](./DOCUMENTATION.md)**.
+for `gt`, `alias gt=ch`. The full reference is **[DOCUMENTATION.md](./DOCUMENTATION.md)**, also at
+[fbarretto.github.io/charcoal](https://fbarretto.github.io/charcoal/) (`ch docs`).
 
 ## What this fork adds over upstream Charcoal
 
