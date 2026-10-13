@@ -15,6 +15,7 @@ for (const scene of [new BasicScene()]) {
 
     for (const [command, url] of [
       ['docs', 'https://fbarretto.github.io/charcoal/'],
+      ['changelog', 'https://github.com/fbarretto/charcoal/releases'],
     ]) {
       it(`ch ${command} prints the URL without a terminal or with --no-open`, () => {
         expect(scene.repo.runCliCommandAndGetOutput([command])).to.equal(url);

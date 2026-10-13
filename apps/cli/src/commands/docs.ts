@@ -1,18 +1,10 @@
 import yargs from 'yargs';
 import { graphiteWithoutRepo } from '../lib/runner';
-import { openUrl } from '../lib/utils/open_url';
+import { openArgs, openUrl } from '../lib/utils/open_url';
 
 export const DOCS_URL = 'https://fbarretto.github.io/charcoal/';
 
-const args = {
-  open: {
-    describe:
-      'Open the page in the browser (default). With --no-open, or without a terminal, only print the URL.',
-    demandOption: false,
-    default: true,
-    type: 'boolean',
-  },
-} as const;
+const args = openArgs;
 type argsT = yargs.Arguments<yargs.InferredOptionTypes<typeof args>>;
 
 export const command = 'docs';

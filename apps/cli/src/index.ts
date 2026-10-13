@@ -19,6 +19,7 @@ import * as absorb from './commands/absorb';
 import * as aliases from './commands/aliases';
 import * as auth from './commands/auth';
 import * as bottom from './commands/bottom';
+import * as changelog from './commands/changelog';
 import * as checkout from './commands/checkout';
 import * as children from './commands/children';
 import * as config from './commands/config';
@@ -91,6 +92,7 @@ const commandModules = [
   aliases,
   auth,
   bottom,
+  changelog,
   checkout,
   children,
   config,
