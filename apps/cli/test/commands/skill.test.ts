@@ -4,6 +4,8 @@ import path from 'path';
 import tmp from 'tmp';
 import { BasicScene } from '../lib/scenes/basic_scene';
 import { configureTest } from '../lib/utils/configure_test';
+import { capturePrompts, choiceValues } from '../lib/utils/capture_prompts';
+import { installSkill } from '../../src/actions/skill';
 
 const skillSource = fs.readFileSync(
   path.join(
@@ -66,6 +68,27 @@ for (const scene of [new BasicScene()]) {
           'utf-8'
         )
       ).to.equal(skillSource);
+      expect(fs.existsSync(userSkill())).to.be.false;
+    });
+
+    it('Installs globally with --global, and refuses both flags', () => {
+      scene.repo.runCliCommand([`skill`, `install`, `--global`]);
+      expect(fs.readFileSync(userSkill(), 'utf-8')).to.equal(skillSource);
+      expect(() =>
+        scene.repo.runCliCommand([`skill`, `install`, `--global`, `--project`])
+      ).to.throw();
+    });
+
+    it('Asks where to install when interactive', async () => {
+      const offered = await capturePrompts(scene, ['project'], (context) =>
+        installSkill({ project: false, global: false }, context)
+      );
+      expect(choiceValues(offered[0])).to.deep.equal(['global', 'project']);
+      expect(
+        fs.existsSync(
+          path.join(scene.dir, '.claude', 'skills', 'charcoal', 'SKILL.md')
+        )
+      ).to.be.true;
       expect(fs.existsSync(userSkill())).to.be.false;
     });
 

@@ -3,32 +3,68 @@ import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
 import { TContextLite } from '../lib/context';
-import { PreconditionsFailedError } from '../lib/errors';
+import { KilledError, PreconditionsFailedError } from '../lib/errors';
 import { runGitCommand } from '../lib/git/runner';
 import { SKILL_MD } from '../generated/skill';
 
-function skillDir(project: boolean): string {
-  if (!project) {
+type TScope = 'project' | 'global';
+
+function skillDir(scope: TScope): string {
+  if (scope === 'global') {
     return path.join(os.homedir(), '.claude', 'skills', 'charcoal');
   }
-  const root = runGitCommand({
-    args: ['rev-parse', '--show-toplevel'],
-    onError: 'ignore',
-    resource: 'skillProjectRoot',
-  });
-  if (!root) {
-    throw new PreconditionsFailedError(
-      '`--project` installs into the current repository; run it inside one.'
-    );
-  }
+  // The repository root when inside one, otherwise the folder ch runs in.
+  const root =
+    runGitCommand({
+      args: ['rev-parse', '--show-toplevel'],
+      onError: 'ignore',
+      resource: 'skillProjectRoot',
+    }) || process.cwd();
   return path.join(root, '.claude', 'skills', 'charcoal');
 }
 
-export function installSkill(
-  { project }: { project: boolean },
+async function chooseScope(
+  { project, global }: { project: boolean; global: boolean },
   context: TContextLite
-): void {
-  const file = path.join(skillDir(project), 'SKILL.md');
+): Promise<TScope> {
+  if (project && global) {
+    throw new PreconditionsFailedError('Pass --project or --global, not both.');
+  }
+  if (project || global) {
+    return project ? 'project' : 'global';
+  }
+  if (!context.interactive) {
+    return 'global';
+  }
+  const answer = await context.prompts({
+    type: 'select',
+    name: 'value',
+    message: 'Install the Charcoal skill for',
+    choices: [
+      {
+        title: `All projects (${skillDir('global')})`,
+        value: 'global',
+      },
+      {
+        title: `This project only (${skillDir('project')})`,
+        value: 'project',
+      },
+    ],
+  });
+  if (!answer.value) {
+    throw new KilledError();
+  }
+  return answer.value as TScope;
+}
+
+export async function installSkill(
+  opts: { project: boolean; global: boolean },
+  context: TContextLite
+): Promise<void> {
+  const file = path.join(
+    skillDir(await chooseScope(opts, context)),
+    'SKILL.md'
+  );
   const existing = fs.existsSync(file)
     ? fs.readFileSync(file, 'utf-8')
     : undefined;

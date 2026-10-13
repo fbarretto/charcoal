@@ -846,14 +846,15 @@ ch init --trunk main
 
 Install or print the Charcoal [agent skill](https://docs.claude.com/en/docs/claude-code/skills) (`SKILL.md`), which teaches Claude Code and other agents to manage stacks with `ch`. The skill is built into `ch`, so it always matches the installed version; run `ch skill install` again after upgrading.
 
-| Sub-command     | Description                                                                                                                                                                                                                                              |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `skill install` | Write the skill to `~/.claude/skills/charcoal/SKILL.md`, creating the directories. `--project` writes it to `.claude/skills/charcoal/SKILL.md` at the repository root instead. Says whether it installed, updated or found the skill already up to date. |
-| `skill print`   | Print the skill to stdout.                                                                                                                                                                                                                               |
+| Sub-command     | Description                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `skill install` | Asks whether to install for all projects (`~/.claude/skills/charcoal/SKILL.md`) or this project only (`.claude/skills/charcoal/SKILL.md` at the repository root, or in the current folder outside a repository). `--global` or `--project` answers without asking; without a terminal and with neither flag, it installs globally. Creates the directories and says whether it installed, updated or found the skill already up to date. |
+| `skill print`   | Print the skill to stdout.                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 ```
-ch skill install
-ch skill install --project
+ch skill install             # asks: all projects or this project
+ch skill install --global    # ~/.claude/skills, no question
+ch skill install --project   # this repository's .claude/skills, no question
 ```
 
 ### `upgrade`

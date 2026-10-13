@@ -5,7 +5,8 @@
 The skill is built into `ch`, so the simplest install matches your `ch` version:
 
 ```bash
-ch skill install             # ~/.claude/skills/charcoal/SKILL.md, for every project
+ch skill install             # asks: all projects or this project
+ch skill install --global    # ~/.claude/skills/charcoal/SKILL.md, for every project
 ch skill install --project   # .claude/skills/charcoal/SKILL.md in the current repo
 ```
 

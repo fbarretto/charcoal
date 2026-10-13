@@ -34,7 +34,8 @@ cd apps/cli && bun build --compile ./dist/src/index.js --outfile ~/.local/bin/ch
 ```
 
 Install the agent skill with `ch skill install`, so Claude Code (and other agents that read `SKILL.md`
-files) knows how to drive `ch`. `ch upgrade` updates `ch` the way you installed it; run `ch skill install`
+files) knows how to drive `ch`. It asks whether to install for all projects or just this one; `--global`
+or `--project` skips the question. `ch upgrade` updates `ch` the way you installed it; run `ch skill install`
 again afterwards.
 
 ## Quick start
