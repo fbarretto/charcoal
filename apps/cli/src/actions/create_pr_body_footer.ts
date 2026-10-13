@@ -49,10 +49,16 @@ export function createPrBodyFooter(
   const base =
     context.engine.getParent(stack[stack.length - 1] ?? branch) ??
     context.engine.trunk;
-  const copyLines = stack.map((b) => {
+  // A plain linked list: copied from the rendered comment, Slack keeps the
+  // bullets and links, where a code block would paste as a code block.
+  const copyLines = stack.map((b, i) => {
     const pr = context.engine.getPrInfo(b);
-    const title = details[pr?.number as number]?.title;
-    return [`#${pr?.number}`, title, pr?.url].filter(Boolean).join(' ');
+    const title = prDetails[i].title;
+    const text = `#${pr?.number}${title ? ` ${escapeMarkdown(title)}` : ''}`;
+    const label = statusLabel(prDetails, i)?.[0];
+    return `- ${pr?.url ? `[${text}](${pr.url})` : text}${
+      label ? ` — ${label}` : ''
+    }`;
   });
 
   return [
@@ -64,9 +70,7 @@ export function createPrBodyFooter(
     '',
     '<details><summary>Copy stack</summary>',
     '',
-    '```',
     ...copyLines,
-    '```',
     '',
     '</details>',
     '',

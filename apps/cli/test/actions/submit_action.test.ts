@@ -260,15 +260,14 @@ describe('createPrBodyFooter', () => {
     );
   });
 
-  it('adds a copyable list of the stack', () => {
-    const lines = block('b', { 3: { title: 'Add *x*' } });
-    const start = lines.indexOf('```');
-    expect(lines.slice(start, start + 5)).to.deep.equal([
-      '```',
-      '#3 Add *x*',
-      '#2',
-      '#1',
-      '```',
+  it('adds a copyable linked list of the stack with statuses', () => {
+    const ok = { state: 'OPEN', checks: 'SUCCESS', reviewDecision: 'APPROVED' };
+    const lines = block('b', { 3: { ...ok, title: 'Add *x*' }, 2: ok, 1: ok });
+    const start = lines.indexOf('<details><summary>Copy stack</summary>');
+    expect(lines.slice(start + 2, start + 5)).to.deep.equal([
+      '- #3 Add \\*x\\* — ready to merge as a stack',
+      '- #2 — ready to merge as a stack',
+      '- #1 — ready to merge',
     ]);
   });
 });
