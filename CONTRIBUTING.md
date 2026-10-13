@@ -10,6 +10,10 @@ Contributions are welcome! Please first open an issue so that we can discuss bef
 nvm use
 ```
 
+The tests need the pinned Node (18; 20 also works). Newer Node, such as Homebrew's current release, can't load mocha's argument parser and fails before any test runs.
+
+`skills/charcoal/SKILL.md` is embedded into `ch` at build time (`ch skill print`), so rerun `yarn build` or `yarn test` after editing it; the skill tests compare the embedded copy with the file.
+
 You'll need to install yarn on your machine
 
 ```

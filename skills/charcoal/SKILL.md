@@ -168,6 +168,8 @@ ch submit --stack              # new PRs open as drafts; add --publish for ready
 
 `submit` force-pushes with lease and creates or updates one PR per branch. It also **links the PRs as a native GitHub stack** (and relinks it when the stack changes shape), so you don't need the `gh stack` extension, and must not run `gh stack` commands on branches `ch` manages: the two would fight over the same stack. `--no-gh-stack` skips the linking for one submit; `ch unstack -f` dissolves an existing GitHub stack.
 
+Each submit also posts or refreshes a **stack comment** on every PR in the stack: the PR's first comment, listing the stack with each PR's status (`ready to merge`, `required checks failed`, `waiting on downstack`, …) and a "Copy stack" block for Slack. Don't edit or duplicate it by hand; it is rewritten on the next submit, and its statuses are as of that submit (submit again to refresh). It never touches the PR description.
+
 Then give each PR a real title and body. **Write the body to a file and pass `--body-file`**; never pipe markdown through a shell heredoc, which mangles backticks, `$` and tables.
 
 ```bash

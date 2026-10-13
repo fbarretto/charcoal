@@ -57,14 +57,15 @@ for `gt`, `alias gt=ch`. The full reference is **[DOCUMENTATION.md](./DOCUMENTAT
 
 ## What this fork adds over upstream Charcoal
 
-| Area                  | Commands                                                                                                                       |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Restructure a stack   | `move --only`, `create --onto`, `delete --upstack/--downstack/--close`, `split --by-file`, `fold --stack/--close`              |
-| Edit commits in place | `modify --into <branch> [-c]`, `absorb` (wraps [git-absorb](https://github.com/tummychow/git-absorb)), `revert <sha>`          |
-| Safety                | `undo` (per worktree), `abort` (restores the state before the halted command), `freeze` / `unfreeze`                           |
-| Inspect and navigate  | `parent`, `children`, `trunk`, `info [branch] --stat`, `up --to`, `checkout --trunk/--stack`                                   |
-| GitHub                | `merge` (bottom-up, waits for checks), `pr [--stack]`, `unlink`, `unstack`, `repo github-stacks`, and `submit`'s full flag set |
-| Setup                 | `config`, `aliases` (stored in `~/.config/charcoal/aliases`), `auth -t`, global `--cwd` and `--quiet`                          |
+| Area                  | Commands                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Restructure a stack   | `move --only`, `create --onto`, `delete --upstack/--downstack/--close`, `split --by-file`, `fold --stack/--close`                                      |
+| Edit commits in place | `modify --into <branch> [-c]`, `absorb` (wraps [git-absorb](https://github.com/tummychow/git-absorb)), `revert <sha>`                                  |
+| Safety                | `undo` (per worktree), `abort` (restores the state before the halted command), `freeze` / `unfreeze`                                                   |
+| Inspect and navigate  | `parent`, `children`, `trunk`, `info [branch] --stat`, `up --to`, `checkout --trunk/--stack`                                                           |
+| GitHub                | `merge` (bottom-up, waits for checks), `pr [--stack]`, `unlink`, `unstack`, `repo github-stacks`, and `submit`'s full flag set                         |
+| Stack comment         | `submit` keeps a Graphite-style stack table (statuses, threads, avatars, a Slack-ready "Copy stack") as each PR's first comment                        |
+| Setup                 | `config`, `aliases` (stored in `~/.config/charcoal/aliases`), `auth -t`, global `--cwd` and `--quiet`, `skill install`, `upgrade`, `docs`, `changelog` |
 
 Defaults now match `gt`: `sync` restacks, `modify` opens the editor only with `-e`, `create` with no name
 names the branch from the commit message, `track` is recursive, and scripts (no terminal on stdin/stdout)
