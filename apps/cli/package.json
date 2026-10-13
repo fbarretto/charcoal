@@ -27,15 +27,15 @@
     "prepublishOnly": "yarn build",
     "postinstall": "node scripts/node_version.js || node dist/scripts/node_version.js",
     "lint": "eslint src --quiet --ext .ts --cache",
-    "check": "tsc --noEmit",
-    "build": "rm -rf dist/ && yarn lint && tsc && cp scripts/node_version.js dist/scripts/node_version.js",
+    "check": "node scripts/embed_skill.js && tsc --noEmit",
+    "build": "rm -rf dist/ && node scripts/embed_skill.js && yarn lint && tsc && cp scripts/node_version.js dist/scripts/node_version.js",
     "build-binary": "bun build --compile ./dist/src/index.js",
     "dev": "./scripts/installation/develop.sh",
     "cli": "node ./dist/src/index.js",
-    "test": "tsc && yarn mocha \"dist/test/**/*.test.js\"  --parallel --jobs 8",
-    "test-ci": "tsc && nyc --reporter=lcovonly yarn mocha \"dist/test/**/*.test.js\"  --parallel --jobs 8",
-    "test-one": "tsc && yarn mocha",
-    "test-grep": "tsc && yarn mocha \"dist/test/**/*.test.js\" -g"
+    "test": "node scripts/embed_skill.js && tsc && yarn mocha \"dist/test/**/*.test.js\"  --parallel --jobs 8",
+    "test-ci": "node scripts/embed_skill.js && tsc && nyc --reporter=lcovonly yarn mocha \"dist/test/**/*.test.js\"  --parallel --jobs 8",
+    "test-one": "node scripts/embed_skill.js && tsc && yarn mocha",
+    "test-grep": "node scripts/embed_skill.js && tsc && yarn mocha \"dist/test/**/*.test.js\" -g"
   },
   "nyc": {
     "exclude": ".yarn/**/*"

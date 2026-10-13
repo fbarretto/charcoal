@@ -22,3 +22,4 @@ package-lock.json
 
 # Bun --compile temp files
 *.bun-build
+apps/cli/src/generated/
