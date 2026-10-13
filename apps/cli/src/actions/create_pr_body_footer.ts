@@ -27,16 +27,22 @@ export function createPrBodyFooter(
     ...ancestors(context, branch),
   ].filter((b) => context.engine.getPrInfo(b)?.number);
 
-  const rows = stack.map((b) => {
+  const prDetails = stack.map(
+    (b) => details[context.engine.getPrInfo(b)?.number as number] ?? {}
+  );
+  const rows = stack.map((b, i) => {
     const number = context.engine.getPrInfo(b)?.number as number;
-    const d = details[number] ?? {};
+    const d = prDetails[i];
     const current = b === branch;
     const title = d.title ? ` ${escapeMarkdown(d.title)}` : '';
     const ref = current ? `**#${number}${title}** 👈` : `#${number}${title}`;
     const threads = d.threads?.total
       ? `💬 ${d.threads.resolved}/${d.threads.total}`
       : '';
-    return `| ${current ? '◉' : '◯'} | ${ref} | ${status(d)} | ${threads} |`;
+    return `| ${current ? '◉' : '◯'} | ${ref} | ${status(
+      prDetails,
+      i
+    )} | ${threads} |`;
   });
   const position = stack.length - stack.indexOf(branch);
   const base =
@@ -70,26 +76,43 @@ export function createPrBodyFooter(
 
 // One status per PR, the first that applies, as Graphite's stack shows it.
 // GitHub drops inline styles, so the color comes from its math renderer.
-function status(d: TPrDetails): string {
-  const [label, color] = statusLabel(d) ?? [];
+// `stack` runs top to bottom, so the PRs below index i are the ones after it.
+function status(stack: TPrDetails[], i: number): string {
+  const [label, color] = statusLabel(stack, i) ?? [];
   return label ? `$\\color{${color}}\\textsf{${label}}$` : '';
 }
 
-function statusLabel(d: TPrDetails): [string, string] | undefined {
+function statusLabel(
+  stack: TPrDetails[],
+  i: number
+): [string, string] | undefined {
+  const own = blocker(stack[i]);
+  if (own !== 'ready') return own;
+  const below = stack.slice(i + 1).filter((d) => d.state !== 'MERGED');
+  if (!below.length) return ['ready to merge', '#1a7f37'];
+  return below.every((d) => blocker(d) === 'ready')
+    ? ['ready to merge as a stack', '#1a7f37']
+    : ['waiting on downstack', '#6e7781'];
+}
+
+// What keeps this PR from merging on its own, or 'ready'.
+function blocker(d: TPrDetails): [string, string] | 'ready' | undefined {
   const checks = d.checks ?? null;
-  if (d.state === 'MERGED') return ['Merged', '#8250df'];
-  if (d.state === 'CLOSED') return ['Closed', '#cf222e'];
+  if (d.state === 'MERGED') return ['merged', '#8250df'];
+  if (d.state === 'CLOSED') return ['closed', '#cf222e'];
   if (d.state !== 'OPEN') return undefined;
-  if (d.isDraft) return ['Draft', '#6e7781'];
-  if (d.mergeable === 'CONFLICTING') return ['Merge conflicts', '#bc4c00'];
+  if (d.isDraft) return ['draft', '#6e7781'];
+  if (d.mergeable === 'CONFLICTING') return ['merge conflicts', '#bc4c00'];
   if (checks === 'FAILURE' || checks === 'ERROR')
-    return ['CI failing', '#cf222e'];
+    return ['required checks failed', '#cf222e'];
   if (d.reviewDecision === 'CHANGES_REQUESTED')
-    return ['Changes requested', '#cf222e'];
+    return ['changes requested', '#cf222e'];
+  if (d.threads && d.threads.resolved < d.threads.total)
+    return ['unresolved comments', '#bc4c00'];
   if (checks === 'PENDING' || checks === 'EXPECTED')
-    return ['CI running', '#9a6700'];
-  if (d.reviewDecision === 'APPROVED') return ['Ready to merge', '#1a7f37'];
-  return ['Needs review', '#0969da'];
+    return ['ci running', '#9a6700'];
+  if (d.reviewDecision !== 'APPROVED') return ['needs review', '#0969da'];
+  return 'ready';
 }
 
 // The first child at each level, so the list stays one straight line.

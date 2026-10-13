@@ -208,27 +208,51 @@ describe('createPrBodyFooter', () => {
   });
 
   it('picks one Graphite-style status per PR', () => {
+    const label = (cell: string) =>
+      cell.replace(/^\$\\color\{#\w+\}\\textsf\{(.*)\}\$$/, '$1');
     const status = (d: object) =>
-      block('b', { 2: d })[6]
-        .split(' | ')[2]
-        .replace(/^\$\\color\{#\w+\}\\textsf\{(.*)\}\$$/, '$1');
-    expect(status({ state: 'MERGED', isDraft: true })).to.equal('Merged');
-    expect(status({ state: 'OPEN', isDraft: true })).to.equal('Draft');
-    expect(status({ state: 'OPEN', mergeable: 'CONFLICTING' })).to.equal(
-      'Merge conflicts'
+      label(block('b', { 2: d })[6].split(' | ')[2]);
+    const ok = { state: 'OPEN', checks: 'SUCCESS', reviewDecision: 'APPROVED' };
+    expect(status({ state: 'MERGED', isDraft: true })).to.equal('merged');
+    expect(status({ state: 'CLOSED' })).to.equal('closed');
+    expect(status({ ...ok, isDraft: true })).to.equal('draft');
+    expect(status({ ...ok, mergeable: 'CONFLICTING' })).to.equal(
+      'merge conflicts'
     );
-    expect(
-      status({ state: 'OPEN', checks: 'FAILURE', reviewDecision: 'APPROVED' })
-    ).to.equal('CI failing');
-    expect(
-      status({ state: 'OPEN', checks: 'PENDING', reviewDecision: 'APPROVED' })
-    ).to.equal('CI running');
-    expect(
-      status({ state: 'OPEN', checks: 'SUCCESS', reviewDecision: 'APPROVED' })
-    ).to.equal('Ready to merge');
-    expect(status({ state: 'OPEN', checks: 'SUCCESS' })).to.equal(
-      'Needs review'
+    expect(status({ ...ok, checks: 'FAILURE' })).to.equal(
+      'required checks failed'
     );
+    expect(status({ ...ok, reviewDecision: 'CHANGES_REQUESTED' })).to.equal(
+      'changes requested'
+    );
+    expect(status({ ...ok, threads: { resolved: 1, total: 2 } })).to.equal(
+      'unresolved comments'
+    );
+    expect(status({ ...ok, checks: 'PENDING' })).to.equal('ci running');
+    expect(status({ ...ok, reviewDecision: null })).to.equal('needs review');
+
+    // #1 sits on trunk; #2 and #3 depend on what is below them.
+    const statuses = (d: Record<number, object>) =>
+      block('b', d)
+        .slice(5, 8)
+        .map((row) => label(row.split(' | ')[2]));
+    expect(statuses({ 1: ok, 2: ok, 3: ok })).to.deep.equal([
+      'ready to merge as a stack',
+      'ready to merge as a stack',
+      'ready to merge',
+    ]);
+    expect(
+      statuses({ 1: { ...ok, checks: 'PENDING' }, 2: ok, 3: ok })
+    ).to.deep.equal([
+      'waiting on downstack',
+      'waiting on downstack',
+      'ci running',
+    ]);
+    expect(statuses({ 1: { state: 'MERGED' }, 2: ok, 3: ok })).to.deep.equal([
+      'ready to merge as a stack',
+      'ready to merge',
+      'merged',
+    ]);
   });
 
   it('shows titles and states in aligned columns', () => {
@@ -242,10 +266,10 @@ describe('createPrBodyFooter', () => {
       2: { title: 'Fix y', state: 'MERGED', checks: 'FAILURE' },
     });
     expect(lines[5]).to.equal(
-      '| ◯ | #3 Add \\*x\\* | $\\color{#cf222e}\\textsf{CI failing}$ | 💬 1/2 |'
+      '| ◯ | #3 Add \\*x\\* | $\\color{#cf222e}\\textsf{required checks failed}$ | 💬 1/2 |'
     );
     expect(lines[6]).to.equal(
-      '| ◉ | **#2 Fix y** 👈 | $\\color{#8250df}\\textsf{Merged}$ |  |'
+      '| ◉ | **#2 Fix y** 👈 | $\\color{#8250df}\\textsf{merged}$ |  |'
     );
   });
 

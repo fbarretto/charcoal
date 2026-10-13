@@ -49,6 +49,8 @@ if (args[0] === 'pr' && args[1] === 'edit') {
   }
   process.exit(0);
 }
+// The PR stack block's details query; these tests only track stack calls.
+if (args[0] === 'api' && args[1] === 'graphql') process.exit(1);
 if (args[0] === 'api') {
   const input = args.includes('--input') ? fs.readFileSync(0, 'utf-8') : '';
   fs.appendFileSync(logPath, [...args, input].join(' ').trim() + '\\n');
