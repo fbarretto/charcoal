@@ -215,7 +215,7 @@ export async function submitAction(
       .forEach((b) => branchesToUpdate.add(b));
   }
 
-  const details = fetchPrDetails(
+  const { details, viewer } = fetchPrDetails(
     repo,
     [...branchesToUpdate].flatMap((b) => {
       const number = context.engine.getPrInfo(b)?.number;
@@ -236,7 +236,7 @@ export async function submitAction(
       const result = upsertStackComment(
         repo,
         prInfo.number,
-        createPrBodyFooter(context, branch, { details })
+        createPrBodyFooter(context, branch, { details, viewer })
       );
       // Blocks written into the body before the stack moved to a comment.
       const body = prInfo.body ?? '';

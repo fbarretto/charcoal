@@ -209,7 +209,7 @@ describe('createPrBodyFooter', () => {
     ]);
     expect(block('b')[6]).to.equal('| ◯ | `develop` (base) | | |');
     expect(block('b')).to.include(
-      '_Updated 2026-10-13 18:30 UTC by `ch submit` · [Charcoal](https://github.com/fbarretto/charcoal)_'
+      '_Updated 2026-10-13 18:30 UTC · [Charcoal](https://github.com/fbarretto/charcoal)_'
     );
   });
 
@@ -260,12 +260,23 @@ describe('createPrBodyFooter', () => {
     ]);
   });
 
+  it('names who updated it, with their avatar and no @-mention', () => {
+    const footer = createPrBodyFooter(context, 'b', {
+      viewer: { login: 'ana', avatarUrl: 'https://a/u/1' },
+      now: new Date('2026-10-13T18:30:00Z'),
+    });
+    expect(footer).to.contain(
+      '_Updated 2026-10-13 18:30 UTC by ![ana](https://images.weserv.nl/?url=https%3A%2F%2Fa%2Fu%2F1&w=16&h=16&fit=cover&mask=circle) [ana](https://github.com/ana) · [Charcoal](https://github.com/fbarretto/charcoal)_'
+    );
+    expect(footer).not.to.contain('@ana');
+  });
+
   it("shows the PR author's avatar before the PR", () => {
     const lines = block('b', {
       2: { author: { login: 'ana', avatarUrl: 'https://a/u/1?s=16' } },
     });
     expect(lines[4]).to.equal(
-      '| ◉ | ![@ana](https://a/u/1?s=16) **#2** 👈 |  |  |'
+      '| ◉ | ![ana](https://images.weserv.nl/?url=https%3A%2F%2Fa%2Fu%2F1%3Fs%3D16&w=16&h=16&fit=cover&mask=circle) **#2** 👈 |  |  |'
     );
   });
 

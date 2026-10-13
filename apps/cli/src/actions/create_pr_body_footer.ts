@@ -4,6 +4,8 @@ import { TContext } from '../lib/context';
 export const stackStart = '<!-- charcoal-stack -->';
 export const stackEnd = '<!-- /charcoal-stack -->';
 
+export type TGhUser = { login: string; avatarUrl: string };
+
 export type TPrDetails = {
   title?: string;
   state?: 'OPEN' | 'CLOSED' | 'MERGED';
@@ -13,7 +15,7 @@ export type TPrDetails = {
   mergeable?: 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN';
   additions?: number;
   deletions?: number;
-  author?: { login: string; avatarUrl: string };
+  author?: TGhUser;
   threads?: { resolved: number; total: number };
 };
 
@@ -24,8 +26,13 @@ export function createPrBodyFooter(
   branch: string,
   {
     details = {},
+    viewer,
     now = new Date(),
-  }: { details?: Record<number, TPrDetails>; now?: Date } = {}
+  }: {
+    details?: Record<number, TPrDetails>;
+    viewer?: TGhUser;
+    now?: Date;
+  } = {}
 ): string {
   const stack = [
     ...upstackLine(context, branch).reverse(),
@@ -48,10 +55,7 @@ export function createPrBodyFooter(
       : url
       ? `[#${number}${title}](${url})`
       : `#${number}${title}`;
-    // GitHub sizes the avatar by its URL, so plain markdown is enough.
-    const avatar = d.author
-      ? `![@${d.author.login}](${d.author.avatarUrl}) `
-      : '';
+    const avatar = d.author ? `${avatarImage(d.author)} ` : '';
     const threads = d.threads?.total
       ? `💬 ${d.threads.resolved}/${d.threads.total}`
       : '';
@@ -95,13 +99,13 @@ export function createPrBodyFooter(
     '',
     '</details>',
     '',
-    `_Updated ${now
-      .toISOString()
-      .slice(0, 16)
-      .replace(
-        'T',
-        ' '
-      )} UTC by \`ch submit\` · [Charcoal](https://github.com/fbarretto/charcoal)_`,
+    `_Updated ${now.toISOString().slice(0, 16).replace('T', ' ')} UTC${
+      viewer
+        ? ` by ${avatarImage(viewer)} [${viewer.login}](https://github.com/${
+            viewer.login
+          })`
+        : ''
+    } · [Charcoal](https://github.com/fbarretto/charcoal)_`,
     stackEnd,
   ].join('\n');
 }
@@ -168,6 +172,13 @@ function ancestors(context: TContext, branch: string): string[] {
   return result;
 }
 
+// Markdown can't size or round an image, so an image proxy crops it to a
+// 16px circle. No '@' anywhere: in a comment it would notify the user.
+function avatarImage(user: TGhUser): string {
+  const url = encodeURIComponent(user.avatarUrl);
+  return `![${user.login}](https://images.weserv.nl/?url=${url}&w=16&h=16&fit=cover&mask=circle)`;
+}
+
 function escapeMarkdown(text: string): string {
   return text.replace(/([\\`*_[\]<>|#])/g, '\\$1');
 }
@@ -177,16 +188,16 @@ function escapeMarkdown(text: string): string {
 export function fetchPrDetails(
   repo: string,
   numbers: number[]
-): Record<number, TPrDetails> {
+): { details: Record<number, TPrDetails>; viewer?: TGhUser } {
   if (!numbers.length) {
-    return {};
+    return { details: {} };
   }
   const [owner, name] = repo.split('/');
   const fields = numbers
     .map(
       (
         n
-      ) => `pr${n}: pullRequest(number: ${n}) { number title state isDraft reviewDecision mergeable additions deletions author { login avatarUrl(size: 16) }
+      ) => `pr${n}: pullRequest(number: ${n}) { number title state isDraft reviewDecision mergeable additions deletions author { login avatarUrl(size: 64) }
         commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
         reviewThreads(first: 100) { nodes { isResolved } } }`
     )
@@ -198,7 +209,7 @@ export function fetchPrDetails(
         'api',
         'graphql',
         '-f',
-        `query=query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { ${fields} } }`,
+        `query=query($owner: String!, $name: String!) { viewer { login avatarUrl(size: 64) } repository(owner: $owner, name: $name) { ${fields} } }`,
         '-f',
         `owner=${owner}`,
         '-f',
@@ -206,7 +217,8 @@ export function fetchPrDetails(
       ],
       { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }
     );
-    const prs = Object.values(JSON.parse(out).data.repository) as Array<{
+    const data = JSON.parse(out).data;
+    const prs = Object.values(data.repository) as Array<{
       number: number;
       title: string;
       state: TPrDetails['state'];
@@ -215,13 +227,13 @@ export function fetchPrDetails(
       mergeable: TPrDetails['mergeable'];
       additions: number;
       deletions: number;
-      author: { login: string; avatarUrl: string } | null;
+      author: TGhUser | null;
       commits: {
         nodes: { commit: { statusCheckRollup: { state: string } | null } }[];
       };
       reviewThreads: { nodes: { isResolved: boolean }[] };
     }>;
-    return Object.fromEntries(
+    const details = Object.fromEntries(
       prs
         .filter((pr) => pr)
         .map((pr) => [
@@ -245,8 +257,9 @@ export function fetchPrDetails(
           },
         ])
     );
+    return { details, viewer: data.viewer ?? undefined };
   } catch {
-    return {};
+    return { details: {} };
   }
 }
 
