@@ -181,6 +181,26 @@ describe('createPrBodyFooter', () => {
       .split(' | ')
       .map((c) => c.trim());
 
+  it('links every PR title to its PR', () => {
+    const withUrls = {
+      ...context,
+      engine: {
+        ...context.engine,
+        getPrInfo: (b: string) =>
+          numbers[b]
+            ? { number: numbers[b], url: `https://gh/pr/${numbers[b]}` }
+            : undefined,
+      },
+    } as unknown as TContext;
+    const lines = createPrBodyFooter(withUrls, 'b', {
+      details: { 2: { title: 'Fix [y]' } },
+    }).split('\n');
+    expect(lines[3]).to.equal('| ◯ | [#3](https://gh/pr/3) |  |  |');
+    expect(lines[4]).to.equal(
+      '| ◉ | **[#2 Fix \\[y\\]](https://gh/pr/2)** 👈 |  |  |'
+    );
+  });
+
   it('lists one line top to bottom, current marked, base at the bottom', () => {
     expect(block('b').slice(1, 6)).to.deep.equal([
       '| | Stack · 2 of 3 | Threads | Status |',
@@ -191,7 +211,7 @@ describe('createPrBodyFooter', () => {
     ]);
     expect(block('b')[6]).to.equal('| ◯ | `develop` (base) | | |');
     expect(block('b')).to.include(
-      '<sub>Updated 2026-10-13 18:30 UTC by `ch submit` · [Charcoal](https://github.com/fbarretto/charcoal)</sub>'
+      '_Updated 2026-10-13 18:30 UTC by `ch submit` · [Charcoal](https://github.com/fbarretto/charcoal)_'
     );
   });
 
@@ -244,10 +264,10 @@ describe('createPrBodyFooter', () => {
 
   it("shows the PR author's avatar before the PR", () => {
     const lines = block('b', {
-      2: { author: { login: 'ana', avatarUrl: 'https://a/u/1?s=40' } },
+      2: { author: { login: 'ana', avatarUrl: 'https://a/u/1?s=16' } },
     });
     expect(lines[4]).to.equal(
-      '| ◉ | <img src="https://a/u/1?s=40" width="16" height="16" alt="@ana"> **#2** 👈 |  |  |'
+      '| ◉ | ![@ana](https://a/u/1?s=16) **#2** 👈 |  |  |'
     );
   });
 

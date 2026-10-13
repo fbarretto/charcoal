@@ -41,9 +41,12 @@ export function createPrBodyFooter(
     const d = prDetails[i];
     const current = b === branch;
     const title = d.title ? ` ${escapeMarkdown(d.title)}` : '';
-    const ref = current ? `**#${number}${title}** 👈` : `#${number}${title}`;
+    const url = context.engine.getPrInfo(b)?.url;
+    const link = url ? `[#${number}${title}](${url})` : `#${number}${title}`;
+    const ref = current ? `**${link}** 👈` : link;
+    // GitHub sizes the avatar by its URL, so plain markdown is enough.
     const avatar = d.author
-      ? `<img src="${d.author.avatarUrl}" width="16" height="16" alt="@${d.author.login}"> `
+      ? `![@${d.author.login}](${d.author.avatarUrl}) `
       : '';
     const threads = d.threads?.total
       ? `💬 ${d.threads.resolved}/${d.threads.total}`
@@ -88,13 +91,13 @@ export function createPrBodyFooter(
     '',
     '</details>',
     '',
-    `<sub>Updated ${now
+    `_Updated ${now
       .toISOString()
       .slice(0, 16)
       .replace(
         'T',
         ' '
-      )} UTC by \`ch submit\` · [Charcoal](https://github.com/fbarretto/charcoal)</sub>`,
+      )} UTC by \`ch submit\` · [Charcoal](https://github.com/fbarretto/charcoal)_`,
     stackEnd,
   ].join('\n');
 }
@@ -179,7 +182,7 @@ export function fetchPrDetails(
     .map(
       (
         n
-      ) => `pr${n}: pullRequest(number: ${n}) { number title state isDraft reviewDecision mergeable additions deletions author { login avatarUrl(size: 32) }
+      ) => `pr${n}: pullRequest(number: ${n}) { number title state isDraft reviewDecision mergeable additions deletions author { login avatarUrl(size: 16) }
         commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
         reviewThreads(first: 100) { nodes { isResolved } } }`
     )
