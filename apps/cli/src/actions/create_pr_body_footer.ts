@@ -32,23 +32,41 @@ export function createPrBodyFooter(
     const current = b === branch;
     const title = d.title ? ` ${escapeMarkdown(d.title)}` : '';
     const ref = current ? `**#${number}${title}** 👈` : `#${number}${title}`;
-    return [`${current ? '◉' : '◯'} ${ref}`, ...badges(d)].join(' · ');
+    return `| ${current ? '◉' : '◯'} | ${ref} | ${badges(d).join(' | ')} |`;
   });
   const position = stack.length - stack.indexOf(branch);
-  const base = context.engine.getParent(stack[stack.length - 1] ?? branch);
+  const base =
+    context.engine.getParent(stack[stack.length - 1] ?? branch) ??
+    context.engine.trunk;
+  const copyLines = stack.map((b) => {
+    const pr = context.engine.getPrInfo(b);
+    const title = details[pr?.number as number]?.title;
+    return [`#${pr?.number}`, title, pr?.url].filter(Boolean).join(' ');
+  });
 
   return [
     `\n\n${stackStart}`,
-    `#### Stack · ${position} of ${stack.length}`,
+    `| | Stack · ${position} of ${stack.length} | State | CI | Review | Threads |`,
+    '|:-:|---|---|---|---|---|',
+    ...rows,
+    `| ◯ | \`${base}\` (base) | | | | |`,
     '',
-    [...rows, `\`${base ?? context.engine.trunk}\` (base)`].join('\\\n'),
+    '<details><summary>Copy stack</summary>',
+    '',
+    '```',
+    ...copyLines,
+    '```',
+    '',
+    '</details>',
     '',
     `<sub>Updated on each \`ch submit\` by [Charcoal](https://github.com/fbarretto/charcoal)</sub>`,
     stackEnd,
   ].join('\n');
 }
 
+// State, CI, review and threads columns; empty cells keep the table aligned.
 function badges(d: TPrDetails): string[] {
+  const open = d.state === 'OPEN';
   const state =
     d.state === 'MERGED'
       ? '🟣 Merged'
@@ -56,28 +74,29 @@ function badges(d: TPrDetails): string[] {
       ? '⚪ Closed'
       : d.isDraft
       ? '📝 Draft'
-      : d.state === 'OPEN'
+      : open
       ? '🟢 Open'
-      : undefined;
-  const open = d.state === 'OPEN';
-  const checks =
-    open && (d.checks === 'FAILURE' || d.checks === 'ERROR')
-      ? '❌ CI failing'
-      : open && (d.checks === 'PENDING' || d.checks === 'EXPECTED')
-      ? '⏳ CI running'
-      : open && d.checks === 'SUCCESS'
-      ? '✅ CI passing'
-      : undefined;
-  const review =
-    open && d.reviewDecision === 'APPROVED'
-      ? '👍 Approved'
-      : open && d.reviewDecision === 'CHANGES_REQUESTED'
-      ? '🔴 Changes requested'
-      : undefined;
+      : '';
+  const checks = !open
+    ? ''
+    : d.checks === 'FAILURE' || d.checks === 'ERROR'
+    ? '❌ Failing'
+    : d.checks === 'PENDING' || d.checks === 'EXPECTED'
+    ? '⏳ Running'
+    : d.checks === 'SUCCESS'
+    ? '✅ Passing'
+    : '';
+  const review = !open
+    ? ''
+    : d.reviewDecision === 'APPROVED'
+    ? '👍 Approved'
+    : d.reviewDecision === 'CHANGES_REQUESTED'
+    ? '🔴 Changes requested'
+    : '';
   const threads = d.threads?.total
-    ? `💬 ${d.threads.resolved}/${d.threads.total} resolved`
-    : undefined;
-  return [state, checks, review, threads].filter((x): x is string => !!x);
+    ? `💬 ${d.threads.resolved}/${d.threads.total}`
+    : '';
+  return [state, checks, review, threads];
 }
 
 // The first child at each level, so the list stays one straight line.

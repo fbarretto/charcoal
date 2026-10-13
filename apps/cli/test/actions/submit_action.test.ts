@@ -193,22 +193,22 @@ describe('createPrBodyFooter', () => {
         numbers[b] ? { number: numbers[b] } : undefined,
     },
   } as unknown as TContext;
-  const rows = (branch: string, details = {}) =>
-    createPrBodyFooter(context, branch, details).split('\n').slice(3, -3);
+  const block = (branch: string, details = {}) =>
+    createPrBodyFooter(context, branch, details).split('\n');
 
   it('lists one line top to bottom, current marked, base at the bottom', () => {
-    expect(rows('b')).to.deep.equal([
-      '#### Stack · 2 of 3',
-      '',
-      '◯ #3\\',
-      '◉ **#2** 👈\\',
-      '◯ #1\\',
-      '`develop` (base)',
+    expect(block('b').slice(3, 8)).to.deep.equal([
+      '| | Stack · 2 of 3 | State | CI | Review | Threads |',
+      '|:-:|---|---|---|---|---|',
+      '| ◯ | #3 |  |  |  |  |',
+      '| ◉ | **#2** 👈 |  |  |  |  |',
+      '| ◯ | #1 |  |  |  |  |',
     ]);
+    expect(block('b')[8]).to.equal('| ◯ | `develop` (base) | | | | |');
   });
 
-  it('shows titles and states', () => {
-    const [, , top, current] = rows('b', {
+  it('shows titles and states in aligned columns', () => {
+    const lines = block('b', {
       3: {
         title: 'Add *x*',
         state: 'OPEN',
@@ -217,9 +217,21 @@ describe('createPrBodyFooter', () => {
       },
       2: { title: 'Fix y', state: 'MERGED', checks: 'FAILURE' },
     });
-    expect(top).to.equal(
-      '◯ #3 Add \\*x\\* · 🟢 Open · ❌ CI failing · 💬 1/2 resolved\\'
+    expect(lines[5]).to.equal(
+      '| ◯ | #3 Add \\*x\\* | 🟢 Open | ❌ Failing |  | 💬 1/2 |'
     );
-    expect(current).to.equal('◉ **#2 Fix y** 👈 · 🟣 Merged\\');
+    expect(lines[6]).to.equal('| ◉ | **#2 Fix y** 👈 | 🟣 Merged |  |  |  |');
+  });
+
+  it('adds a copyable list of the stack', () => {
+    const lines = block('b', { 3: { title: 'Add *x*' } });
+    const start = lines.indexOf('```');
+    expect(lines.slice(start, start + 5)).to.deep.equal([
+      '```',
+      '#3 Add *x*',
+      '#2',
+      '#1',
+      '```',
+    ]);
   });
 });
