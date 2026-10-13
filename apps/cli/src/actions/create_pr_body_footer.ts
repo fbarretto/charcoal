@@ -101,9 +101,9 @@ export function createPrBodyFooter(
     '',
     `_Updated ${now.toISOString().slice(0, 16).replace('T', ' ')} UTC${
       viewer
-        ? ` by ${avatarImage(viewer)} [${viewer.login}](https://github.com/${
+        ? ` by&nbsp; ${avatarImage(viewer)}&nbsp; [${
             viewer.login
-          })`
+          }](https://github.com/${viewer.login})`
         : ''
     } · [Charcoal](https://github.com/fbarretto/charcoal)_`,
     stackEnd,
@@ -179,8 +179,10 @@ function avatarImage(user: TGhUser): string {
   return `![${user.login}](https://images.weserv.nl/?url=${url}&w=16&h=16&fit=cover&mask=circle)`;
 }
 
+// A word joiner after '@' keeps a title like "thanks @bob" from tagging
+// anyone each time the comment is posted; it renders the same.
 function escapeMarkdown(text: string): string {
-  return text.replace(/([\\`*_[\]<>|#])/g, '\\$1');
+  return text.replace(/([\\`*_[\]<>|#])/g, '\\$1').replace(/@/g, '@\u2060');
 }
 
 // One GraphQL call for every PR the footers mention. On any failure the

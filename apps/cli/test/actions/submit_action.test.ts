@@ -266,9 +266,15 @@ describe('createPrBodyFooter', () => {
       now: new Date('2026-10-13T18:30:00Z'),
     });
     expect(footer).to.contain(
-      '_Updated 2026-10-13 18:30 UTC by ![ana](https://images.weserv.nl/?url=https%3A%2F%2Fa%2Fu%2F1&w=16&h=16&fit=cover&mask=circle) [ana](https://github.com/ana) · [Charcoal](https://github.com/fbarretto/charcoal)_'
+      '_Updated 2026-10-13 18:30 UTC by&nbsp; ![ana](https://images.weserv.nl/?url=https%3A%2F%2Fa%2Fu%2F1&w=16&h=16&fit=cover&mask=circle)&nbsp; [ana](https://github.com/ana) · [Charcoal](https://github.com/fbarretto/charcoal)_'
     );
     expect(footer).not.to.contain('@ana');
+  });
+
+  it('never tags anyone mentioned in a PR title', () => {
+    const row = block('b', { 2: { title: 'thanks @bob and @org/team' } })[4];
+    expect(row).not.to.match(/@[A-Za-z]/);
+    expect(row).to.contain('thanks @\u2060bob and @\u2060org/team');
   });
 
   it("shows the PR author's avatar before the PR", () => {
