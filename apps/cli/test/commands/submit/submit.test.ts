@@ -119,7 +119,7 @@ for (const scene of [new CloneScene()]) {
         );
       expect(stackComments(1)).to.have.length(1);
       expect(stackComments(2)).to.have.length(1);
-      expect(stackComments(2)[0].body).to.match(/\*\*#2\*\* 👈/);
+      expect(stackComments(2)[0].body).to.match(/\*\*#\u20602\*\* 👈/);
 
       submit();
       expect(stackComments(1)).to.have.length(1);
