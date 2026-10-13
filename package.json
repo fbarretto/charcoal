@@ -8,6 +8,9 @@
     ]
   },
   "packageManager": "yarn@3.3.1",
+  "scripts": {
+    "docs:build": "node scripts/build_docs.js"
+  },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.47.0",
     "@typescript-eslint/parser": "^5.47.0",
@@ -19,6 +22,7 @@
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-simple-import-sort": "^8.0.0",
     "husky": "^8.0.1",
+    "marked": "4.3.0",
     "nyc": "^15.1.0",
     "prettier": "^2.8.1",
     "pretty-quick": "^3.1.3",
