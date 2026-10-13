@@ -111,6 +111,26 @@ for (const scene of [new CloneScene()]) {
       expect(scene.originRepo.getRef('refs/heads/b')).to.equal(theirs);
     });
 
+    it('keeps the stack in one comment per PR and does not touch the body', () => {
+      submit();
+      const stackComments = (n: number) =>
+        (gh.read().comments?.[n] ?? []).filter((c) =>
+          c.body.includes('<!-- charcoal-stack -->')
+        );
+      expect(stackComments(1)).to.have.length(1);
+      expect(stackComments(2)).to.have.length(1);
+      expect(stackComments(2)[0].body).to.match(/\*\*#2\*\* 👈/);
+
+      submit();
+      expect(stackComments(1)).to.have.length(1);
+      expect(stackComments(2)).to.have.length(1);
+      expect(
+        gh
+          .calls()
+          .filter((c) => c.startsWith('pr edit') && c.includes('--body'))
+      ).to.deep.equal([]);
+    });
+
     it('the default `ss` alias submits the whole stack', () => {
       scene.repo.checkoutBranch('a');
       scene.repo.runCliCommandAndGetOutput([`ss`, `--no-interactive`]);

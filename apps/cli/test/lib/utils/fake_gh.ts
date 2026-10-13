@@ -58,6 +58,28 @@ if (args[0] === 'api' && args[1].includes('/stacks?pull_request=')) {
   })));
   process.exit(0);
 }
+const seg = (a) => String(a || '').split('?')[0].split('/');
+const issue = args[0] === 'api' && seg(args[1])[3] === 'issues' && seg(args[1])[5] === 'comments' && [0, seg(args[1])[4]];
+if (issue) {
+  st.comments = st.comments || {};
+  const list = (st.comments[issue[1]] = st.comments[issue[1]] || []);
+  if (args.includes('-f')) {
+    st.nextComment = (st.nextComment || 100) + 1;
+    list.push({ id: st.nextComment, body: flag('-f').slice('body='.length) });
+    save();
+  }
+  out(list);
+  process.exit(0);
+}
+const patch = args[0] === 'api' && args.includes('PATCH') && seg(flag('PATCH'))[4] === 'comments' && [0, seg(flag('PATCH'))[5]];
+if (patch) {
+  Object.values(st.comments || {}).flat()
+    .filter((c) => String(c.id) === patch[1])
+    .forEach((c) => { c.body = flag('-f').slice('body='.length); });
+  save();
+  out({});
+  process.exit(0);
+}
 if (args[0] === 'api') fail('gh: Not Found (HTTP 404)');
 fail('fake gh: unexpected ' + args.join(' '));
 `;
@@ -78,6 +100,8 @@ export type TFakeGhState = {
   nextPr: number;
   user?: string;
   stacks?: { number: number; prs: number[] }[];
+  comments?: Record<string, { id: number; body: string }[]>;
+  nextComment?: number;
 };
 
 export class FakeGh {

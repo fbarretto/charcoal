@@ -19,7 +19,10 @@ export type TPrDetails = {
 export function createPrBodyFooter(
   context: TContext,
   branch: string,
-  details: Record<number, TPrDetails> = {}
+  {
+    details = {},
+    now = new Date(),
+  }: { details?: Record<number, TPrDetails>; now?: Date } = {}
 ): string {
   const stack = [
     ...upstackLine(context, branch).reverse(),
@@ -39,10 +42,8 @@ export function createPrBodyFooter(
     const threads = d.threads?.total
       ? `💬 ${d.threads.resolved}/${d.threads.total}`
       : '';
-    return `| ${current ? '◉' : '◯'} | ${ref} | ${status(
-      prDetails,
-      i
-    )} | ${threads} |`;
+    const state = status(prDetails, i);
+    return `| ${current ? '◉' : '◯'} | ${ref} | ${threads} | ${state} |`;
   });
   const position = stack.length - stack.indexOf(branch);
   const base =
@@ -55,8 +56,8 @@ export function createPrBodyFooter(
   });
 
   return [
-    `\n\n${stackStart}`,
-    `| | Stack · ${position} of ${stack.length} | Status | Threads |`,
+    stackStart,
+    `| | Stack · ${position} of ${stack.length} | Threads | Status |`,
     '|:-:|---|---|---|',
     ...rows,
     `| ◯ | \`${base}\` (base) | | |`,
@@ -69,7 +70,13 @@ export function createPrBodyFooter(
     '',
     '</details>',
     '',
-    `<sub>Updated on each \`ch submit\` by [Charcoal](https://github.com/fbarretto/charcoal)</sub>`,
+    `<sub>Updated ${now
+      .toISOString()
+      .slice(0, 16)
+      .replace(
+        'T',
+        ' '
+      )} UTC by \`ch submit\` · [Charcoal](https://github.com/fbarretto/charcoal)</sub>`,
     stackEnd,
   ].join('\n');
 }
@@ -92,7 +99,7 @@ function statusLabel(
   if (!below.length) return ['ready to merge', '#1a7f37'];
   return below.every((d) => blocker(d) === 'ready')
     ? ['ready to merge as a stack', '#1a7f37']
-    : ['waiting on downstack', '#6e7781'];
+    : ['waiting on downstack', '#1a7f37'];
 }
 
 // What keeps this PR from merging on its own, or 'ready'.
@@ -210,4 +217,45 @@ export function fetchPrDetails(
   } catch {
     return {};
   }
+}
+
+// The stack lives in one comment per PR, found again by its marker. Submit
+// posts it right after creating the PR, so it is the first comment there; it
+// is looked for on the first page only.
+export function upsertStackComment(
+  repo: string,
+  number: number,
+  block: string
+): 'created' | 'updated' | 'unchanged' {
+  const comments = JSON.parse(
+    execFileSync(
+      'gh',
+      ['api', `repos/${repo}/issues/${number}/comments?per_page=100`],
+      { encoding: 'utf-8' }
+    ) || '[]'
+  ) as { id: number; body?: string }[];
+  const existing = comments.find((c) => c.body?.includes(stackStart));
+  if (existing?.body === block) {
+    return 'unchanged';
+  }
+  execFileSync(
+    'gh',
+    existing
+      ? [
+          'api',
+          '-X',
+          'PATCH',
+          `repos/${repo}/issues/comments/${existing.id}`,
+          '-f',
+          `body=${block}`,
+        ]
+      : [
+          'api',
+          `repos/${repo}/issues/${number}/comments`,
+          '-f',
+          `body=${block}`,
+        ],
+    { encoding: 'utf-8' }
+  );
+  return existing ? 'updated' : 'created';
 }
