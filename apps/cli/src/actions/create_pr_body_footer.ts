@@ -42,8 +42,12 @@ export function createPrBodyFooter(
     const current = b === branch;
     const title = d.title ? ` ${escapeMarkdown(d.title)}` : '';
     const url = context.engine.getPrInfo(b)?.url;
-    const link = url ? `[#${number}${title}](${url})` : `#${number}${title}`;
-    const ref = current ? `**${link}** 👈` : link;
+    // The current PR is the page being read, so only the others link.
+    const ref = current
+      ? `**#${number}${title}** 👈`
+      : url
+      ? `[#${number}${title}](${url})`
+      : `#${number}${title}`;
     // GitHub sizes the avatar by its URL, so plain markdown is enough.
     const avatar = d.author
       ? `![@${d.author.login}](${d.author.avatarUrl}) `

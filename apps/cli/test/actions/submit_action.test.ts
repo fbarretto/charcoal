@@ -181,7 +181,7 @@ describe('createPrBodyFooter', () => {
       .split(' | ')
       .map((c) => c.trim());
 
-  it('links every PR title to its PR', () => {
+  it('links every PR title but the current one', () => {
     const withUrls = {
       ...context,
       engine: {
@@ -196,9 +196,7 @@ describe('createPrBodyFooter', () => {
       details: { 2: { title: 'Fix [y]' } },
     }).split('\n');
     expect(lines[3]).to.equal('| ◯ | [#3](https://gh/pr/3) |  |  |');
-    expect(lines[4]).to.equal(
-      '| ◉ | **[#2 Fix \\[y\\]](https://gh/pr/2)** 👈 |  |  |'
-    );
+    expect(lines[4]).to.equal('| ◉ | **#2 Fix \\[y\\]** 👈 |  |  |');
   });
 
   it('lists one line top to bottom, current marked, base at the bottom', () => {
