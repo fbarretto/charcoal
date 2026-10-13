@@ -27,6 +27,7 @@ import * as create from './commands/create';
 import * as deleteCmd from './commands/delete';
 import * as demo from './commands/demo';
 import * as dev from './commands/dev';
+import * as docs from './commands/docs';
 import * as down from './commands/down';
 import * as edit from './commands/edit';
 import * as feedback from './commands/feedback';
@@ -98,6 +99,7 @@ const commandModules = [
   deleteCmd,
   demo,
   dev,
+  docs,
   down,
   edit,
   feedback,
