@@ -208,23 +208,26 @@ describe('createPrBodyFooter', () => {
   });
 
   it('picks one Graphite-style status per PR', () => {
-    const status = (d: object) => block('b', { 2: d })[6].split(' | ')[2];
-    expect(status({ state: 'MERGED', isDraft: true })).to.equal('🟣 Merged');
-    expect(status({ state: 'OPEN', isDraft: true })).to.equal('📝 Draft');
+    const status = (d: object) =>
+      block('b', { 2: d })[6]
+        .split(' | ')[2]
+        .replace(/^\$\\color\{#\w+\}\\textsf\{(.*)\}\$$/, '$1');
+    expect(status({ state: 'MERGED', isDraft: true })).to.equal('Merged');
+    expect(status({ state: 'OPEN', isDraft: true })).to.equal('Draft');
     expect(status({ state: 'OPEN', mergeable: 'CONFLICTING' })).to.equal(
-      '⚠️ Merge conflicts'
+      'Merge conflicts'
     );
     expect(
       status({ state: 'OPEN', checks: 'FAILURE', reviewDecision: 'APPROVED' })
-    ).to.equal('❌ CI failing');
+    ).to.equal('CI failing');
     expect(
       status({ state: 'OPEN', checks: 'PENDING', reviewDecision: 'APPROVED' })
-    ).to.equal('⏳ CI running');
+    ).to.equal('CI running');
     expect(
       status({ state: 'OPEN', checks: 'SUCCESS', reviewDecision: 'APPROVED' })
-    ).to.equal('✅ Ready to merge');
+    ).to.equal('Ready to merge');
     expect(status({ state: 'OPEN', checks: 'SUCCESS' })).to.equal(
-      '👀 Needs review'
+      'Needs review'
     );
   });
 
@@ -239,9 +242,11 @@ describe('createPrBodyFooter', () => {
       2: { title: 'Fix y', state: 'MERGED', checks: 'FAILURE' },
     });
     expect(lines[5]).to.equal(
-      '| ◯ | #3 Add \\*x\\* | ❌ CI failing | 💬 1/2 |'
+      '| ◯ | #3 Add \\*x\\* | $\\color{#cf222e}\\textsf{CI failing}$ | 💬 1/2 |'
     );
-    expect(lines[6]).to.equal('| ◉ | **#2 Fix y** 👈 | 🟣 Merged |  |');
+    expect(lines[6]).to.equal(
+      '| ◉ | **#2 Fix y** 👈 | $\\color{#8250df}\\textsf{Merged}$ |  |'
+    );
   });
 
   it('adds a copyable list of the stack', () => {

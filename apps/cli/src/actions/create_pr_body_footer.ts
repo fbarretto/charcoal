@@ -69,18 +69,27 @@ export function createPrBodyFooter(
 }
 
 // One status per PR, the first that applies, as Graphite's stack shows it.
+// GitHub drops inline styles, so the color comes from its math renderer.
 function status(d: TPrDetails): string {
+  const [label, color] = statusLabel(d) ?? [];
+  return label ? `$\\color{${color}}\\textsf{${label}}$` : '';
+}
+
+function statusLabel(d: TPrDetails): [string, string] | undefined {
   const checks = d.checks ?? null;
-  if (d.state === 'MERGED') return '🟣 Merged';
-  if (d.state === 'CLOSED') return '⚪ Closed';
-  if (d.state !== 'OPEN') return '';
-  if (d.isDraft) return '📝 Draft';
-  if (d.mergeable === 'CONFLICTING') return '⚠️ Merge conflicts';
-  if (checks === 'FAILURE' || checks === 'ERROR') return '❌ CI failing';
-  if (d.reviewDecision === 'CHANGES_REQUESTED') return '🔴 Changes requested';
-  if (checks === 'PENDING' || checks === 'EXPECTED') return '⏳ CI running';
-  if (d.reviewDecision === 'APPROVED') return '✅ Ready to merge';
-  return '👀 Needs review';
+  if (d.state === 'MERGED') return ['Merged', '#8250df'];
+  if (d.state === 'CLOSED') return ['Closed', '#cf222e'];
+  if (d.state !== 'OPEN') return undefined;
+  if (d.isDraft) return ['Draft', '#6e7781'];
+  if (d.mergeable === 'CONFLICTING') return ['Merge conflicts', '#bc4c00'];
+  if (checks === 'FAILURE' || checks === 'ERROR')
+    return ['CI failing', '#cf222e'];
+  if (d.reviewDecision === 'CHANGES_REQUESTED')
+    return ['Changes requested', '#cf222e'];
+  if (checks === 'PENDING' || checks === 'EXPECTED')
+    return ['CI running', '#9a6700'];
+  if (d.reviewDecision === 'APPROVED') return ['Ready to merge', '#1a7f37'];
+  return ['Needs review', '#0969da'];
 }
 
 // The first child at each level, so the list stays one straight line.
