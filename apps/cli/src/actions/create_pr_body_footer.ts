@@ -13,6 +13,7 @@ export type TPrDetails = {
   mergeable?: 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN';
   additions?: number;
   deletions?: number;
+  author?: { login: string; avatarUrl: string };
   threads?: { resolved: number; total: number };
 };
 
@@ -41,11 +42,16 @@ export function createPrBodyFooter(
     const current = b === branch;
     const title = d.title ? ` ${escapeMarkdown(d.title)}` : '';
     const ref = current ? `**#${number}${title}** 👈` : `#${number}${title}`;
+    const avatar = d.author
+      ? `<img src="${d.author.avatarUrl}" width="16" height="16" alt="@${d.author.login}"> `
+      : '';
     const threads = d.threads?.total
       ? `💬 ${d.threads.resolved}/${d.threads.total}`
       : '';
     const state = status(prDetails, i);
-    return `| ${current ? '◉' : '◯'} | ${ref} | ${threads} | ${state} |`;
+    return `| ${
+      current ? '◉' : '◯'
+    } | ${avatar}${ref} | ${threads} | ${state} |`;
   });
   const position = stack.length - stack.indexOf(branch);
   const base =
@@ -173,7 +179,7 @@ export function fetchPrDetails(
     .map(
       (
         n
-      ) => `pr${n}: pullRequest(number: ${n}) { number title state isDraft reviewDecision mergeable additions deletions
+      ) => `pr${n}: pullRequest(number: ${n}) { number title state isDraft reviewDecision mergeable additions deletions author { login avatarUrl(size: 32) }
         commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
         reviewThreads(first: 100) { nodes { isResolved } } }`
     )
@@ -202,6 +208,7 @@ export function fetchPrDetails(
       mergeable: TPrDetails['mergeable'];
       additions: number;
       deletions: number;
+      author: { login: string; avatarUrl: string } | null;
       commits: {
         nodes: { commit: { statusCheckRollup: { state: string } | null } }[];
       };
@@ -220,6 +227,7 @@ export function fetchPrDetails(
             mergeable: pr.mergeable,
             additions: pr.additions,
             deletions: pr.deletions,
+            author: pr.author ?? undefined,
             checks: (pr.commits.nodes[0]?.commit.statusCheckRollup?.state ??
               null) as TPrDetails['checks'],
             threads: {

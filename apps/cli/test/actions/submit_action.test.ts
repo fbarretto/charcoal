@@ -242,6 +242,15 @@ describe('createPrBodyFooter', () => {
     ]);
   });
 
+  it("shows the PR author's avatar before the PR", () => {
+    const lines = block('b', {
+      2: { author: { login: 'ana', avatarUrl: 'https://a/u/1?s=40' } },
+    });
+    expect(lines[4]).to.equal(
+      '| ◉ | <img src="https://a/u/1?s=40" width="16" height="16" alt="@ana"> **#2** 👈 |  |  |'
+    );
+  });
+
   it('shows titles and states in aligned columns', () => {
     const lines = block('b', {
       3: {
