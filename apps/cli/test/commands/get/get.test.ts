@@ -123,6 +123,16 @@ for (const scene of [new CloneScene()]) {
       expect(scene.repo.currentBranchName()).to.equal('b');
     });
 
+    it('pulls trunk first, so the stack restacks onto the latest trunk', () => {
+      get(`a`);
+      advanceOrigin('main');
+      get(`a`);
+      expect(matchesOrigin('main')).to.be.true;
+      expect(() =>
+        scene.repo.runGitCommand([`merge-base`, `--is-ancestor`, `main`, `a`])
+      ).to.not.throw();
+    });
+
     it('restacks local branches on top unless --no-restack', () => {
       get(`b`);
       scene.repo.createChange('d', 'd');

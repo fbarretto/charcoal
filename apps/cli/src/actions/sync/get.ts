@@ -17,7 +17,7 @@ import { findStackForPr } from '../../lib/api/gh_stacks';
 import { SCOPE } from '../../lib/engine/scope_spec';
 import { syncPrInfo } from '../sync_pr_info';
 import { cleanBranches } from './clean_branches';
-import { restackWithoutConflicts } from './sync';
+import { pullTrunk, restackWithoutConflicts } from './sync';
 import { skippedInWorktreeMessage } from '../restack';
 
 type TGetArgs = {
@@ -59,6 +59,7 @@ export async function getAction(
       )}.`
     );
   }
+  await pullTrunk(args.force, context);
   const trunk = context.engine.trunk;
   const repo = githubRepoSlug(context);
 
