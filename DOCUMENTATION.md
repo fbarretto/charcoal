@@ -619,7 +619,7 @@ ch unfreeze teammate-branch
 
 ### `get` (alias `g`)
 
-Sync the branches from trunk to a given branch or PR number from remote, prompting to resolve conflicts, then check it out. With no argument, syncs the current stack. Useful for pulling a teammate's stack. It finds the stack through the pull requests, so it needs the GitHub integration (`ch repo github --enable`).
+Pull trunk, then sync the branches from trunk to a given branch or PR number from remote, prompting to resolve conflicts, then check it out. With no argument, syncs the current stack. Unlike `sync`, it leaves every other stack alone, so it is the way to update one stack onto the latest trunk. Useful for pulling a teammate's stack. It finds the stack through the pull requests, so it needs the GitHub integration (`ch repo github --enable`).
 
 | Flag                           | Description                                                                                                                                     |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -52,6 +52,7 @@ ch init --trunk main    # once per repo
 | Diff of just this layer                        | `ch info -d` or `git diff "$(ch parent)"...HEAD`                     |
 | Push and open/update PRs                       | `ch submit --stack`                                                  |
 | Pull trunk and branches, drop merged, restack  | `ch sync`                                                            |
+| Update only this stack onto the latest trunk   | `ch get` (see [One stack only](#one-stack-only))                     |
 | Merge the stack bottom-up, waiting on checks   | `ch merge --dry-run`, then `ch merge` (`--auto` to wait for reviews) |
 | Undo the last `ch` command                     | `ch undo`                                                            |
 | Finish / cancel a conflicted command           | `ch continue` / `ch abort -f`                                        |
@@ -114,7 +115,7 @@ Each `create` stacks on the current branch. `--onto <branch>` stacks somewhere e
 `ch` refuses to work on a branch it doesn't track (`Cannot perform this operation on untracked branch`). Check with `ch info`, then:
 
 ```bash
-ch sync              # first, so local trunk matches origin
+git fetch origin main:main   # first, so local trunk matches origin (touches no other branch)
 ch track -p main     # this branch becomes the bottom layer
 ch create ...        # keep stacking
 ```
@@ -122,6 +123,23 @@ ch create ...        # keep stacking
 `ch track` records the branch's base from local trunk, and warns if trunk is behind `origin`.
 
 `ch track -f` tracks a whole chain of untracked branches, picking the nearest ancestor as each parent.
+
+## One stack only
+
+`ch sync` pulls and restacks **every** tracked branch, including stacks other sessions or worktrees are working on, and leaves the ones that conflict for later. To update just the stack you're on:
+
+```bash
+ch get                        # pull trunk, then sync and restack only the current stack
+```
+
+`ch get` finds the stack through its PRs, so it needs them on GitHub. For a stack not submitted yet:
+
+```bash
+git fetch origin main:main    # update trunk only (fails if main is checked out in a worktree: pull there instead)
+ch restack                    # this stack only; --upstack for this branch and above
+```
+
+Neither touches other stacks. `ch get` leaves a branch that would conflict as it is; `ch restack` stops on it (resolve, then `ch continue`).
 
 ## Navigating
 
